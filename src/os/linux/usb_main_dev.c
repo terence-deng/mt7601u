@@ -380,7 +380,6 @@ static int rt2870_suspend(
 	struct usb_interface *intf,
 	pm_message_t state)
 {
-	struct net_device *net_dev;
 	VOID *pAd = usb_get_intfdata(intf);
 #if (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT)
 	UCHAR Flag;
@@ -436,7 +435,6 @@ static int rt2870_suspend(
 static int rt2870_resume(
 	struct usb_interface *intf)
 {
-	struct net_device *net_dev;
 	VOID *pAd = usb_get_intfdata(intf);
 #if (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT)
 	UCHAR Flag;
