@@ -1,0 +1,12 @@
+language: c
+
+compiler:
+  - gcc
+
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y gcc make build-essential linux-headers-$(uname -r)
+
+install: 
+  - make clean
+  - make all
