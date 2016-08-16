@@ -9,6 +9,8 @@ before_install:
   - mkdir -p src/mcu/bin
   - wget -c 'http://git.kernel.org/cgit/linux/kernel/git/firmware/linux-firmware.git/plain/mt7601u.bin' -O 'src/mcu/bin/MT7601.bin'
 
-install: 
+install: true
+
+script:
   - make clean
   - make all
