@@ -23,3 +23,9 @@
 *.hex
 .directory
 *.bak
+.*.o.cmd
+.*.ko.cmd
+.tmp_versions
+bin2h
+Module.symvers
+modules.orde
