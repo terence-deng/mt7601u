@@ -128,7 +128,7 @@ char const *pWirelessWscEventText[IW_WSC_EVENT_TYPE_NUM] = {
 #ifdef CONFIG_STA_SUPPORT
 #ifdef IWSC_SUPPORT
 // for IWSC wireless event messagechar 
-const *pWirelessIWscEventText[IW_IWSC_EVENT_TYPE_NUM] = {
+char const *pWirelessIWscEventText[IW_IWSC_EVENT_TYPE_NUM] = {
 	"IWSC - T1 mins time out!",									/* IW_IWSC_T1_TIMER_TIMEOUT */
 	"IWSC - T2 mins time out!",									/* IW_IWSC_T2_TIMER_TIMEOUT */
 	"IWSC - Become Registrar",									/* IW_IWSC_BECOME_REGISTRAR */
