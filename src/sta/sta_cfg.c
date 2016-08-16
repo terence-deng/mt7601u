@@ -1694,7 +1694,6 @@ INT	Set_WscUUIDE_Proc(
 	int i,UUIDLen;
 	UCHAR				tmp_Uuid_Str[UUID_LEN_STR];
 	UCHAR				Wsc_Uuid_E[UUID_LEN_HEX];
-	UCHAR				Wsc_Uuid_Str[UUID_LEN_STR];
 	UCHAR				uuidTmpStr[UUID_LEN_STR+2];
 	WSC_UUID_T uuid_t;
 	
@@ -6559,7 +6558,7 @@ VOID RTMPIoctlRF(
 {
 	PSTRING				this_char;
 	PSTRING				value;
-	UCHAR				regRF = 0, rf_bank = 0;
+	UCHAR				regRF = 0;
 	PSTRING				mpool, msg;
 	PSTRING				arg;
 	PSTRING				ptr;

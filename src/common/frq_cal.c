@@ -127,7 +127,6 @@ VOID FrequencyCalibrationMode(
 	UINT8 Mode)
 {
 	UCHAR RFValue = 0;
-	UINT32 PreRFValue = 0; 
 
 #ifdef MT7601
 	if (Mode == FREQ_CAL_MODE2)

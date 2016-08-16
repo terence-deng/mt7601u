@@ -4980,7 +4980,6 @@ VOID rtmp_read_multest_from_file(
 	UCHAR		macAddress[MAC_ADDR_LEN];
 	UCHAR	    keyMaterial[40];	
 	UCHAR		KeyLen, CipherAlg = CIPHER_NONE, KeyIdx;
-	PRT_802_11_WDS_ENTRY pWdsEntry;
 		
 	/*WdsPhyMode */
 	if (RTMPGetKeyParameter("WdsPhyMode", tmpbuf, MAX_PARAM_BUFFER_SIZE, buffer, TRUE))

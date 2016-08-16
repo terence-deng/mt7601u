@@ -3510,7 +3510,6 @@ BOOLEAN RxDoneInterruptHandle(
 BOOLEAN CmdRspEventCallbackHandle(PRTMP_ADAPTER pAd, PUCHAR pRspBuffer)
 {
 
-	INT32 Ret;
 	struct MCU_CTRL *MCtrl = &pAd->MCUCtrl;
 	struct CMD_RSP_EVENT *CmdRspEvent, *CmdRspEventTmp;
 	RXFCE_INFO_CMD *pFceInfo = (RXFCE_INFO_CMD *)pRspBuffer;
@@ -4068,9 +4067,7 @@ NTSTATUS StopDmaTx(
 {
 	UINT32 MacReg = 0, MTxCycle = 0;
 #ifdef RTMP_MAC_USB
-	USB_DMA_CFG_STRUC UsbCfg;
 #endif /* RTMP_MAC_USB */
-	UINT8 IdleNums = 0;
 	UINT32 MaxRetry;
 
 	//DBGPRINT(RT_DEBUG_TRACE, ("====> %s\n", __FUNCTION__));

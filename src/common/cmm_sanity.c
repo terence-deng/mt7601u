@@ -872,7 +872,6 @@ BOOLEAN PeerBeaconAndProbeRspSanity_Old(
 				(bFoundIWscIe == TRUE))
 			{
 				BOOLEAN bSelReg = FALSE;
-				USHORT DataLen = 0;
 				
 				/* re-use this boolean variable */
 				bFoundIWscIe = FALSE;
@@ -1523,7 +1522,6 @@ BOOLEAN PeerBeaconAndProbeRspSanity(
 			(bFoundIWscIe == TRUE))
 		{
 			BOOLEAN bSelReg = FALSE;
-			USHORT DataLen = 0;
 			
 			/* re-use this boolean variable */
 			bFoundIWscIe = FALSE;

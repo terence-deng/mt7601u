@@ -198,16 +198,6 @@ static VOID rlt_usb_write_txinfo(
 }
 
 
-static VOID rlt_usb_update_txinfo(
-	IN RTMP_ADAPTER *pAd,
-	IN TXINFO_STRUC *pTxInfo,
-	IN TX_BLK *pTxBlk)
-{
-#ifdef RLT_MAC
-#endif /* RLT_MAC */
-}
-
-
 #ifdef CONFIG_STA_SUPPORT
 VOID ComposePsPoll(RTMP_ADAPTER *pAd)
 {

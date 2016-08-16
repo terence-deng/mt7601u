@@ -384,7 +384,6 @@ void WscM2DTimeOutAction(
 		to notify the UPnP deamon that some error happened in STATE MACHINE.
 	*/
 	PWSC_CTRL pWscControl = (PWSC_CTRL)FunctionContext;
-	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pWscControl->pAd;
 	WSC_UPNP_NODE_INFO	*pWscNodeInfo;
 #ifdef CONFIG_AP_SUPPORT
 	MAC_TABLE_ENTRY		*pEntry = NULL;
@@ -5334,8 +5333,6 @@ VOID WscBuildBeaconIE(
 	if ((pAd->StaCfg.BssType == BSS_ADHOC) &&
 		(CurOpMode == STA_MODE))
 	{
-		UCHAR respType;
-			
 		// Connection Type Flag ESS
 		templen = AppendWSCTLV(WSC_ID_CONN_TYPE, pData, (UINT8 *)&pReg->SelfInfo.ConnTypeFlags, 0);
 		pData += templen;

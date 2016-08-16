@@ -1292,7 +1292,6 @@ INT Set_WscVendorPinCode_Proc(
 {
 	PWSC_CTRL   pWscControl = NULL;
 	POS_COOKIE  pObj = (POS_COOKIE) pAd->OS_Cookie;
-	UCHAR       apidx = pObj->ioctl_if;
 
 #ifdef CONFIG_AP_SUPPORT
 /*	POS_COOKIE  pObj = (POS_COOKIE) pAd->OS_Cookie;*/

@@ -1108,7 +1108,7 @@ VOID	IWSC_PeerAction(
                 if ((pAd->StaCfg.AuthMode == Ndis802_11AuthModeWPA2PSK) 
                     && (pEntry->WPA_Authenticator.WpaState < AS_INITPSK))                      
                 {
-    				INT len, i;
+					INT i;
 					BOOLEAN bHigherMAC = FALSE;
 
             		pEntry->PortSecured = WPA_802_1X_PORT_NOT_SECURED;
@@ -1179,7 +1179,7 @@ VOID	IWSC_PeerAction(
                 if ((pAd->StaCfg.AuthMode == Ndis802_11AuthModeWPA2PSK) 
                     && (pEntry->WPA_Authenticator.WpaState < AS_INITPSK))                      
                 {
-    				INT               len, i;
+					INT                i;
 					BOOLEAN bHigherMAC = FALSE;
 
             		pEntry->PortSecured = WPA_802_1X_PORT_NOT_SECURED;
@@ -1785,7 +1785,6 @@ VOID	IWSC_BuildDevQueryFrame(
 	INT				Len = 0, templen = 0;
 	PWSC_CTRL		pWpsCtrl = &pAd->StaCfg.WscControl;
 	PWSC_REG_DATA	pReg = (PWSC_REG_DATA) &pWpsCtrl->RegData;
-	USHORT			tempVal = 0;
 	WSC_IE_HEADER 	ieHdr;
 
 	/* allocate memory */

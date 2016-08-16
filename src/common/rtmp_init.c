@@ -1036,7 +1036,6 @@ VOID	NICInitAsicFromEEPROM(
 #ifdef CONFIG_STA_SUPPORT
 	UINT32 data = 0;
 #endif /* CONFIG_STA_SUPPORT */
-	USHORT i;
 #ifdef RALINK_ATE
 	USHORT value;
 #endif /* RALINK_ATE */
@@ -1347,7 +1346,6 @@ NDIS_STATUS	NICInitializeAdapter(
 	IN   BOOLEAN    bHardReset)
 {
 	NDIS_STATUS     Status = NDIS_STATUS_SUCCESS;
-	WPDMA_GLO_CFG_STRUC	GloCfg;
 	ULONG j=0;
 
 
@@ -1414,7 +1412,6 @@ NDIS_STATUS	NICInitializeAsic(
 	UINT32			Counter = 0;
 	USB_DMA_CFG_STRUC UsbCfg;
 #endif /* RTMP_MAC_USB */
-	USHORT			KeyIdx;
 
 #ifdef RLT_MAC
 	RTMP_CHIP_CAP *pChipCap = &pAd->chipCap;
