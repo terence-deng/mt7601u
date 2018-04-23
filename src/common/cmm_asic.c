@@ -1,30 +1,29 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology	5th	Rd.
- * Science-based Industrial	Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2004, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved.	Ralink's source	code is	an unpublished work	and	the
- * use of a	copyright notice does not imply	otherwise. This	source code
- * contains	confidential trade secret material of Ralink Tech. Any attemp
- * or participation	in deciphering,	decoding, reverse engineering or in	any
- * way altering	the	source code	is stricitly prohibited, unless	the	prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Module Name:
-	cmm_asic.c
-
-	Abstract:
-	Functions used to communicate with ASIC
-	
-	Revision History:
-	Who			When			What
-	--------	----------		----------------------------------------------
-*/
 
 #include "rt_config.h"
 
@@ -708,12 +707,6 @@ VOID AsicSwitchChannel(
 #endif /* CONFIG_STA_SUPPORT */
 
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef AP_QLOAD_SUPPORT
-	/* clear all statistics count for QBSS Load */
-	QBSS_LoadStatusClear(pAd);
-#endif /* AP_QLOAD_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 	if (pAd->chipOps.ChipSwitchChannel)
 		pAd->chipOps.ChipSwitchChannel(pAd, Channel, bScan);
@@ -1220,9 +1213,6 @@ VOID AsicSetBssid(
 	IN PUCHAR pBssid) 
 {
 	ULONG		  Addr4;
-#ifdef P2P_SUPPORT
-	UINT32	regValue;
-#endif /* P2P_SUPPORT */
 
 	DBGPRINT(RT_DEBUG_TRACE, ("===> AsicSetBssid %x:%x:%x:%x:%x:%x\n",
 				PRINT_MAC(pBssid)));
@@ -1241,14 +1231,6 @@ VOID AsicSetBssid(
 	/* always one BSSID in STA mode*/
 	Addr4 = (ULONG)(pBssid[4]) | (ULONG)(pBssid[5] << 8);
 
-#ifdef P2P_SUPPORT
-#ifdef P2P_ODD_MAC_ADJUST
-	if ( (pAd->CurrentAddress[5] & 0x01 ) == 0x01 )
-	{
-		Addr4 |= (1 << 16 );
-	}
-#endif /* P2P_ODD_MAC_ADJUST */
-#endif /* P2P_SUPPORT */
 
 	RTMP_IO_WRITE32(pAd, MAC_BSSID_DW1, Addr4);
 
@@ -1263,64 +1245,6 @@ VOID AsicSetBssid(
 	RTMP_IO_WRITE32(pAd, HT_MAC_BSSID_DW1, Addr4);
 #endif /* HDR_TRANS_SUPPORT */
 
-#ifdef P2P_SUPPORT
-	if (P2P_INF_ON(pAd))
-	{
-		PUCHAR pP2PBssid = &pAd->CurrentAddress[0];
-
-		Addr4 = (ULONG)(pP2PBssid[0]) | 
-				(ULONG)(pP2PBssid[1] << 8)  | 
-				(ULONG)(pP2PBssid[2] << 16) |
-				(ULONG)(pP2PBssid[3] << 24);
-		RTMP_IO_WRITE32(pAd, MAC_BSSID_DW0, Addr4);
-
-#ifdef HDR_TRANS_SUPPORT
-		RTMP_IO_WRITE32(pAd, HT_MAC_BSSID_DW0, Addr4);
-#endif /* HDR_TRANS_SUPPORT */
-
-		Addr4 = 0;
-
-		/* always one BSSID in STA mode */
-		Addr4 = (ULONG)(pP2PBssid[4]) | (ULONG)(pP2PBssid[5] << 8);
-
-		RTMP_IO_WRITE32(pAd, MAC_BSSID_DW1, Addr4);
-
-		RTMP_IO_READ32(pAd, MAC_BSSID_DW1, &regValue);
-		regValue &= 0x0000FFFF;
-		regValue |= (1 << 16);		
-
-		if (pAd->chipCap.MBSSIDMode == MBSSID_MODE0)
-		{
-			if ((pAd->CurrentAddress[5] % 2 != 0)
-#ifdef P2P_SUPPORT
-#ifdef P2P_ODD_MAC_ADJUST
-				&& FALSE
-#endif /* P2P_ODD_MAC_ADJUST */
-#endif /* P2P_SUPPORT */
-			)
-			DBGPRINT(RT_DEBUG_ERROR, ("The 2-BSSID mode is enabled, the BSSID byte5 MUST be the multiple of 2\n"));
-		
-		}
-		else
-		{
-			/*set as 0/1 bit-21 of MAC_BSSID_DW1(offset: 0x1014) 
-			to disable/enable the new MAC address assignment.  */
-		    regValue |= (1 << 21);
-		}
-		
-		RTMP_IO_WRITE32(pAd, MAC_BSSID_DW1, regValue);
-#ifdef HDR_TRANS_SUPPORT
-		/*
-			point WCID MAC table to 0x1800
-			This is for debug.
-			But HDR_TRANS doesn't work if you remove it.
-			Check after IC formal release.
-		*/
-		regValue |= 0x18000000;
-		RTMP_IO_WRITE32(pAd, HT_MAC_BSSID_DW1, regValue);
-#endif /* HDR_TRANS_SUPPORT */
-	}
-#endif /* P2P_SUPPORT */
 }
 
 
@@ -1469,16 +1393,6 @@ VOID AsicEnableBssSync(
 
 	RTMP_IO_READ32(pAd, BCN_TIME_CFG, &csr.word);
 /*	RTMP_IO_WRITE32(pAd, BCN_TIME_CFG, 0x00000000);*/
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		csr.field.BeaconInterval = pAd->CommonCfg.BeaconPeriod << 4; /* ASIC register in units of 1/16 TU*/
-		csr.field.bTsfTicking = 1;
-		csr.field.TsfSyncMode = 3; /* sync TSF similar as in ADHOC mode?*/
-		csr.field.bBeaconGen  = 1; /* AP should generate BEACON*/
-		csr.field.bTBTTEnable = 1;
-	}
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT	
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{
@@ -1569,19 +1483,11 @@ VOID AsicEnableIbssSync(
 	/* start sending BEACON*/
 	csr9.field.BeaconInterval = pAd->CommonCfg.BeaconPeriod << 4; /* ASIC register in units of 1/16 TU*/
 	csr9.field.bTsfTicking = 1;
-#ifdef IWSC_SUPPORT
-	/*
-		 SYNC with nobody
-		 If Canon loses our Beacon over 5 seconds, Canon will delete us silently.
-	*/
-	csr9.field.TsfSyncMode = 3; // sync TSF in IBSS mode
-#else /* IWSC_SUPPORT */
 	/*
 		(STA ad-hoc mode) Upon the reception of BEACON frame from associated BSS, 
 		local TSF is updated with remote TSF only if the remote TSF is greater than local TSF
 	*/
 	csr9.field.TsfSyncMode = 2; /* sync TSF in IBSS mode*/
-#endif /* !IWSC_SUPPORT */
 	csr9.field.bTBTTEnable = 1;
 	csr9.field.bBeaconGen = 1;
 	RTMP_IO_WRITE32(pAd, BCN_TIME_CFG, csr9.word);
@@ -1735,10 +1641,6 @@ VOID AsicSetEdcaParm(
 		Ac2Cfg.field.Aifsn = pEdcaParm->Aifsn[QID_AC_VI] + 1; /* 5.2.27 T6 Pass Tx VI+BE, but will impack 5.2.27/28 T7. Tx VI*/
 		
 #ifdef INF_AMAZON_SE
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-			Ac2Cfg.field.Aifsn = 0x3; /*for WiFi WMM A1-T07.*/
-#endif /* CONFIG_AP_SUPPORT */
 #endif /* INF_AMAZON_SE */
 
 #ifdef CONFIG_STA_SUPPORT
@@ -1803,10 +1705,6 @@ VOID AsicSetEdcaParm(
 		CwminCsr.field.Cwmin0 = pEdcaParm->Cwmin[QID_AC_BE];
 		CwminCsr.field.Cwmin1 = pEdcaParm->Cwmin[QID_AC_BK];
 		CwminCsr.field.Cwmin2 = pEdcaParm->Cwmin[QID_AC_VI];
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-			CwminCsr.field.Cwmin3 = pEdcaParm->Cwmin[QID_AC_VO];
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 			CwminCsr.field.Cwmin3 = pEdcaParm->Cwmin[QID_AC_VO] - 1; /*for TGn wifi test*/
@@ -1834,13 +1732,6 @@ VOID AsicSetEdcaParm(
 #endif /* CONFIG_STA_SUPPORT */
 		AifsnCsr.field.Aifsn2 = Ac2Cfg.field.Aifsn; /*pEdcaParm->Aifsn[QID_AC_VI];*/
 #ifdef INF_AMAZON_SE
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-			AifsnCsr.field.Aifsn3 = Ac3Cfg.field.Aifsn; /*pEdcaParm->Aifsn[QID_AC_VO]*/
-			AifsnCsr.field.Aifsn2 = 0x2; /*pEdcaParm->Aifsn[QID_AC_VI]; for WiFi WMM A1-T07.*/
-		}
-#endif /* CONFIG_AP_SUPPORT */
 #endif /* INF_AMAZON_SE */
 
 #ifdef CONFIG_STA_SUPPORT
@@ -1860,15 +1751,9 @@ VOID AsicSetEdcaParm(
 				AifsnCsr.field.Aifsn2 = 7;
 			}
 
-			if (INFRA_ON(pAd))
-				CLIENT_STATUS_SET_FLAG(&pAd->MacTab.Content[BSSID_WCID], fCLIENT_STATUS_WMM_CAPABLE);
 		}
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-			AifsnCsr.field.Aifsn3 = Ac3Cfg.field.Aifsn; /*pEdcaParm->Aifsn[QID_AC_VO]*/
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		{
@@ -2205,15 +2090,6 @@ VOID	AsicUpdateWcidAttributeEntry(
 	WCIDAttri.field.BSSIdxExt = ((BssIdx & 0x08) >> 3);
 	WCIDAttri.field.BSSIdx = (BssIdx & 0x07);
 
-#ifdef WAPI_SUPPORT
-	/* Update WAPI related information */
-	if (CipherAlg == CIPHER_SMS4)
-	{
-		if (KeyTabFlag == SHAREDKEYTABLE)
-			WCIDAttri.field.WAPI_MCBC = 1;
-		WCIDAttri.field.WAPIKeyIdx = ((KeyIdx == 0) ? 0 : 1); 
-	}
-#endif /* WAPI_SUPPORT */
 	
 	/* Assign Key Table selection */		
 	WCIDAttri.field.KeyTab = KeyTabFlag;
@@ -2452,30 +2328,6 @@ VOID AsicTurnOffRFClk(
 }
 
 
-#ifdef WAPI_SUPPORT
-VOID AsicUpdateWAPIPN(
-	IN PRTMP_ADAPTER pAd,
-	IN USHORT		 WCID,
-	IN ULONG         pn_low,
-	IN ULONG         pn_high)
-{
-	if (IS_HW_WAPI_SUPPORT(pAd))
-	{
-		ULONG	offset;
-
-		offset = WAPI_PN_TABLE_BASE + (WCID * WAPI_PN_ENTRY_SIZE);
-
-		RTMP_IO_WRITE32(pAd, offset, pn_low);
-		RTMP_IO_WRITE32(pAd, offset + 4, pn_high);
-	}
-	else
-	{
-		DBGPRINT(RT_DEBUG_WARN, ("%s : Not support HW_WAPI_PN_TABLE\n", 
-								__FUNCTION__));
-	}
-	
-}
-#endif /* WAPI_SUPPORT */
 
 
 
@@ -2503,8 +2355,9 @@ VOID AsicVCORecalibration(
 #ifdef RLT_RF
 		case VCO_CAL_MODE_3:
 
-			rlt_rf_write(pAd, RF_BANK0, RF_R04, 0x0A);
-			rlt_rf_write(pAd, RF_BANK0, RF_R05, 0x20);
+			AndesRFRandomWrite(pAd, 2,
+				RF_BANK0, RF_R04, 0x0A,
+				RF_BANK0, RF_R05, 0x20);
 			rlt_rf_read(pAd, RF_BANK0, RF_R04, &RFValue);
 			RFValue = RFValue | 0x80; /* bit 7=vcocal_en*/
 			rlt_rf_write(pAd, RF_BANK0, RF_R04, RFValue);

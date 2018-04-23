@@ -1,10 +1,5 @@
 include $(RT28xx_DIR)/os/linux/config.mk
 
-#ifdef CONFIG_AP_SUPPORT
-ifeq ($(RT28xx_MODE),AP)
-MOD_NAME = rtutil$(MODULE)ap
-endif
-#endif // CONFIG_AP_SUPPORT //
 
 #ifdef CONFIG_STA_SUPPORT
 ifeq ($(RT28xx_MODE), STA)
@@ -16,39 +11,9 @@ endif
 endif
 #endif // CONFIG_STA_SUPPORT //
 
-#ifdef CONFIG_APSTA_SUPPORT
-ifeq ($(RT28xx_MODE), APSTA)
-MOD_NAME = rtutil$(MODULE)apsta
-endif
-#endif // CONFIG_APSTA_SUPPORT //
 
 obj-m := $(MOD_NAME).o
 
-#ifdef CONFIG_AP_SUPPORT
-ifeq ($(RT28xx_MODE),AP)
-$(MOD_NAME)-objs := \
-	../../common/rt_os_util.o\
-	../../os/linux/rt_linux_symb.o\
-	../../os/linux/rt_rbus_pci_util.o\
-	../../os/linux/rt_usb_util.o\
-	../../os/linux/rt_linux.o
-
-ifeq ($(PLATFORM),BL2348)
-$(MOD_NAME)-objs += \
-	../../os/linux/vr_bdlt.o
-endif
-
-ifeq ($(PLATFORM),BLUBB)
-$(MOD_NAME)-objs += \
-	../../os/linux/vr_bdlt.o
-endif
-
-ifeq ($(HAS_BGFP_SUPPORT),y)
-$(MOD_NAME)-objs += \
-	../../os/linux/br_ftph.o
-endif
-endif
-#endif // CONFIG_AP_SUPPORT //
 
 
 #ifdef CONFIG_STA_SUPPORT
@@ -63,31 +28,6 @@ endif
 #endif // CONFIG_STA_SUPPORT //
 
 
-#ifdef CONFIG_APSTA_SUPPORT
-ifeq ($(RT28xx_MODE), APSTA)
-$(MOD_NAME)-objs := \
-	../../common/rt_os_util.o\
-	../../os/linux/rt_linux_symb.o\
-	../../os/linux/rt_rbus_pci_util.o\
-	../../os/linux/rt_usb_util.o\
-	../../os/linux/rt_linux.o
-
-ifeq ($(PLATFORM),BL2348)
-$(MOD_NAME)-objs += \
-	../../os/linux/vr_bdlt.o
-endif
-
-ifeq ($(PLATFORM),BLUBB)
-$(MOD_NAME)-objs += \
-	../../os/linux/vr_bdlt.o
-endif
-
-ifeq ($(HAS_BGFP_SUPPORT),y)
-$(MOD_NAME)-objs += \
-	../../os/linux/br_ftph.o
-endif
-endif
-#endif // CONFIG_APSTA_SUPPORT //
 
 clean:
 	rm -f ../../common/*.o

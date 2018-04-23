@@ -1,34 +1,30 @@
-/****************************************************************************
+/*
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
- * (c) Copyright 2002, Ralink Technology, Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ****************************************************************************
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-    Module Name:
-	rt_drv.h
 
-    Abstract:
-	Put all virtual OS related definition/structure/MACRO here except
-	standard ANSI C function.
-
-	Note:
-	No any OS related definition/MACRO is defined here.
-
-    Revision History:
-    Who          When          What
-    ---------    ----------    ----------------------------------------------
-*/
-
-/* same as rt_linux.h to warn users the two files can not be used simultaneously */
 #ifndef __RT_LINUX_H__
 #define __RT_LINUX_H__
 
@@ -40,21 +36,10 @@
 #undef STA_WSC_INCLUDED
 #undef WSC_INCLUDED
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef WSC_AP_SUPPORT
-#define AP_WSC_INCLUDED
-#endif /* WSC_AP_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef WSC_STA_SUPPORT
-#define STA_WSC_INCLUDED
-#endif /* WSC_STA_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 
-#if defined(WSC_AP_SUPPORT) || defined(WSC_STA_SUPPORT)
-#define WSC_INCLUDED
-#endif
 
 /*#ifdef RTMP_USB_SUPPORT */
 typedef VOID	*PUSB_DEV;
@@ -66,23 +51,6 @@ typedef VOID	pregs;
 /***********************************************************************************
  *	Profile related sections
  ***********************************************************************************/
-#ifdef CONFIG_AP_SUPPORT
-#ifdef RTMP_MAC_USB
-#ifdef INF_AMAZON_SE
-#define AP_PROFILE_PATH                 "/ramdisk/etc/Wireless/RT2870AP/RT2870AP.dat"
-#define AP_RTMP_FIRMWARE_FILE_NAME "/ramdisk/etc/Wireless/RT2870AP/RT2870AP.bin"
-#else
-#define AP_PROFILE_PATH			"/etc/Wireless/RT2870AP/RT2870AP.dat"
-#define AP_RTMP_FIRMWARE_FILE_NAME "/etc/Wireless/RT2870AP/RT2870AP.bin"
-#endif
-#define AP_NIC_DEVICE_NAME			"RT2870AP"
-#define AP_DRIVER_VERSION			"3.0.0.0"
-#ifdef MULTIPLE_CARD_SUPPORT
-#define CARD_INFO_PATH			"/etc/Wireless/RT2870AP/RT2870APCard.dat"
-#endif /* MULTIPLE_CARD_SUPPORT */
-#endif /* RTMP_MAC_USB */
-
-#endif /* CONFIG_AP_SUPPORT */
 
 
 #ifdef CONFIG_STA_SUPPORT
@@ -171,10 +139,6 @@ typedef char 				* PNDIS_BUFFER;
 #define MIN_NET_DEVICE_FOR_DLS			0x40
 #define MIN_NET_DEVICE_FOR_TDLS			0x50
 #endif /* CONFIG_STA_SUPPORT */
-#ifdef P2P_SUPPORT
-#define MIN_NET_DEVICE_FOR_P2P_CLI		(MIN_NET_DEVICE_FOR_TDLS + 0x10)
-#define MIN_NET_DEVICE_FOR_P2P_GO			(MIN_NET_DEVICE_FOR_TDLS + 0x20)
-#endif /* P2P_SUPPORT */
 
 #define NET_DEVICE_REAL_IDX_MASK		0x0f		/* for each operation mode, we maximum support 15 entities. */
 
@@ -331,23 +295,6 @@ struct os_cookie {
 	RTMP_NET_TASK_STRUCT	uapsd_eosp_sent_task;
 #endif /* UAPSD_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef DFS_SUPPORT
-#ifdef DFS_SOFTWARE_SUPPORT
-	RTMP_NET_TASK_STRUCT	pulse_radar_detect_task;
-	RTMP_NET_TASK_STRUCT	width_radar_detect_task;
-#endif /* DFS_SOFTWARE_SUPPORT */
-#endif /* DFS_SUPPORT */
-
-#ifdef CARRIER_DETECTION_SUPPORT
-	RTMP_NET_TASK_STRUCT	carrier_sense_task;
-#endif /* CARRIER_DETECTION_SUPPORT */
-
-#ifdef DFS_SUPPORT
-	RTMP_NET_TASK_STRUCT	dfs_task;
-#endif /* DFS_SUPPORT */
-
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef RTMP_MAC_USB
 	RTMP_NET_TASK_STRUCT	null_frame_complete_task;
@@ -360,17 +307,6 @@ struct os_cookie {
 
 	RTMP_OS_PID				apd_pid; /*802.1x daemon pid */
 	unsigned long			apd_pid_nr;
-#ifdef CONFIG_AP_SUPPORT
-#ifdef IAPP_SUPPORT
-/*	RT_SIGNAL_STRUC			RTSignal; */
-	RTMP_OS_PID				IappPid; /*IAPP daemon pid */
-	unsigned long			IappPid_nr;
-#endif /* IAPP_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
-#ifdef WAPI_SUPPORT
-	RTMP_OS_PID				wapi_pid; /*wapi daemon pid */
-	unsigned long			wapi_pid_nr;
-#endif /* WAPI_SUPPORT */
 	INT						ioctl_if_type;
 	INT 					ioctl_if;
 };
@@ -883,10 +819,6 @@ extern ULONG RtmpOsGetUnalignedlong(
 
 
 
-#ifdef P2P_SUPPORT
-#define RTMP_SET_PACKET_OPMODE(_p, _flg)   (PACKET_CB(_p, 26) = _flg)
-#define RTMP_GET_PACKET_OPMODE(_p)         (PACKET_CB(_p, 26))
-#endif /* P2P_SUPPORT */
 
 #if defined(CONFIG_CSO_SUPPORT) || defined(CONFIG_RX_CSO_SUPPORT)
 #define RTMP_SET_TCP_CHKSUM_FAIL(_p, _flg) 	(PACKET_CB(_p, 30) = _flg);
@@ -1043,9 +975,6 @@ extern int rausb_control_msg(VOID *dev,
 #define ATEDBGPRINT DBGPRINT
 
 #ifdef RTMP_MAC_USB
-#ifdef CONFIG_AP_SUPPORT
-#define EEPROM_BIN_FILE_NAME  "/etc/Wireless/RT2870AP/e2p.bin"
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 #undef EEPROM_BIN_FILE_NAME /* Avoid APSTA mode re-define issue */
 #define EEPROM_BIN_FILE_NAME  "/etc/Wireless/RT2870STA/e2p.bin"

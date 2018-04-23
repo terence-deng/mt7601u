@@ -1,16 +1,29 @@
-/****************************************************************************
+/*
+ *************************************************************************
+ * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
+ *
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-    Module Name:
-	rt_linux.h
- 
-    Abstract:
-	Any OS related definition/MACRO is defined here.
- 
-    Revision History:
-    Who        When          What
-    ---------  ----------    ----------------------------------------------
-
-***************************************************************************/
 
 #ifndef __RT_LINUX_H__
 #define __RT_LINUX_H__
@@ -67,11 +80,6 @@
 #endif /* LINUX_VERSION_CODE */
 #endif /* RT_CFG80211_SUPPORT */
 
-#ifdef MAT_SUPPORT
-#include <linux/if_ether.h>
-#include <linux/if_arp.h>
-#include <linux/ip.h>
-#endif /* MAT_SUPPORT */
 
 /* must put the definition before include "os/rt_linux_cmm.h" */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,29)
@@ -94,21 +102,10 @@
 #undef STA_WSC_INCLUDED
 #undef WSC_INCLUDED
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef WSC_AP_SUPPORT
-#define AP_WSC_INCLUDED
-#endif /* WSC_AP_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef WSC_STA_SUPPORT
-#define STA_WSC_INCLUDED
-#endif /* WSC_STA_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 
-#if defined(WSC_AP_SUPPORT) || defined(WSC_STA_SUPPORT)
-#define WSC_INCLUDED
-#endif
 
 #ifdef KTHREAD_SUPPORT
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,4)
@@ -125,28 +122,6 @@ typedef struct usb_ctrlrequest devctrlrequest;
 /***********************************************************************************
  *	Profile related sections
  ***********************************************************************************/
-#ifdef CONFIG_AP_SUPPORT
-#ifdef RTMP_MAC_USB
-#ifdef INF_AMAZON_SE
-#define AP_PROFILE_PATH                 "/ramdisk/etc/Wireless/RT2870AP/RT2870AP.dat"
-#define AP_RTMP_FIRMWARE_FILE_NAME "/ramdisk/etc/Wireless/RT2870AP/RT2870AP.bin"
-#else
-#define AP_PROFILE_PATH			"/etc/Wireless/RT2870AP/RT2870AP.dat"
-#define AP_RTMP_FIRMWARE_FILE_NAME "/etc/Wireless/RT2870AP/RT2870AP.bin"
-#endif
-#define AP_NIC_DEVICE_NAME			"RT2870AP"
-#define AP_DRIVER_VERSION			"3.0.0.0"
-#ifdef MULTIPLE_CARD_SUPPORT
-#define CARD_INFO_PATH			"/etc/Wireless/RT2870AP/RT2870APCard.dat"
-#endif /* MULTIPLE_CARD_SUPPORT */
-#endif /* RTMP_MAC_USB */
-
-
-#ifdef SINGLE_SKU_V2
-#define SINGLE_SKU_TABLE_FILE_NAME	"/etc/Wireless/RT2860STA/SingleSKU.dat"
-#endif /* SINGLE_SKU_V2 */
-
-#endif /* CONFIG_AP_SUPPORT */
 
 
 #ifdef CONFIG_STA_SUPPORT
@@ -279,10 +254,6 @@ struct iw_statistics *rt28xx_get_wireless_stats(
 #define MIN_NET_DEVICE_FOR_DLS			0x40
 #define MIN_NET_DEVICE_FOR_TDLS			0x50
 #endif /* CONFIG_STA_SUPPORT */
-#ifdef P2P_SUPPORT
-#define MIN_NET_DEVICE_FOR_P2P_CLI		(MIN_NET_DEVICE_FOR_TDLS + 0x10)
-#define MIN_NET_DEVICE_FOR_P2P_GO			(MIN_NET_DEVICE_FOR_TDLS + 0x20)
-#endif /* P2P_SUPPORT */
 
 #define NET_DEVICE_REAL_IDX_MASK		0x0f		/* for each operation mode, we maximum support 15 entities. */
 
@@ -649,23 +620,6 @@ struct os_cookie {
 	RTMP_NET_TASK_STRUCT uapsd_eosp_sent_task;
 #endif /* UAPSD_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef DFS_SUPPORT
-#ifdef DFS_SOFTWARE_SUPPORT
-	RTMP_NET_TASK_STRUCT pulse_radar_detect_task;
-	RTMP_NET_TASK_STRUCT width_radar_detect_task;
-#endif /* DFS_SOFTWARE_SUPPORT */
-#endif /* DFS_SUPPORT */
-
-#ifdef CARRIER_DETECTION_SUPPORT
-	RTMP_NET_TASK_STRUCT carrier_sense_task;
-#endif /* CARRIER_DETECTION_SUPPORT */
-
-#ifdef DFS_SUPPORT
-	struct tasklet_struct	dfs_task;
-#endif /* DFS_SUPPORT */
-
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef RTMP_MAC_USB
 	RTMP_NET_TASK_STRUCT null_frame_complete_task;
@@ -678,17 +632,6 @@ struct os_cookie {
 
 	RTMP_OS_PID			apd_pid; /*802.1x daemon pid */
 	unsigned long			apd_pid_nr;
-#ifdef CONFIG_AP_SUPPORT
-#ifdef IAPP_SUPPORT
-/*	RT_SIGNAL_STRUC			RTSignal; */
-	RTMP_OS_PID			IappPid; /*IAPP daemon pid */
-	unsigned long			IappPid_nr;
-#endif /* IAPP_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
-#ifdef WAPI_SUPPORT
-	RTMP_OS_PID			wapi_pid; /*wapi daemon pid */
-	unsigned long			wapi_pid_nr;
-#endif /* WAPI_SUPPORT */
 	INT						ioctl_if_type;
 	INT 					ioctl_if;
 };
@@ -1205,10 +1148,6 @@ void linux_pci_unmap_single(void *handle, ra_dma_addr_t dma_addr, size_t size, i
 #endif /* INF_AMAZON_SE */
 
 
-#ifdef P2P_SUPPORT
-#define RTMP_SET_PACKET_OPMODE(_p, _flg)   (RTPKT_TO_OSPKT(_p)->cb[CB_OFF+26] = _flg)
-#define RTMP_GET_PACKET_OPMODE(_p)         (RTPKT_TO_OSPKT(_p)->cb[CB_OFF+26])
-#endif /* P2P_SUPPORT */
 
 #if defined(CONFIG_CSO_SUPPORT) || defined(CONFIG_RX_CSO_SUPPORT)
 #define RTMP_SET_TCP_CHKSUM_FAIL(_p, _flg) (RTPKT_TO_OSPKT(_p)->cb[CB_OFF+30] = _flg);
@@ -1588,9 +1527,6 @@ extern int rausb_control_msg(VOID *dev,
 #define ATEDBGPRINT DBGPRINT
 
 #ifdef RTMP_MAC_USB
-#ifdef CONFIG_AP_SUPPORT
-#define EEPROM_BIN_FILE_NAME  "/etc/Wireless/RT2870AP/e2p.bin"
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 #undef EEPROM_BIN_FILE_NAME /* Avoid APSTA mode re-define issue */
 #define EEPROM_BIN_FILE_NAME  "/etc/Wireless/RT2870STA/e2p.bin"

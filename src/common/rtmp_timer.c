@@ -1,33 +1,29 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology	5th	Rd.
- * Science-based Industrial	Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2008, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved.	Ralink's source code is an unpublished work and	the
- * use of a copyright notice does not imply	otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering,	decoding, reverse engineering or in any
- * way altering the	source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-    Module Name:
-    rtmp_timer.c
-
-    Abstract:
-    task for timer handling
-
-    Revision History:
-    Who         When            What
-    --------    ----------      ----------------------------------------------
-    Name          Date            Modification logs
-    Shiang Tu	08-28-2008   init version
-    
-*/
 
 #include "rt_config.h"
 
@@ -38,9 +34,6 @@ BUILD_TIMER_FUNCTION(AsicRxAntEvalTimeout);
 BUILD_TIMER_FUNCTION(APSDPeriodicExec);
 BUILD_TIMER_FUNCTION(EnqueueStartForPSKExec);
 #ifdef CONFIG_STA_SUPPORT
-#ifdef ADHOC_WPA2PSK_SUPPORT
-BUILD_TIMER_FUNCTION(Adhoc_WpaRetryExec);
-#endif /* ADHOC_WPA2PSK_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 
 
@@ -55,31 +48,6 @@ BUILD_TIMER_FUNCTION(ConcurrentP2PConnectTimeout);
 BUILD_TIMER_FUNCTION(BeaconUpdateExec);
 #endif /* RTMP_MAC_USB */
 
-#ifdef CONFIG_AP_SUPPORT
-extern VOID APDetectOverlappingExec(
-				IN PVOID SystemSpecific1, 
-				IN PVOID FunctionContext, 
-				IN PVOID SystemSpecific2, 
-				IN PVOID SystemSpecific3);
-
-BUILD_TIMER_FUNCTION(APDetectOverlappingExec);
-
-#ifdef DOT11N_DRAFT3
-BUILD_TIMER_FUNCTION(Bss2040CoexistTimeOut);
-#endif /* DOT11N_DRAFT3 */
-
-BUILD_TIMER_FUNCTION(GREKEYPeriodicExec);
-BUILD_TIMER_FUNCTION(CMTimerExec);
-BUILD_TIMER_FUNCTION(WPARetryExec);
-#ifdef AP_SCAN_SUPPORT
-BUILD_TIMER_FUNCTION(APScanTimeout);
-#endif /* AP_SCAN_SUPPORT */
-BUILD_TIMER_FUNCTION(APQuickResponeForRateUpExec);
-#ifdef IDS_SUPPORT
-BUILD_TIMER_FUNCTION(RTMPIdsPeriodicExec);
-#endif /* IDS_SUPPORT */
-
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 BUILD_TIMER_FUNCTION(BeaconTimeout);
@@ -99,9 +67,6 @@ BUILD_TIMER_FUNCTION(RadioOnExec);
 BUILD_TIMER_FUNCTION(DlsTimeoutAction);
 #endif /* QOS_DLS_SUPPORT */
 
-#ifdef DOT11Z_TDLS_SUPPORT
-BUILD_TIMER_FUNCTION(TDLS_TimeoutAction);
-#endif /* DOT11Z_TDLS_SUPPORT */
 
 
 #ifdef RTMP_MAC_USB
@@ -111,35 +76,6 @@ BUILD_TIMER_FUNCTION(RtmpUsbStaAsicForceWakeupTimeout);
 
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef WSC_INCLUDED
-BUILD_TIMER_FUNCTION(WscEAPOLTimeOutAction);
-BUILD_TIMER_FUNCTION(Wsc2MinsTimeOutAction);
-BUILD_TIMER_FUNCTION(WscUPnPMsgTimeOutAction);
-BUILD_TIMER_FUNCTION(WscM2DTimeOutAction);
-
-BUILD_TIMER_FUNCTION(WscPBCTimeOutAction);
-BUILD_TIMER_FUNCTION(WscScanTimeOutAction);
-BUILD_TIMER_FUNCTION(WscProfileRetryTimeout);
-#ifdef WSC_LED_SUPPORT
-BUILD_TIMER_FUNCTION(WscLEDTimer);
-BUILD_TIMER_FUNCTION(WscSkipTurnOffLEDTimer);
-#endif /* WSC_LED_SUPPORT */
-
-#ifdef CONFIG_AP_SUPPORT
-BUILD_TIMER_FUNCTION(WscUpdatePortCfgTimeout);
-#ifdef WSC_V2_SUPPORT
-BUILD_TIMER_FUNCTION(WscSetupLockTimeout);
-#endif /* WSC_V2_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
-
-#ifdef IWSC_SUPPORT
-BUILD_TIMER_FUNCTION(IWSC_T1TimerAction);
-BUILD_TIMER_FUNCTION(IWSC_T2TimerAction);
-BUILD_TIMER_FUNCTION(IWSC_EntryTimerAction);
-BUILD_TIMER_FUNCTION(IWSC_DevQueryAction);
-#endif /* IWSC_SUPPORT */
-
-#endif /* WSC_INCLUDED */
 
 
 
@@ -147,14 +83,6 @@ BUILD_TIMER_FUNCTION(IWSC_DevQueryAction);
 BUILD_TIMER_FUNCTION(eTxBfProbeTimerExec);
 #endif /* TXBF_SUPPORT */
 
-#ifdef P2P_SUPPORT
-BUILD_TIMER_FUNCTION(P2PCTWindowTimer);
-BUILD_TIMER_FUNCTION(P2pSwNoATimeOut);
-BUILD_TIMER_FUNCTION(P2pPreAbsenTimeOut);
-BUILD_TIMER_FUNCTION(P2pWscTimeOut);
-BUILD_TIMER_FUNCTION(P2pReSendTimeOut);
-BUILD_TIMER_FUNCTION(P2pCliReConnectTimeOut);
-#endif /* P2P_SUPPORT */
 
 #ifdef RALINK_ATE
 BUILD_TIMER_FUNCTION(ATEPeriodicExec);

@@ -1,24 +1,29 @@
-/****************************************************************************
+/*
+ *************************************************************************
  * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
  * Taiwan, R.O.C.
  *
- * (c) Copyright 2010, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************/
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-/****************************************************************************
-
-    Abstract:
-
-	All related POWER SAVE function body.
-
-***************************************************************************/
 
 #include "rt_config.h"
 
@@ -55,9 +60,6 @@ NDIS_STATUS RtmpInsertPsQueue(
 	{
 		UAPSD_PacketEnqueue(pAd, pMacEntry, pPacket, ac_id);
 
-#ifdef DOT11Z_TDLS_SUPPORT
-		TDLS_UAPSDP_TrafficIndSend(pAd, pMacEntry->Addr);
-#endif /* DOT11Z_TDLS_SUPPORT */
 	}
 	else
 #endif /* UAPSD_SUPPORT */
@@ -76,23 +78,6 @@ NDIS_STATUS RtmpInsertPsQueue(
 		}
 	}
 
-#ifdef CONFIG_AP_SUPPORT
-	/* mark corresponding TIM bit in outgoing BEACON frame */
-#ifdef UAPSD_SUPPORT
-	if (UAPSD_MR_IS_NOT_TIM_BIT_NEEDED_HANDLED(pMacEntry, QueIdx))
-	{
-		/* 1. the station is UAPSD station;
-		2. one of AC is non-UAPSD (legacy) AC;
-		3. the destinated AC of the packet is UAPSD AC. */
-		/* So we can not set TIM bit due to one of AC is legacy AC */
-	}
-	else
-#endif /* UAPSD_SUPPORT */
-	{
-		WLAN_MR_TIM_BIT_SET(pAd, pMacEntry->apidx, pMacEntry->Aid);
-
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 	return NDIS_STATUS_SUCCESS;
 }
@@ -277,9 +262,6 @@ VOID RtmpHandleRxPsPoll(
 			(pMacEntry->PsQueue.Number == 0))
 		{
 			/* clear corresponding TIM bit because no any PS packet */
-#ifdef CONFIG_AP_SUPPORT
-			WLAN_MR_TIM_BIT_CLEAR(pAd, pMacEntry->apidx, Aid);
-#endif /* CONFIG_AP_SUPPORT */
 			pMacEntry->PsQIdleCount = 0;
 		}
 
@@ -392,11 +374,6 @@ BOOLEAN RtmpPktPmBitCheck(
 	BOOLEAN FlgCanPmBitSet = TRUE;
 
 
-#ifdef DOT11Z_TDLS_SUPPORT
-	/* check TDLS condition */
-	if (pAd->StaCfg.TdlsInfo.TdlsFlgIsKeepingActiveCountDown == TRUE)
-		FlgCanPmBitSet = FALSE;
-#endif /* DOT11Z_TDLS_SUPPORT */
 
 	if (FlgCanPmBitSet == TRUE)
 		return (pAd->StaCfg.Psm == PWR_SAVE);
@@ -409,19 +386,6 @@ VOID RtmpPsActiveExtendCheck(
 	IN PRTMP_ADAPTER		pAd)
 {
 	/* count down the TDLS active counter */
-#ifdef DOT11Z_TDLS_SUPPORT
-	if (pAd->StaCfg.TdlsInfo.TdlsPowerSaveActiveCountDown > 0)
-	{
-		pAd->StaCfg.TdlsInfo.TdlsPowerSaveActiveCountDown --;
-
-		if (pAd->StaCfg.TdlsInfo.TdlsPowerSaveActiveCountDown == 0)
-		{
-			/* recover our power save state */
-			TDLS_RECOVER_POWER_SAVE(pAd);
-			DBGPRINT(RT_DEBUG_TRACE, ("TDLS PS> Recover PS mode!\n"));
-		}
-	}
-#endif /* DOT11Z_TDLS_SUPPORT */
 }
 
 
@@ -461,11 +425,7 @@ VOID RtmpPsModeChange(
 			if (pAd->StaCfg.bWindowsACCAMEnable == FALSE)
 				pAd->StaCfg.WindowsPowerMode = Ndis802_11PowerModeLegacy_PSP;
 			pAd->StaCfg.WindowsBatteryPowerMode = Ndis802_11PowerModeLegacy_PSP;
-#ifdef DOT11Z_TDLS_SUPPORT
-			pAd->StaCfg.DefaultListenCount = 1;
-#else
 			pAd->StaCfg.DefaultListenCount = 3;
-#endif // DOT11Z_TDLS_SUPPORT //
 		}
 		else
 		{ //Default Ndis802_11PowerModeCAM

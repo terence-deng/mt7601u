@@ -1,30 +1,29 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2004, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Module Name:
-	rtmp_and.c
-
-	Abstract:
-	on-chip CPU related codes
-
-	Revision History:
-	Who         When          What
-	--------    ----------    ----------------------------------------------
-*/
 
 #include	"rt_config.h"
 
@@ -63,6 +62,10 @@ USBHST_STATUS USBUploadFWComplete(URBCompleteStatus Status, purbb_t pURB, pregs 
 static NDIS_STATUS USBLoadIVB(RTMP_ADAPTER *pAd)
 {
 	NDIS_STATUS Status = NDIS_STATUS_SUCCESS;
+	UINT32 i;
+	USHORT Value;
+	USHORT Index;
+	USHORT Temp;
 	RTMP_CHIP_CAP *pChipCap = &pAd->chipCap;
 
 	Status = RTUSB_VendorRequest(pAd,
@@ -98,6 +101,8 @@ NDIS_STATUS USBLoadFirmwareToAndes(RTMP_ADAPTER *pAd)
 	USHORT Value;
 	INT Ret;
 	RTMP_CHIP_CAP *pChipCap = &pAd->chipCap;
+	USB_DMA_CFG_STRUC UsbCfg;
+	struct MCU_CTRL *MCtrl = &pAd->MCUCtrl;
 	//struct completion SentToMCUDone;
 	VOID *SentToMCUDone;
 	UINT32 ILMLen, DLMLen;
@@ -123,6 +128,9 @@ loadfw_protect:
 
 	if (MACValue == 0x01)
 		goto error0;
+
+	RTMP_IO_WRITE32(pAd, 0x94c, 0x0);
+	RTMP_IO_WRITE32(pAd, 0x800, 0x0);
 
 	RTUSBVenderReset(pAd);
 	//mdelay(5);
@@ -225,9 +233,6 @@ loadfw_protect:
 	/* Loading ILM */
 	while (1)
 	{
-/* ++ dump firmware ++ */
-/* ++ dump firmware ++ */
-
 		SentLen = (ILMLen - CurLen) >= 14336 ? 14336 : (ILMLen - CurLen);
 
 		if (SentLen > 0)
@@ -236,10 +241,6 @@ loadfw_protect:
 			TxInfoCmd->info_type = CMD_PACKET;
 			TxInfoCmd->pkt_len = SentLen;
 			TxInfoCmd->d_port = CPU_TX_PORT;
-
-/* ++ dump firmware ++ */
-/* ++ dump firmware ++ */
-
 
 #ifdef RT_BIG_ENDIAN
 			RTMPDescriptorEndianChange((PUCHAR)TxInfoCmd, TYPE_TXINFO);
@@ -362,10 +363,6 @@ loadfw_protect:
 			RTMP_IO_READ32(pAd, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, &MACValue);
 			MACValue++;
 			RTMP_IO_WRITE32(pAd, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, MACValue);
-
-/* ++ dump firmware ++ */
-/* ++ dump firmware ++ */
-
 		}
 		else
 		{
@@ -591,10 +588,11 @@ VOID MCUCtrlExit(PRTMP_ADAPTER pAd)
 {
 	struct MCU_CTRL *MCtrl = &pAd->MCUCtrl;
 	struct CMD_RSP_EVENT *CmdRspEvent, *CmdRspEventTmp;
+	INT32 Ret;
 	unsigned long IrqFlags;
 
 	RtmpOsMsDelay(30);
-
+	
 	RTMP_IRQ_LOCK(&MCtrl->CmdRspEventListLock, IrqFlags);
 	DlListForEachSafe(CmdRspEvent, CmdRspEventTmp, &MCtrl->CmdRspEventList, struct CMD_RSP_EVENT, List)
 	{
@@ -633,6 +631,7 @@ BOOLEAN IsInBandCmdProcessing(PRTMP_ADAPTER pAd)
 UCHAR GetCmdRspNum(PRTMP_ADAPTER pAd)
 {
 	struct MCU_CTRL *MCtrl = &pAd->MCUCtrl;
+	unsigned long IrqFlags;
 	UCHAR Num = 0;
 	Num = DlListLen(&MCtrl->CmdRspEventList);
 
@@ -2061,3 +2060,54 @@ INT AndesCalibrationOP(PRTMP_ADAPTER pAd, UINT32 CalibrationID, UINT32 Param)
 	return NDIS_STATUS_SUCCESS;
 }
 
+INT AndesLedOP(
+	IN PRTMP_ADAPTER pAd,
+	IN UCHAR LedIdx,
+	IN UCHAR LinkStatus)
+{
+	struct CMD_UNIT CmdUnit;
+	CHAR *Pos, *pBuf;
+	UINT32 VarLen;
+	UINT32 Value, arg0, arg1;
+	INT32 Ret;
+#ifdef LED_CONTROL_SUPPORT
+	LED_NMAC_CMD LEC_CmdUnit;
+#endif
+
+	/* Calibration ID and Parameter */
+	VarLen = 8;
+	arg0 = LedIdx;
+	arg1 = LinkStatus;
+	os_alloc_mem(pAd, (UCHAR **)&pBuf, VarLen);
+	if (pBuf == NULL)
+	{
+		return NDIS_STATUS_RESOURCES;
+	}
+
+	NdisZeroMemory(pBuf, VarLen);
+	
+	Pos = pBuf;
+	/* Parameter */
+	
+	NdisMoveMemory(Pos, &arg0, 4);
+	NdisMoveMemory(Pos+4, &arg1, 4);
+
+	Pos += 4;
+
+	hex_dump("AndesLedOP: ", pBuf, VarLen);
+	NdisZeroMemory(&CmdUnit, sizeof(CmdUnit));
+	
+	CmdUnit.u.ANDES.Type = CMD_LED_MODE_OP;
+	CmdUnit.u.ANDES.CmdPayloadLen = VarLen;
+	CmdUnit.u.ANDES.CmdPayload = pBuf;
+	
+	CmdUnit.u.ANDES.NeedRsp = FALSE;
+	CmdUnit.u.ANDES.NeedWait = FALSE;
+	CmdUnit.u.ANDES.Timeout = 0;
+
+	Ret = AsicSendCmdToAndes(pAd, &CmdUnit);
+
+	os_free_mem(NULL, pBuf);
+
+	return NDIS_STATUS_SUCCESS;
+}

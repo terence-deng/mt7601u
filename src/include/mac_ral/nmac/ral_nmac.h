@@ -1,30 +1,29 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology	5th	Rd.
- * Science-based Industrial	Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2004, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved.	Ralink's source	code is	an unpublished work	and	the
- * use of a	copyright notice does not imply	otherwise. This	source code
- * contains	confidential trade secret material of Ralink Tech. Any attemp
- * or participation	in deciphering,	decoding, reverse engineering or in	any
- * way altering	the	source code	is stricitly prohibited, unless	the	prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Module Name:
-	ral_nmac.h
-
-	Abstract:
-	Ralink Wireless Chip RAL MAC related definition & structures
-
-	Revision History:
-	Who			When		  What
-	--------	----------	  ----------------------------------------------
-*/
 
 #ifndef __RAL_NMAC_H__
 #define __RAL_NMAC_H__
@@ -122,7 +121,23 @@ typedef union GNU_PACKED _TXINFO_NMAC{
 	struct _TXINFO_NMAC_CMD txinfo_cmd;
 }TXINFO_NMAC;
 
-
+#ifdef LED_CONTROL_SUPPORT
+#ifdef RT_BIG_ENDIAN
+typedef struct GNU_PACKED _LED_NMAC_CMD{
+	UINT32  rsv:8;
+	UINT32 CmdID:8;
+	UINT32 Arg0:8;
+	UINT32 Arg1:8;
+}LED_NMAC_CMD;
+#else
+typedef struct GNU_PACKED _LED_NMAC_CMD{
+	UINT32 Arg1:8;
+	UINT32 Arg0:8;
+	UINT32 CmdID:8;
+	UINT32 rsv:8;	
+}LED_NMAC_CMD;
+#endif /* RT_BIG_ENDIAN */
+#endif /*LED_CONTROL_SUPPORT*/
 /*
 	Rx Memory layout:
 

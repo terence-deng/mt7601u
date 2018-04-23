@@ -1,49 +1,30 @@
-/****************************************************************************
+/*
+ *************************************************************************
  * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
  * Taiwan, R.O.C.
  *
- * (c) Copyright 2009, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************/
-
-/****************************************************************************
-
-	Abstract:
-
-	All related CFG80211 function body.
-
-	History:
-		1. 2009/09/17	Sample Lin
-			(1) Init version.
-		2. 2009/10/27	Sample Lin
-			(1) Do not use ieee80211_register_hw() to create virtual interface.
-				Use wiphy_register() to register nl80211 command handlers.
-			(2) Support iw utility.
-		3. 2009/11/03	Sample Lin
-			(1) Change name MAC80211 to CFG80211.
-			(2) Modify CFG80211_OpsChannelSet().
-			(3) Move CFG80211_Register()/CFG80211_UnRegister() to open/close.
-		4. 2009/12/16	Sample Lin
-			(1) Patch for Linux 2.6.32.
-			(2) Add more supported functions in CFG80211_Ops.
-		5. 2010/12/10	Sample Lin
-			(1) Modify for OS_ABL.
-		6. 2011/04/19	Sample Lin
-			(1) Add more supported functions in CFG80211_Ops v33 ~ 38.
-
-	Note:
-		The feature is supported only in "LINUX" 2.6.28 ~ 2.6.38.
-
-***************************************************************************/
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
 
-/* #include "rt_config.h" */
 #define RTMP_MODULE_OS
 
 /*#include "rt_config.h" */
@@ -748,15 +729,6 @@ static int CFG80211_OpsStaGet(
 	pSinfo->signal = StaInfo.Signal;
 	pSinfo->filled |= STATION_INFO_SIGNAL;
 
-#ifdef CONFIG_AP_SUPPORT
-	/* fill tx count */
-	pSinfo->tx_packets = StaInfo.TxPacketCnt;
-	pSinfo->filled |= STATION_INFO_TX_PACKETS;
-
-	/* fill inactive time */
-	pSinfo->inactive_time = StaInfo.InactiveTime;
-	pSinfo->filled |= STATION_INFO_INACTIVE_TIME;
-#endif /* CONFIG_AP_SUPPORT */
 
 	return 0;
 } /* End of CFG80211_OpsStaGet */
@@ -916,9 +888,6 @@ static int CFG80211_OpsKeyAdd(
 	return 0;
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-	return -ENOTSUPP;
-#endif /* CONFIG_AP_SUPPORT */
 } /* End of CFG80211_OpsKeyAdd */
 
 
@@ -1604,9 +1573,6 @@ static struct wireless_dev *CFG80211_WdevAlloc(
 	pWdev->wiphy->max_scan_ssids = pBandInfo->MaxBssTable;
 #endif /* KERNEL_VERSION */
 
-#ifdef CONFIG_AP_SUPPORT
-	pWdev->wiphy->interface_modes = BIT(NL80211_IFTYPE_AP);
-#endif /* CONFIG_STA_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	pWdev->wiphy->interface_modes = BIT(NL80211_IFTYPE_STATION) |
@@ -1696,10 +1662,6 @@ BOOLEAN CFG80211_Register(
 	} /* End of if */
 
 	/* bind wireless device with net device */
-#ifdef CONFIG_AP_SUPPORT
-	/* default we are AP mode */
-	pCfg80211_CB->pCfg80211_Wdev->iftype = NL80211_IFTYPE_AP;
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	/* default we are station mode */

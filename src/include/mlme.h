@@ -1,32 +1,30 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2004, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Module Name:
-	mlme.h
 
-	Abstract:
-
-	Revision History:
-	Who			When			What
-	--------	----------		----------------------------------------------
-	John Chang	2003-08-28		Created
-	John Chang  2004-09-06      modified for RT2600
-	
-*/
 #ifndef __MLME_H__
 #define __MLME_H__
 
@@ -82,16 +80,9 @@
 #define LINK_DOWN_TIMEOUT           20000      /* unit: msec */
 #define AUTO_WAKEUP_TIMEOUT			70			/*unit: msec */
 
-#ifdef CONFIG_AP_SUPPORT 
-#ifndef CONFIG_STA_SUPPORT
-#define CW_MAX_IN_BITS              6        /* actual CwMax = 2^CW_MAX_IN_BITS - 1 */
-#endif /* CONFIG_STA_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifndef CONFIG_AP_SUPPORT
 #define CW_MAX_IN_BITS              10        /* actual CwMax = 2^CW_MAX_IN_BITS - 1 */
-#endif /* CONFIG_AP_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 
 #ifdef CONFIG_APSTA_MIXED_SUPPORT
@@ -129,11 +120,6 @@ extern UINT32 CW_MAX_IN_BITS;
 
 #define BSS_NOT_FOUND                    0xFFFFFFFF
 
-#ifdef CONFIG_AP_SUPPORT
-#ifndef CONFIG_STA_SUPPORT
-#define MAX_LEN_OF_MLME_QUEUE            20 /*10 */
-#endif
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 #define MAX_LEN_OF_MLME_QUEUE            40 /*10 */
@@ -144,16 +130,9 @@ enum SCAN_MODE{
 	SCAN_ACTIVE = 0x00,			/* all channels */
 	SCAN_CISCO_ACTIVE = 0x1,	/* single channel only */
 	FAST_SCAN_ACTIVE = 0x2,	
-#ifdef WSC_INCLUDED
-	SCAN_WSC_ACTIVE = 0x3,
-#endif /* WSC_INCLUDED */
 #ifdef DOT11N_DRAFT3
 	SCAN_2040_BSS_COEXIST = 0x4,
 #endif /* DOT11N_DRAFT3 */
-#ifdef P2P_SUPPORT
-	SCAN_P2P = 0x5,
-	SCAN_P2P_SEARCH = 0x6,
-#endif /* P2P_SUPPORT */
 	SCAN_ACTIVE_MAX,
 	
 	/* Passive scan, no probe request, only wait beacon and probe response */
@@ -560,19 +539,6 @@ typedef struct GNU_PACKED _EXT_CAP_INFO_ELEMENT{
 	UINT32	rsv7:1;
 #endif /* RT_BIG_ENDIAN */
 
-#ifdef DOT11Z_TDLS_SUPPORT
-#ifdef RT_BIG_ENDIAN
-	UINT8	TDLSChSwitchProhibited:1; /* bit39: TDLS Channel Switching Prohibited */
-	UINT8	TDLSProhibited:1; /* bit38: TDLS Prohibited */
-	UINT8	TDLSSupport:1; /* bit37: TDLS Support */
-	UINT8	rsv8:5;
-#else
-	UINT8	rsv8:5;
-	UINT8	TDLSSupport:1; /* bit37: TDLS Support */
-	UINT8	TDLSProhibited:1; /* bit38: TDLS Prohibited */
-	UINT8	TDLSChSwitchProhibited:1; /* bit39: TDLS Channel Switching Prohibited */
-#endif // RT_BIG_ENDIAN //
-#endif /* DOT11Z_TDLS_SUPPORT */
 }EXT_CAP_INFO_ELEMENT, *PEXT_CAP_INFO_ELEMENT;
 
 
@@ -1212,9 +1178,6 @@ typedef struct {
 	/* New for WPA2 */
 	CIPHER_SUITE					WPA;			/* AP announced WPA cipher suite */
 	CIPHER_SUITE					WPA2;			/* AP announced WPA2 cipher suite */
-#ifdef WAPI_SUPPORT
-	CIPHER_SUITE					WAPI;			/* AP announced WAPI cipher suite */
-#endif /* WAPI_SUPPORT */
 
 	/* New for microsoft WPA support */
 	NDIS_802_11_FIXED_IEs	FixIEs;
@@ -1238,19 +1201,12 @@ typedef struct {
 	QOS_CAPABILITY_PARM QosCapability;
 	QBSS_LOAD_PARM      QbssLoad;
 
-#ifdef WSC_INCLUDED
-    UCHAR		WpsAP;		/* 0x00: not support WPS, 0x01: support normal WPS, 0x02: support Ralink auto WPS, 0x04: support WAC AP */
-	USHORT		WscDPIDFromWpsAP;
-#endif /* WSC_INCLUDED */
 
 
 #ifdef CONFIG_STA_SUPPORT
     WPA_IE_     WpaIE;
     WPA_IE_     RsnIE;
 	WPA_IE_ 	WpsIE;
-#ifdef WAPI_SUPPORT
-	WPA_IE_     WapiIE;
-#endif /* WAPI_SUPPORT */
 
 #ifdef EXT_BUILD_CHANNEL_LIST
 	UCHAR		CountryString[3];
@@ -1305,19 +1261,6 @@ typedef struct _STATE_MACHINE {
     STATE_MACHINE_FUNC	*TransFunc;
 } STATE_MACHINE, *PSTATE_MACHINE;
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef APCLI_SUPPORT
-typedef VOID (*APCLI_STATE_MACHINE_FUNC)(VOID *pAd, MLME_QUEUE_ELEM *Elem, PULONG pCurrState, USHORT ifIndex);
-
-typedef struct _STA_STATE_MACHINE {
-	ULONG                           Base;
-	ULONG                           NrState;
-	ULONG                           NrMsg;
-	ULONG                           CurrState;
-	APCLI_STATE_MACHINE_FUNC          *TransFunc;
-} APCLI_STATE_MACHINE, *PSTA_STATE_MACHINE;
-#endif /* APCLI_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 /* MLME AUX data structure that hold temporarliy settings during a connection attempt. */
 /* Once this attemp succeeds, all settings will be copy to pAd->StaActive. */
@@ -1381,22 +1324,10 @@ typedef struct _MLME_AUX {
     RALINK_TIMER_STRUCT BeaconTimer, ScanTimer, APScanTimer;
     RALINK_TIMER_STRUCT AuthTimer;
     RALINK_TIMER_STRUCT AssocTimer, ReassocTimer, DisassocTimer;
-#ifdef CONFIG_AP_SUPPORT
-#ifdef APCLI_SUPPORT
-	USHORT              VarIELen;           /* Length of next VIE include EID & Length */
-    UCHAR               VarIEs[MAX_VIE_LEN];
-    LONG				Rssi; /* Record the rssi value when receive Probe Rsp. */
-	RALINK_TIMER_STRUCT ProbeTimer, ApCliAssocTimer, ApCliAuthTimer;
-#endif /* APCLI_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef P2P_SUPPORT
-	BOOLEAN				bBwFallBack;
-	UCHAR				ConCurrentCentralChannel;
-#endif /* P2P_SUPPORT */
 } MLME_AUX, *PMLME_AUX;
 
 typedef struct _MLME_ADDBA_REQ_STRUCT{
@@ -1533,15 +1464,8 @@ typedef struct _IE_lists {
 	UCHAR RSN_IE[MAX_LEN_OF_RSNIE];
 	UCHAR RSNIE_Len;
 	BOOLEAN bWmmCapable;
-#ifdef WSC_AP_SUPPORT
-	BOOLEAN bWscCapable;
-#endif /* WSC_AP_SUPPORT */
 	ULONG RalinkIe;
 	EXT_CAP_INFO_ELEMENT ExtCapInfo;
-#ifdef P2P_SUPPORT
-	ULONG P2PSubelementLen;
-	UCHAR P2pSubelement[MAX_VIE_LEN];
-#endif /* P2P_SUPPORT */
 	UCHAR ht_cap_len;
 	HT_CAPABILITY_IE HTCapability;
 #ifdef DOT11_VHT_AC

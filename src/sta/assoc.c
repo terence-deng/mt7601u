@@ -1,30 +1,30 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology	5th	Rd.
- * Science-based Industrial	Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2004, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved.	Ralink's source	code is	an unpublished work	and	the
- * use of a	copyright notice does not imply	otherwise. This	source code
- * contains	confidential trade secret material of Ralink Tech. Any attemp
- * or participation	in deciphering,	decoding, reverse engineering or in	any
- * way altering	the	source code	is stricitly prohibited, unless	the	prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Module Name:
-	assoc.c
 
-	Abstract:
-
-	Revision History:
-	Who			When			What
-	--------	----------		----------------------------------------------
-	John		2004-9-3		porting from RT2500
-*/
 #include "rt_config.h"
 
 UCHAR CipherWpaTemplate[] = {
@@ -334,9 +334,6 @@ VOID MlmeAssocReqAction(
 
 		DBGPRINT(RT_DEBUG_TRACE, ("ASSOC - Send ASSOC request...\n"));
 		MgtMacHeaderInit(pAd, &AssocHdr, SUBTYPE_ASSOC_REQ, 0, ApAddr,
-#ifdef P2P_SUPPORT
-							pAd->CurrentAddress,
-#endif /* P2P_SUPPORT */
 							ApAddr);
 
 		/* Build basic frame first */
@@ -425,19 +422,6 @@ VOID MlmeAssocReqAction(
 			}
 #endif /* DOT11N_DRAFT3 */
 
-#ifdef DOT11Z_TDLS_SUPPORT
-			if (IS_TDLS_SUPPORT(pAd))
-			{
-				extCapInfo.UAPSDBufSTASupport = 1;
-
-				if (pAd->StaCfg.TdlsInfo.TdlsChSwitchSupp)
-					extCapInfo.TDLSChSwitchSupport = 1;
-				else
-					extCapInfo.TDLSChSwitchSupport = 0;
-
-				extCapInfo.TDLSSupport = 1;
-			}
-#endif /* DOT11Z_TDLS_SUPPORT */
 
 			MakeOutgoingFrame(pOutBuffer + FrameLen, &TmpLen,
 					  1, &ExtCapIe,
@@ -513,17 +497,7 @@ VOID MlmeAssocReqAction(
 		     (pAd->StaCfg.AuthMode == Ndis802_11AuthModeWPA2PSK) ||
 		     (pAd->StaCfg.AuthMode == Ndis802_11AuthModeWPA) ||
 		     (pAd->StaCfg.AuthMode == Ndis802_11AuthModeWPA2)
-#ifdef WAPI_SUPPORT
-		     || (pAd->StaCfg.AuthMode == Ndis802_11AuthModeWAICERT)
-		     || (pAd->StaCfg.AuthMode == Ndis802_11AuthModeWAIPSK)
-#endif /* WAPI_SUPPORT */
 		    )
-#ifdef WSC_STA_SUPPORT
-		    && ((pAd->StaCfg.WscControl.WscConfMode == WSC_DISABLE) ||
-			((pAd->StaCfg.WscControl.WscConfMode != WSC_DISABLE) &&
-			 !(pAd->StaCfg.WscControl.bWscTrigger
-			 )))
-#endif /* WSC_STA_SUPPORT */
 		    ) {
 			UCHAR RSNIe = IE_WPA;
 
@@ -532,12 +506,6 @@ VOID MlmeAssocReqAction(
 				Ndis802_11AuthModeWPA2)) {
 				RSNIe = IE_WPA2;
 			}
-#ifdef WAPI_SUPPORT
-			else if ((pAd->StaCfg.AuthMode == Ndis802_11AuthModeWAICERT)
-				 || (pAd->StaCfg.AuthMode == Ndis802_11AuthModeWAIPSK)) {
-				RSNIe = IE_WAPI;
-			}
-#endif /* WAPI_SUPPORT */
 
 #ifdef WPA_SUPPLICANT_SUPPORT
 			if (pAd->StaCfg.bRSN_IE_FromWpaSupplicant == FALSE)
@@ -655,49 +623,7 @@ VOID MlmeAssocReqAction(
 		}
 /* #endif */
 #endif /* WPA_SUPPLICANT_SUPPORT */
-#ifdef P2P_SUPPORT
-	else if (P2P_INF_ON(pAd))
-	{
-		/* Check the total P2P Attribue IE in this AP.s */
-		if (pAd->P2pCfg.P2pManagedParm.TotalNumOfP2pAttribute > 0)
-		{
-			PUCHAR	ptr;
-			ptr = pOutBuffer + FrameLen;
-			P2pMakeP2pIE(pAd, SUBTYPE_ASSOC_REQ, ptr, &tmp);
-			FrameLen += tmp;
-			DBGPRINT(RT_DEBUG_ERROR, ("ASSOCREQ - Insert P2P IE in case for managed AP to recognize me\n"));
-		}
-	}
-#endif /* P2P_SUPPORT */
 
-#ifdef WSC_STA_SUPPORT
-		/* Add WSC IE if we are connecting to WSC AP */
-		if ((pAd->StaCfg.WscControl.WscEnAssociateIE) &&
-		    (pAd->StaCfg.WscControl.WscConfMode != WSC_DISABLE) &&
-		    (pAd->StaCfg.WscControl.bWscTrigger
-		    )) {
-			UCHAR *pWscBuf = NULL, WscIeLen = 0;
-			ULONG WscTmpLen = 0;
-
-			os_alloc_mem(pAd, (UCHAR **) & pWscBuf, 512);
-/*			if( (pWscBuf = kmalloc(512, GFP_ATOMIC)) != NULL) */
-			if (pWscBuf != NULL) {
-				NdisZeroMemory(pWscBuf, 512);
-				WscBuildAssocReqIE(&pAd->StaCfg.WscControl, pWscBuf, &WscIeLen);
-
-				MakeOutgoingFrame(pOutBuffer + FrameLen,
-						  &WscTmpLen, WscIeLen, pWscBuf,
-						  END_OF_ARGS);
-
-				FrameLen += WscTmpLen;
-/*				kfree(pWscBuf); */
-				os_free_mem(NULL, pWscBuf);
-			} else
-				DBGPRINT(RT_DEBUG_WARN,
-					 ("%s:: WscBuf Allocate failed!\n",
-					  __FUNCTION__));
-		}
-#endif /* WSC_STA_SUPPORT */
 #ifdef WFD_SUPPORT
 #ifdef RT_CFG80211_SUPPORT
 		if (pAd->StaCfg.WfdCfg.bSuppInsertWfdIe)
@@ -796,9 +722,6 @@ VOID MlmeReassocReqAction(
 		DBGPRINT(RT_DEBUG_TRACE,
 			 ("ASSOC - Send RE-ASSOC request...\n"));
 		MgtMacHeaderInit(pAd, &ReassocHdr, SUBTYPE_REASSOC_REQ, 0, ApAddr, 
-#ifdef P2P_SUPPORT
-							pAd->CurrentAddress,
-#endif /* P2P_SUPPORT */
 							ApAddr);
 		MakeOutgoingFrame(pOutBuffer, &FrameLen, sizeof (HEADER_802_11),
 				  &ReassocHdr, 2, &CapabilityInfo, 2,
@@ -891,9 +814,6 @@ VOID MlmeReassocReqAction(
 #endif /* DOT11_N_SUPPORT */
 
 		if (FALSE
-#ifdef DOT11Z_TDLS_SUPPORT
-			|| IS_TDLS_SUPPORT(pAd)
-#endif /* DOT11Z_TDLS_SUPPORT */
 		 )
 		{
 			ULONG TmpLen;
@@ -904,19 +824,6 @@ VOID MlmeReassocReqAction(
 			extInfoLen = sizeof(EXT_CAP_INFO_ELEMENT);
 
 
-#ifdef DOT11Z_TDLS_SUPPORT
-			if (IS_TDLS_SUPPORT(pAd))
-			{
-				extCapInfo.UAPSDBufSTASupport = 1;
-
-				if (pAd->StaCfg.TdlsInfo.TdlsChSwitchSupp)
-					extCapInfo.TDLSChSwitchSupport = 1;
-				else
-					extCapInfo.TDLSChSwitchSupport = 0;
-
-				extCapInfo.TDLSSupport = 1;
-			}
-#endif /* DOT11Z_TDLS_SUPPORT */
 
 			MakeOutgoingFrame(pOutBuffer + FrameLen, &TmpLen,
 								1,					&ExtCapIe,
@@ -1042,46 +949,6 @@ VOID MlmeDisassocReqAction(
 	}
 #endif /* QOS_DLS_SUPPORT */
 
-#ifdef DOT11Z_TDLS_SUPPORT
-	if (IS_TDLS_SUPPORT(pAd))
-	{
-		if (pAd->StaCfg.bRadio == TRUE)
-		{
-			TDLS_LinkTearDown(pAd, TRUE);
-		}
-		else
-		{
-			UCHAR		idx;
-			BOOLEAN		TimerCancelled;
-			PRT_802_11_TDLS	pTDLS = NULL;
-
-			// tear down tdls table entry
-			for (idx = 0; idx < MAX_NUM_OF_TDLS_ENTRY; idx++)
-			{
-				pTDLS = &pAd->StaCfg.TdlsInfo.TDLSEntry[idx];
-				if (pTDLS->Valid && (pTDLS->Status >= TDLS_MODE_CONNECTED))
-				{
-					pTDLS->Status = TDLS_MODE_NONE;
-					pTDLS->Valid	= FALSE;
-					pTDLS->Token = 0;
-					RTMPCancelTimer(&pTDLS->Timer, &TimerCancelled);
-
-					if (!VALID_WCID(pTDLS->MacTabMatchWCID))
-						return;
-
-					MacTableDeleteEntry(pAd,pTDLS->MacTabMatchWCID, pTDLS->MacAddr);
-				}
-				else if (pTDLS->Valid)
-				{
-					pTDLS->Status = TDLS_MODE_NONE;
-					pTDLS->Valid	= FALSE;
-					pTDLS->Token = 0;
-					RTMPCancelTimer(&pTDLS->Timer, &TimerCancelled);
-				}
-			}
-		}
-	}
-#endif /* DOT11Z_TDLS_SUPPORT */
 
 	/* skip sanity check */
 	pDisassocReq = (PMLME_DISASSOC_REQ_STRUCT) (Elem->Msg);
@@ -1097,11 +964,6 @@ VOID MlmeDisassocReqAction(
 		return;
 	}
 
-#ifdef WAPI_SUPPORT
-	WAPI_InternalCmdAction(pAd,
-			       pAd->StaCfg.AuthMode,
-			       BSS0, pDisassocReq->Addr, WAI_MLME_DISCONNECT);
-#endif /* WAPI_SUPPORT */
 
 	RTMPCancelTimer(&pAd->MlmeAux.DisassocTimer, &TimerCancelled);
 
@@ -1109,9 +971,6 @@ VOID MlmeDisassocReqAction(
 		 ("ASSOC - Send DISASSOC request[BSSID::%02x:%02x:%02x:%02x:%02x:%02x (Reason=%d)\n",
 		  PRINT_MAC(pDisassocReq->Addr), pDisassocReq->Reason));
 	MgtMacHeaderInit(pAd, &DisassocHdr, SUBTYPE_DISASSOC, 0, pDisassocReq->Addr, 
-#ifdef P2P_SUPPORT
-						pAd->CurrentAddress,
-#endif /* P2P_SUPPORT */
 						pDisassocReq->Addr);	/* patch peap ttls switching issue */
 	MakeOutgoingFrame(pOutBuffer, &FrameLen,
 			  sizeof (HEADER_802_11), &DisassocHdr,
@@ -1491,6 +1350,10 @@ VOID AssocPostProc(
 	}
 #endif /* DOT11_N_SUPPORT */
 
+	    if (pEdcaParm->bValid == TRUE)
+                CLIENT_STATUS_SET_FLAG(&pAd->MacTab.Content[BSSID_WCID], fCLIENT_STATUS_WMM_CAPABLE);
+
+
 	NdisMoveMemory(&pAd->MlmeAux.APEdcaParm, pEdcaParm, sizeof (EDCA_PARM));
 
 	/* filter out un-supported rates */
@@ -1572,18 +1435,6 @@ VOID AssocPostProc(
 					DBGPRINT(RT_DEBUG_TRACE,
 						 ("%s():=> Store RSN_IE for WPA2 SM negotiation\n", __FUNCTION__));
 				}
-#ifdef WAPI_SUPPORT
-				/* For WAPI */
-				else if ((pEid->Eid == IE_WAPI)
-					 && (NdisEqualMemory(pEid->Octet + 4, WAPI_OUI, 3))
-					 && (pAd->StaCfg.AuthMode == Ndis802_11AuthModeWAICERT
-					     || pAd->StaCfg.AuthMode == Ndis802_11AuthModeWAIPSK)) {
-					NdisMoveMemory(pAd->MacTab.Content[BSSID_WCID].RSN_IE, pVIE, (pEid->Len + 2));
-					pAd->MacTab.Content[BSSID_WCID].RSNIE_Len = (pEid->Len + 2);
-					DBGPRINT(RT_DEBUG_TRACE,
-						 ("%s():=> Store RSN_IE for WAPI SM negotiation\n", __FUNCTION__));
-				}
-#endif /* WAPI_SUPPORT */
 
 				pVIE += (pEid->Len + 2);
 				len -= (pEid->Len + 2);
@@ -1632,12 +1483,6 @@ VOID PeerDisassocAction(
 			RTMPSendWirelessEvent(pAd, IW_DISASSOC_EVENT_FLAG, NULL,
 					      BSS0, 0);
 
-#ifdef WAPI_SUPPORT
-			WAPI_InternalCmdAction(pAd,
-					       pAd->StaCfg.AuthMode,
-					       BSS0,
-					       Addr2, WAI_MLME_DISCONNECT);
-#endif /* WAPI_SUPPORT */
 
 			/*
 			   It is possible that AP sends dis-assoc frame(PeerDisassocAction) to STA 
@@ -1817,9 +1662,6 @@ VOID Cls3errAction(
 	DBGPRINT(RT_DEBUG_TRACE,
 		 ("ASSOC - Class 3 Error, Send DISASSOC frame\n"));
 	MgtMacHeaderInit(pAd, &DisassocHdr, SUBTYPE_DISASSOC, 0, pAddr, 
-#ifdef P2P_SUPPORT
-						pAd->CurrentAddress,
-#endif /* P2P_SUPPORT */
 						pAd->CommonCfg.Bssid);	/* patch peap ttls switching issue */
 	MakeOutgoingFrame(pOutBuffer, &FrameLen,
 			  sizeof (HEADER_802_11), &DisassocHdr,
@@ -1923,11 +1765,6 @@ BOOLEAN StaAddMacTableEntry(
 			CLIENT_STATUS_SET_FLAG(pEntry, fCLIENT_STATUS_WMM_CAPABLE);
 
 		ht_mode_adjust(pAd, pEntry, pHtCapability, &pAd->CommonCfg.DesiredHtPhy);
-#ifdef P2P_SUPPORT
-		// TODO: shiang-6590, fix this fallback case!!
-		if (pAd->MlmeAux.bBwFallBack == TRUE)
-			pEntry->MaxHTPhyMode.field.BW = BW_20;
-#endif /* P2P_SUPPORT */
 
 #ifdef TXBF_SUPPORT
 		if (pAd->chipCap.FlgHwTxBfCap)
@@ -2088,12 +1925,6 @@ BOOLEAN StaAddMacTableEntry(
 	}
 #endif /* NATIVE_WPA_SUPPLICANT_SUPPORT */
 
-#ifdef P2P_SUPPORT
-	if (pAd->StaCfg.BssType == BSS_INFRA)
-		COPY_MAC_ADDR(pEntry->HdrAddr1, pAd->MlmeAux.Bssid);
-	COPY_MAC_ADDR(pEntry->HdrAddr2, pAd->CurrentAddress);
-	COPY_MAC_ADDR(pEntry->HdrAddr3, pAd->MlmeAux.Bssid);
-#endif /* P2P_SUPPORT */
 
 	return TRUE;
 }

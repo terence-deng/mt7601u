@@ -1,63 +1,15 @@
 include $(RT28xx_DIR)/os/linux/config.mk
 
-#ifdef CONFIG_AP_SUPPORT
-ifeq ($(RT28xx_MODE),AP)
-MOD_NAME = mtnet$(MODULE)ap
-endif
-#endif // CONFIG_AP_SUPPORT //
 
 #ifdef CONFIG_STA_SUPPORT
 ifeq ($(RT28xx_MODE), STA)
-MOD_NAME = mtnet$(MODULE)sta
+MOD_NAME = rtnet$(MODULE)sta
 endif
 #endif // CONFIG_STA_SUPPORT //
 
-#ifdef CONFIG_APSTA_SUPPORT
-ifeq ($(RT28xx_MODE), APSTA)
-MOD_NAME = mtnet$(MODULE)apsta
-endif
-#endif // CONFIG_APSTA_SUPPORT //
 
 OBJ := $(MOD_NAME).o
 
-#ifdef CONFIG_AP_SUPPORT
-
-RT28XX_AP_OBJ := \
-	../../ap/ap_mbss_inf.o\
-	../../os/linux/ap_ioctl.o\
-	../../os/linux/rt_main_dev.o
-
-ifeq ($(HAS_WDS),y)
-RT28XX_AP_OBJ += \
-	../../ap/ap_wds_inf.o
-endif
-
-ifeq ($(HAS_APCLI),y)
-RT28XX_AP_OBJ += \
-	../../ap/ap_apcli_inf.o
-endif
-
-ifeq ($(HAS_MESH_SUPPORT),y)
-RT28XX_AP_OBJ += \
-	../../common/mesh_inf.o
-endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#endif // CONFIG_AP_SUPPORT //
 
 #ifdef CONFIG_STA_SUPPORT
 RT28XX_STA_OBJ := \
@@ -77,13 +29,15 @@ endif
 
 
 
-#ifdef MT7601
-ifneq ($(findstring 7601,$(CHIPSET)),)
-RT28XX_STA_OBJ += \
-        ../../common/rtusb_dev_id.o\
-        ../../os/linux/usb_main_dev.o
-endif
-#endif // MT7601 //
+
+
+
+
+
+
+
+
+
 
 
 
@@ -91,55 +45,18 @@ endif
 
 #endif // CONFIG_STA_SUPPORT //
 
-#ifdef CONFIG_APSTA_SUPPORT
-RT28XX_APSTA_OBJ := \
-	../../ap/ap_mbss_inf.o\
-	../../common/p2p_inf.o\
-	../../os/linux/ap_ioctl.o\
-	../../os/linux/sta_ioctl.o\
-	../../os/linux/rt_main_dev.o
-
-ifeq ($(HAS_WDS),y)
-RT28XX_APSTA_OBJ += \
-	../../ap/ap_wds_inf.o
-endif
-
-ifeq ($(HAS_APCLI),y)
-RT28XX_APSTA_OBJ += \
-	../../ap/ap_apcli_inf.o
-endif
-
-ifeq ($(HAS_MESH_SUPPORT),y)
-RT28XX_APSTA_OBJ += \
-	../../common/mesh_inf.o
-endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-#endif // CONFIG_APSTA_SUPPORT //
-
 
 PHONY := all clean
 
 all:$(OBJ)
 
-mtnet$(MODULE)sta.o: $(RT28XX_STA_OBJ)
+rtnet$(MODULE)sta.o: $(RT28XX_STA_OBJ)
 	$(LD) -r $^ -o $@
 
-mtnet$(MODULE)ap.o: $(RT28XX_AP_OBJ)
+rtnet$(MODULE)ap.o: $(RT28XX_AP_OBJ)
 	$(LD) -r $^ -o $@
 
-mtnet$(MODULE)apsta.o: $(RT28XX_APSTA_OBJ)
+rtnet$(MODULE)apsta.o: $(RT28XX_APSTA_OBJ)
 	$(LD) -r $^ -o $@
 
 clean:

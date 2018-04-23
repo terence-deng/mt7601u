@@ -1,8 +1,29 @@
 /*
-   All functions in this file must be USB-depended, or you should out your function
-	in other files.
+ *************************************************************************
+ * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
+ *
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-*/
 
 #ifdef RTMP_MAC_USB
 
@@ -195,6 +216,16 @@ static VOID rlt_usb_write_txinfo(
 #else
 	pTxInfo->bFragLasAlignmentsectiontRound = 0;
 #endif /* USB_BULK_BUF_ALIGMENT */
+}
+
+
+static VOID rlt_usb_update_txinfo(
+	IN RTMP_ADAPTER *pAd,
+	IN TXINFO_STRUC *pTxInfo,
+	IN TX_BLK *pTxBlk)
+{
+#ifdef RLT_MAC
+#endif /* RLT_MAC */
 }
 
 
@@ -446,7 +477,7 @@ USHORT	RtmpUSB_WriteFragTxResource(
 								FALSE, FIFO_EDCA2, FALSE, FALSE, 1);
 	else
 #endif /* CONFIG_MULTI_CHANNEL */
-	rlt_usb_write_txinfo(pAd, pTxInfo, (USHORT)(USBDMApktLen), FALSE, FIFO_EDCA, FALSE /*NextValid*/,  FALSE, 1);
+		rlt_usb_write_txinfo(pAd, pTxInfo, (USHORT)(USBDMApktLen), FALSE, FIFO_EDCA, FALSE /*NextValid*/,  FALSE, 1);
 	
 	if (fragNum == pTxBlk->TotalFragNum) 
 	{
@@ -522,20 +553,6 @@ USHORT	RtmpUSB_WriteFragTxResource(
 		pHTTXContext->CurWriteRealPos = pHTTXContext->CurWritePosition;
 
 #ifdef UAPSD_SUPPORT
-#ifdef DOT11Z_TDLS_SUPPORT
-		UAPSD_TagFrame(pAd, pTxBlk->pPacket, pTxBlk->Wcid, pHTTXContext->CurWritePosition);
-#else
-#ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
-		if (P2P_GO_ON(pAd))
-#else
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-		{
-			UAPSD_TagFrame(pAd, pTxBlk->pPacket, pTxBlk->Wcid, pHTTXContext->CurWritePosition);
-		}
-#endif /* CONFIG_AP_SUPPORT */
-#endif /* DOT11Z_TDLS_SUPPORT */
 #endif /* UAPSD_SUPPORT */
 
 		/* Finally, set bCurWriting as FALSE*/
@@ -697,20 +714,6 @@ USHORT RtmpUSB_WriteSingleTxResource(
 
 		pHTTXContext->CurWritePosition += pTxBlk->Priv;
 #ifdef UAPSD_SUPPORT
-#ifdef DOT11Z_TDLS_SUPPORT
-		UAPSD_TagFrame(pAd, pTxBlk->pPacket, pTxBlk->Wcid, pHTTXContext->CurWritePosition);
-#else
-#ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
-		if (P2P_GO_ON(pAd))
-#else
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-		{
-			UAPSD_TagFrame(pAd, pTxBlk->pPacket, pTxBlk->Wcid, pHTTXContext->CurWritePosition);
-		}
-#endif /* CONFIG_AP_SUPPORT */
-#endif /* DOT11Z_TDLS_SUPPORT */
 #endif /* UAPSD_SUPPORT */
 #ifdef USB_BULK_BUF_ALIGMENT
 		/*
@@ -813,9 +816,9 @@ USHORT RtmpUSB_WriteMultiTxResource(
 
 			/*	pTxInfo->USBDMApktLen now just a temp value and will to correct latter.*/
 #ifdef CONFIG_MULTI_CHANNEL
-			if ((QueIdx == QID_HCCA) && (pAd->Multi_Channel_Enable == TRUE))
-				rlt_usb_write_txinfo(pAd, pTxInfo, (USHORT)(pTxBlk->Priv), FALSE, FIFO_EDCA2, FALSE /*NextValid*/,  FALSE, 1);
-			else
+	if ((QueIdx == QID_HCCA) && (pAd->Multi_Channel_Enable == TRUE))
+		rlt_usb_write_txinfo(pAd, pTxInfo, (USHORT)(pTxBlk->Priv), FALSE, FIFO_EDCA2, FALSE /*NextValid*/,  FALSE, 1);
+	else
 #endif /* CONFIG_MULTI_CHANNEL */
 
 			rlt_usb_write_txinfo(pAd, pTxInfo, (USHORT)(pTxBlk->Priv), FALSE, FIFO_EDCA, FALSE /*NextValid*/,  FALSE, 1);
@@ -966,20 +969,6 @@ VOID RtmpUSB_FinalWriteTxResource(
 		pHTTXContext->CurWriteRealPos = pHTTXContext->CurWritePosition;
 		
 #ifdef UAPSD_SUPPORT
-#ifdef DOT11Z_TDLS_SUPPORT
-		UAPSD_TagFrame(pAd, pTxBlk->pPacket, pTxBlk->Wcid, pHTTXContext->CurWritePosition);
-#else
-#ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
-		if (P2P_GO_ON(pAd))
-#else
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-		{
-			UAPSD_TagFrame(pAd, pTxBlk->pPacket, pTxBlk->Wcid, pHTTXContext->CurWritePosition);
-		}
-#endif /* CONFIG_AP_SUPPORT */
-#endif /* DOT11Z_TDLS_SUPPORT */
 #endif /* UAPSD_SUPPORT */
 
 		
@@ -1106,26 +1095,6 @@ if (0) {
 			then we will call UAPSD_SP_Close() and we will check
 			pEntry->bAPSDFlagSPStart() so do not worry about it.
 		*/
-#ifdef DOT11Z_TDLS_SUPPORT
-	if (RTMP_GET_PACKET_QOS_NULL(pPacket) != 0x00)
-		pMLMEContext->Wcid = RTMP_GET_PACKET_WCID(pPacket);
-	else
-		pMLMEContext->Wcid = MCAST_WCID;
-#else
-#ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
-	if (P2P_GO_ON(pAd))
-#else
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-	{
-		if (RTMP_GET_PACKET_QOS_NULL(pPacket) != 0x00)
-			pMLMEContext->Wcid = RTMP_GET_PACKET_WCID(pPacket);
-		else
-			pMLMEContext->Wcid = MCAST_WCID;
-	}
-#endif /* CONFIG_AP_SUPPORT */
-#endif /* DOT11Z_TDLS_SUPPORT */
 #endif /* UAPSD_SUPPORT */
 
 	/*hex_dump("RtmpUSBMgmtKickOut", &pMLMEContext->TransferBuffer->field.WirelessPacket[0], (pMLMEContext->BulkOutSize > 16 ? 16 : pMLMEContext->BulkOutSize));*/
@@ -1215,7 +1184,7 @@ VOID RtmpUSBNullFrameKickOut(
 			RTUSB_SET_BULK_FLAG(pAd, fRTUSB_BULK_OUT_DATA_NULL_HCCA);
 		else
 #endif /* CONFIG_MULTI_CHANNEL */
-		RTUSB_SET_BULK_FLAG(pAd, fRTUSB_BULK_OUT_DATA_NULL);
+			RTUSB_SET_BULK_FLAG(pAd, fRTUSB_BULK_OUT_DATA_NULL);
 
 		pAd->Sequence = (pAd->Sequence+1) & MAXSEQ;
 		

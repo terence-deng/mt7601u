@@ -1,17 +1,29 @@
-/****************************************************************************
+/*
+ *************************************************************************
+ * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
+ *
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-    Module Name:
-    vr_ikans.c
- 
-    Abstract:
-    Only for IKANOS Vx160 or Vx180 platform.
- 
-    Revision History:
-    Who        When          What
-    ---------  ----------    ----------------------------------------------
-    Sample Lin	01-28-2008    Created
-
-***************************************************************************/
 
 #define RTMP_MODULE_OS
 #define RTMP_MODULE_OS_UTIL
@@ -220,21 +232,6 @@ static INT32 GetSpecInfoIdxFromBssid(
 {
 	INT32 IfIdx = MAIN_MBSSID;
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-#ifdef APCLI_SUPPORT
-		if(FromWhichBSSID >= MIN_NET_DEVICE_FOR_APCLI)
-		{
-			IfIdx = MAX_MBSSID_NUM(pAd) + MAX_WDS_ENTRY;
-		} 
-		else
-#endif /* APCLI_SUPPORT */
-		{
-			IfIdx = FromWhichBSSID;
-		}
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -267,21 +264,6 @@ static INT32 GetSpecInfoIdxFromBssid(
 {
 	INT32 IfIdx = MAIN_MBSSID;
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-#ifdef APCLI_SUPPORT
-		if(FromWhichBSSID >= MIN_NET_DEVICE_FOR_APCLI)
-		{
-			IfIdx = MAX_MBSSID_NUM(pAd) + MAX_WDS_ENTRY;
-		}
-		else
-#endif /* APCLI_SUPPORT */
-		{
-			IfIdx = FromWhichBSSID;
-		}
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)

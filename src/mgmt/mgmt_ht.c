@@ -1,7 +1,28 @@
 /*
-
-
-*/
+ *************************************************************************
+ * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
+ *
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
 
 #include "rt_config.h"
@@ -150,40 +171,10 @@ VOID RTMPSetHT(
 	IN OID_SET_HT_PHYMODE *pHTPhyMode)
 {
 	UCHAR RxStream = pAd->CommonCfg.RxStream;
-#ifdef CONFIG_AP_SUPPORT
-	INT apidx;
-#endif /* CONFIG_AP_SUPPORT */
 	INT bw;
 	RT_HT_CAPABILITY *rt_ht_cap = &pAd->CommonCfg.DesiredHtPhy;
 	HT_CAPABILITY_IE *ht_cap= &pAd->CommonCfg.HtCapability;
 	
-#ifdef CONFIG_AP_SUPPORT
-	/* sanity check for extention channel */
-	if (CHAN_PropertyCheck(pAd, pAd->CommonCfg.Channel,
-						CHANNEL_NO_FAT_BELOW | CHANNEL_NO_FAT_ABOVE) == TRUE)
-	{
-		/* only 20MHz is allowed */
-		pHTPhyMode->BW = 0;
-	}
-	else if (pHTPhyMode->ExtOffset == EXTCHA_BELOW)
-	{
-		/* extension channel below this channel is not allowed */
-		if (CHAN_PropertyCheck(pAd, pAd->CommonCfg.Channel,
-						CHANNEL_NO_FAT_BELOW) == TRUE)
-		{
-			pHTPhyMode->ExtOffset = EXTCHA_ABOVE;
-		}
-	}
-	else if (pHTPhyMode->ExtOffset == EXTCHA_ABOVE)
-	{
-		/* extension channel above this channel is not allowed */
-		if (CHAN_PropertyCheck(pAd, pAd->CommonCfg.Channel,
-						CHANNEL_NO_FAT_ABOVE) == TRUE)
-		{
-			pHTPhyMode->ExtOffset = EXTCHA_BELOW;
-		}
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 	DBGPRINT(RT_DEBUG_TRACE, ("RTMPSetHT : HT_mode(%d), ExtOffset(%d), MCS(%d), BW(%d), STBC(%d), SHORTGI(%d)\n",
 										pHTPhyMode->HtMode, pHTPhyMode->ExtOffset, 
@@ -282,17 +273,9 @@ VOID RTMPSetHT(
 		/* Turn on BBP 40MHz mode now only as AP . */
 		/* Sta can turn on BBP 40MHz after connection with 40MHz AP. Sta only broadcast 40MHz capability before connection.*/
 		if ((pAd->OpMode == OPMODE_AP) || INFRA_ON(pAd) || ADHOC_ON(pAd)
-#ifdef P2P_SUPPORT
-			|| P2P_GO_ON(pAd)
-#endif /* P2P_SUPPORT */
 		)
 		{
 			rtmp_bbp_set_ctrlch(pAd, pHTPhyMode->ExtOffset);	
-#ifdef GREENAP_SUPPORT
-			if (pAd->ApCfg.bGreenAPActive == 1)
-				bw = BW_20;
-			else
-#endif /* GREENAP_SUPPORT */
 				bw = BW_40;
 		}
 	}
@@ -412,28 +395,10 @@ VOID RTMPSetHT(
 	}
 #endif /* TXBF_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		for (apidx = 0; apidx < pAd->ApCfg.BssidNum; apidx++)
-			RTMPSetIndividualHT(pAd, apidx);
-#ifdef APCLI_SUPPORT
-		for (apidx = 0; apidx < MAX_APCLI_NUM; apidx++)
-			RTMPSetIndividualHT(pAd, apidx + MIN_NET_DEVICE_FOR_APCLI);
-#endif /* APCLI_SUPPORT */
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{
-#ifdef P2P_SUPPORT
-		for (apidx = 0; apidx < pAd->ApCfg.BssidNum; apidx++)
-			RTMPSetIndividualHT(pAd, apidx + MIN_NET_DEVICE_FOR_P2P_GO);
-
-		for (apidx = 0; apidx < MAX_APCLI_NUM; apidx++)
-			RTMPSetIndividualHT(pAd, apidx + MIN_NET_DEVICE_FOR_APCLI);			
-#endif /* P2P_SUPPORT */
 
 		RTMPSetIndividualHT(pAd, 0);
 	}
@@ -464,59 +429,8 @@ VOID RTMPSetIndividualHT(
 						
 	do
 	{
-#ifdef P2P_SUPPORT
-		if (apidx >= MIN_NET_DEVICE_FOR_P2P_GO)
-		{								
-			UCHAR idx = apidx - MIN_NET_DEVICE_FOR_P2P_GO;
-
-			pDesired_ht_phy = &pAd->ApCfg.MBSSID[idx].DesiredHtPhyInfo;
-			DesiredMcs = pAd->ApCfg.MBSSID[idx].DesiredTransmitSetting.field.MCS;			
-			encrypt_mode = pAd->ApCfg.MBSSID[idx].WepStatus;
-			pAd->ApCfg.MBSSID[idx].bWmmCapable = TRUE;	
-			pAd->ApCfg.MBSSID[idx].bAutoTxRateSwitch = (DesiredMcs == MCS_AUTO) ? TRUE : FALSE;
-			break;
-		}
-#endif /* P2P_SUPPORT */
 
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef APCLI_SUPPORT	
-			if (apidx >= MIN_NET_DEVICE_FOR_APCLI)
-			{				
-				UCHAR	idx = apidx - MIN_NET_DEVICE_FOR_APCLI;
-						
-				if (idx < MAX_APCLI_NUM)
-				{
-					pDesired_ht_phy = &pAd->ApCfg.ApCliTab[idx].DesiredHtPhyInfo;									
-					DesiredMcs = pAd->ApCfg.ApCliTab[idx].DesiredTransmitSetting.field.MCS;							
-					encrypt_mode = pAd->ApCfg.ApCliTab[idx].WepStatus;
-					pAd->ApCfg.ApCliTab[idx].bAutoTxRateSwitch = (DesiredMcs == MCS_AUTO) ? TRUE : FALSE;
-					break;
-				}
-				else
-				{
-					DBGPRINT(RT_DEBUG_ERROR, ("RTMPSetIndividualHT: invalid idx(%d)\n", idx));
-					return;
-				}
-			}
-#endif /* APCLI_SUPPORT */
-
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-			if ((apidx < pAd->ApCfg.BssidNum) && (apidx < MAX_MBSSID_NUM(pAd)) && (apidx < HW_BEACON_MAX_NUM))
-			{								
-				pDesired_ht_phy = &pAd->ApCfg.MBSSID[apidx].DesiredHtPhyInfo;									
-				DesiredMcs = pAd->ApCfg.MBSSID[apidx].DesiredTransmitSetting.field.MCS;			
-				encrypt_mode = pAd->ApCfg.MBSSID[apidx].WepStatus;
-				pAd->ApCfg.MBSSID[apidx].bWmmCapable = TRUE;	
-				pAd->ApCfg.MBSSID[apidx].bAutoTxRateSwitch = (DesiredMcs == MCS_AUTO) ? TRUE : FALSE;
-				break;
-			}
-
-			DBGPRINT(RT_DEBUG_ERROR, ("RTMPSetIndividualHT: invalid apidx(%d)\n", apidx));
-			return;
-		}			
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -631,11 +545,6 @@ VOID RTMPSetIndividualHT(
 	/* update HT Rate setting */
 	if (pAd->OpMode == OPMODE_STA)
 	{
-#ifdef P2P_SUPPORT
-		if (apidx > BSS0)
-			MlmeUpdateHtTxRates(pAd, apidx);
-		else
-#endif /* P2P_SUPPORT */
 			MlmeUpdateHtTxRates(pAd, BSS0);
 	}
 	else
@@ -661,40 +570,11 @@ VOID RTMPSetIndividualHT(
 VOID RTMPDisableDesiredHtInfo(
 	IN	PRTMP_ADAPTER		pAd)
 {
-#ifdef CONFIG_AP_SUPPORT
-	UINT8				apidx = 0;
-#endif /* CONFIG_AP_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		for (apidx = 0; apidx < pAd->ApCfg.BssidNum; apidx++)
-		{				
-			RTMPZeroMemory(&pAd->ApCfg.MBSSID[apidx].DesiredHtPhyInfo, sizeof(RT_PHY_INFO));
-		}
-#ifdef APCLI_SUPPORT
-		for (apidx = 0; apidx < MAX_APCLI_NUM; apidx++)
-		{				
-			RTMPZeroMemory(&pAd->ApCfg.ApCliTab[apidx].DesiredHtPhyInfo, sizeof(RT_PHY_INFO));
-		}
-#endif /* APCLI_SUPPORT */
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{
-#ifdef P2P_SUPPORT
-		for (apidx = 0; apidx < pAd->ApCfg.BssidNum; apidx++)
-		{			
-			RTMPZeroMemory(&pAd->ApCfg.MBSSID[apidx].DesiredHtPhyInfo, sizeof(RT_PHY_INFO));
-		}
-
-		for (apidx = 0; apidx < MAX_APCLI_NUM; apidx++)
-		{			
-			RTMPZeroMemory(&pAd->ApCfg.ApCliTab[apidx].DesiredHtPhyInfo, sizeof(RT_PHY_INFO));
-		}
-#endif /* P2P_SUPPORT */
 		RTMPZeroMemory(&pAd->StaCfg.DesiredHtPhyInfo, sizeof(RT_PHY_INFO));
 	}
 #endif /* CONFIG_STA_SUPPORT */

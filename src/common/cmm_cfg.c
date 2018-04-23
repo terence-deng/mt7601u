@@ -1,29 +1,28 @@
-/****************************************************************************
+/*
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
- * (c) Copyright 2002, Ralink Technology, Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ****************************************************************************
-
-    Module Name:
-	cmm_cfg.c
-
-    Abstract:
-    Ralink WiFi Driver configuration related subroutines
-
-    Revision History:
-    Who          When          What
-    ---------    ----------    ----------------------------------------------
-*/
-
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
 
 #include "rt_config.h"
@@ -87,32 +86,11 @@ UINT GenerateWpsPinCode(
 
 	NdisZeroMemory(macAddr, MAC_ADDR_LEN);
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-#ifdef APCLI_SUPPORT
-	    if (bFromApcli)
-	        NdisMoveMemory(&macAddr[0], pAd->ApCfg.ApCliTab[apidx].CurrentAddress, MAC_ADDR_LEN);
-	    else
-#endif /* APCLI_SUPPORT */
-		NdisMoveMemory(&macAddr[0], pAd->ApCfg.MBSSID[apidx].Bssid, MAC_ADDR_LEN);
-	}
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		NdisMoveMemory(&macAddr[0], pAd->CurrentAddress, MAC_ADDR_LEN);
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef P2P_SUPPORT
-	if (apidx >= MIN_NET_DEVICE_FOR_P2P_GO)
-		NdisMoveMemory(&macAddr[0], pAd->P2PCurrentAddress, MAC_ADDR_LEN);
-
-	if (bFromApcli)
-	{
-		APCLI_MR_APIDX_SANITY_CHECK(apidx);
-		NdisMoveMemory(&macAddr[0], pAd->ApCfg.ApCliTab[apidx].CurrentAddress, MAC_ADDR_LEN);
-	}
-#endif /* P2P_SUPPORT */
 	iPin = macAddr[3] * 256 * 256 + macAddr[4] * 256 + macAddr[5];
 
 	iPin = iPin % 10000000;
@@ -283,10 +261,22 @@ UCHAR wmode_2_cfgmode(UCHAR wmode)
 }
 
 
+static BOOLEAN wmode_valid(RTMP_ADAPTER *pAd, enum WIFI_MODE wmode)
+{
+	if ((WMODE_CAP_5G(wmode) && (!PHY_CAP_5G(pAd->chipCap.phy_caps))) ||
+		(WMODE_CAP_2G(wmode) && (!PHY_CAP_2G(pAd->chipCap.phy_caps))) ||
+		(WMODE_CAP_N(wmode) && RTMP_TEST_MORE_FLAG(pAd, fRTMP_ADAPTER_DISABLE_DOT_11N))
+	)
+		return FALSE;
+	else
+		return TRUE;
+}
+
 
 static BOOLEAN wmode_valid_and_correct(RTMP_ADAPTER *pAd, UCHAR* wmode)
 {
 	BOOLEAN ret = TRUE;
+	UCHAR mode = *wmode;
 
 	if (WMODE_CAP_5G(*wmode) && (!PHY_CAP_5G(pAd->chipCap.phy_caps)))
 	{
@@ -382,99 +372,6 @@ INT RT_CfgSetWirelessMode(RTMP_ADAPTER *pAd, PSTRING arg)
 
 
 /* maybe can be moved to GPL code, ap_mbss.c, but the code will be open */
-#ifdef CONFIG_AP_SUPPORT
-#ifdef MBSS_SUPPORT
-static UCHAR RT_CfgMbssWirelessModeMaxGet(RTMP_ADAPTER *pAd)
-{
-	UCHAR wmode = 0, *mode_str;
-	INT idx;
-	MULTISSID_STRUCT *wdev;
-
-	for(idx = 0; idx < pAd->ApCfg.BssidNum; idx++) {
-		wdev = &pAd->ApCfg.MBSSID[idx];
-		mode_str = wmode_2_str(wdev->PhyMode);
-		if (mode_str)
-		{
-			DBGPRINT(RT_DEBUG_TRACE, ("%s(BSS%d): wmode=%s(0x%x)\n",
-					__FUNCTION__, idx, mode_str, wdev->PhyMode));
-			os_free_mem(pAd, mode_str);
-		}
-		wmode |= wdev->PhyMode;
-	}
-
-	mode_str = wmode_2_str(wmode);
-	if (mode_str)
-	{
-		DBGPRINT(RT_DEBUG_TRACE, ("%s(): Combined WirelessMode = %s(0x%x)\n", 
-					__FUNCTION__, mode_str, wmode));
-		os_free_mem(pAd, mode_str);
-	}
-	return wmode;
-}
-
-
-/* 
-    ==========================================================================
-    Description:
-        Set Wireless Mode for MBSS
-    Return:
-        TRUE if all parameters are OK, FALSE otherwise
-    ==========================================================================
-*/
-INT RT_CfgSetMbssWirelessMode(RTMP_ADAPTER *pAd, PSTRING arg)
-{
-	LONG cfg_mode;
-	UCHAR wmode;
-
-
-	cfg_mode = simple_strtol(arg, 0, 10);
-
-	wmode = cfgmode_2_wmode((UCHAR)cfg_mode);
-	if ((wmode == WMODE_INVALID) || (!wmode_valid(pAd, wmode))) {
-		DBGPRINT(RT_DEBUG_ERROR,
-				("%s(): Invalid wireless mode(%d, wmode=0x%x), ChipCap(%s)\n",
-				__FUNCTION__, cfg_mode, wmode,
-				BAND_STR[pAd->chipCap.phy_caps & 0x3]));
-		return FALSE;
-	}
-	
-	if (WMODE_CAP_5G(wmode) && WMODE_CAP_2G(wmode))
-	{
-		DBGPRINT(RT_DEBUG_ERROR, ("AP cannot support 2.4G/5G band mxied mode!\n"));
-		return FALSE;
-	}
-
-	if (pAd->ApCfg.BssidNum > 1)
-	{
-		/* pAd->CommonCfg.PhyMode = maximum capability of all MBSS */
-		if (wmode_band_equal(pAd->CommonCfg.PhyMode, wmode) == TRUE)
-		{
-			wmode = RT_CfgMbssWirelessModeMaxGet(pAd);
-
-			DBGPRINT(RT_DEBUG_TRACE,
-					("mbss> Maximum phy mode = %d!\n", wmode));
-		}
-		else
-		{
-			UINT32 IdBss;
-
-			/* replace all phy mode with the one with different band */
-			DBGPRINT(RT_DEBUG_TRACE,
-					("mbss> Different band with the current one!\n"));
-			DBGPRINT(RT_DEBUG_TRACE,
-					("mbss> Reset band of all BSS to the new one!\n"));
-
-			for(IdBss=0; IdBss<pAd->ApCfg.BssidNum; IdBss++)
-				pAd->ApCfg.MBSSID[IdBss].PhyMode = wmode;
-		}
-	}
-
-	pAd->CommonCfg.PhyMode = wmode;
-	pAd->CommonCfg.cfg_wmode = wmode;
-	return TRUE;
-}
-#endif /* MBSS_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 
 static BOOLEAN RT_isLegalCmdBeforeInfUp(
@@ -719,37 +616,6 @@ INT	RT_CfgSetAutoFallBack(
 	return TRUE;
 }
 
-#ifdef WSC_INCLUDED
-INT	RT_CfgSetWscPinCode(
-	IN RTMP_ADAPTER *pAd,
-	IN PSTRING		pPinCodeStr,
-	OUT PWSC_CTRL   pWscControl)
-{
-	UINT pinCode;
-
-	pinCode = (UINT) simple_strtol(pPinCodeStr, 0, 10); /* When PinCode is 03571361, return value is 3571361.*/
-	if (strlen(pPinCodeStr) == 4)
-	{
-		pWscControl->WscEnrolleePinCode = pinCode;
-		pWscControl->WscEnrolleePinCodeLen = 4;
-	}
-	else if ( ValidateChecksum(pinCode) )
-	{
-		pWscControl->WscEnrolleePinCode = pinCode;
-		pWscControl->WscEnrolleePinCodeLen = 8;
-	}
-	else
-	{
-		DBGPRINT(RT_DEBUG_ERROR, ("RT_CfgSetWscPinCode(): invalid Wsc PinCode (%d)\n", pinCode));
-		return FALSE;
-	}
-	
-	DBGPRINT(RT_DEBUG_TRACE, ("RT_CfgSetWscPinCode():Wsc PinCode=%d\n", pinCode));
-	
-	return TRUE;
-	
-}
-#endif /* WSC_INCLUDED */
 
 /*
 ========================================================================
@@ -772,25 +638,10 @@ INT RtmpIoctl_rt_ioctl_giwname(
 	IN	VOID					*pData,
 	IN	ULONG					Data)
 {
-#ifdef P2P_SUPPORT
-	POS_COOKIE pObj = (POS_COOKIE) pAd->OS_Cookie;
-#endif /* P2P_SUPPORT */
 	UCHAR CurOpMode = OPMODE_AP;
 
 	if (CurOpMode == OPMODE_AP)
 	{
-#ifdef P2P_SUPPORT
-		if (pObj->ioctl_if_type == INT_P2P)
-		{
-			if (P2P_CLI_ON(pAd))
-				strcpy(pData, "Ralink P2P Cli");
-			else if (P2P_GO_ON(pAd))
-				strcpy(pData, "Ralink P2P GO");
-			else
-				strcpy(pData, "Ralink P2P");
-		}
-		else
-#endif /* P2P_SUPPORT */
 		strcpy(pData, "RTWIFI SoftAP");
 	}
 
@@ -829,9 +680,6 @@ INT RTMP_COM_IoctlHandle(
 		/* set main net_dev */
 			pAd->net_dev = pData;
 
-#ifdef CONFIG_AP_SUPPORT
-			pAd->ApCfg.MBSSID[MAIN_MBSSID].MSSIDDev = pData;
-#endif /* CONFIG_AP_SUPPORT */
 			break;
 
 		case CMD_RTPRIV_IOCTL_OPMODE_GET:
@@ -850,9 +698,6 @@ INT RTMP_COM_IoctlHandle(
 			pList->pTimerTask = &pAd->timerTask;
 #endif /* RTMP_TIMER_TASK_SUPPORT */
 			pList->pCmdQTask = &pAd->cmdQTask;
-#ifdef WSC_INCLUDED
-			pList->pWscTask = &pAd->wscTask;
-#endif /* WSC_INCLUDED */
 		}
 			break;
 
@@ -885,6 +730,7 @@ INT RTMP_COM_IoctlHandle(
 #ifdef CONFIG_STA_SUPPORT
 //#ifdef CONFIG_PM
 //#ifdef USB_SUPPORT_SELECTIVE_SUSPEND
+#ifdef RTMP_USB_SUPPORT
                 case CMD_RTPRIV_IOCTL_USB_DEV_GET:
                 /* get USB DEV */
                 {
@@ -892,6 +738,7 @@ INT RTMP_COM_IoctlHandle(
                         *ppUsb_Dev = (VOID *)(pObj->pUsb_Dev);
                 }
                         break;
+#endif /* RTMP_USB_SUPPORT */
 
 		case CMD_RTPRIV_IOCTL_ADAPTER_SEND_DISSASSOCIATE:
 		/* clear driver state to fRTMP_ADAPTER_SUSPEND */
@@ -999,36 +846,9 @@ INT RTMP_COM_IoctlHandle(
 			break;
 
 
-#ifdef P2P_SUPPORT
-		case CMD_RTPRIV_IOCTL_P2P_INIT:
-			P2pInit(pAd, pData);
-			break;
-
-		case CMD_RTPRIV_IOCTL_P2P_REMOVE:
-			P2P_Remove(pAd);
-			break;
-
-		case CMD_RTPRIV_IOCTL_P2P_OPEN_PRE:
-			if (P2P_OpenPre(pData) != 0)
-				return NDIS_STATUS_FAILURE;
-			break;
-
-		case CMD_RTPRIV_IOCTL_P2P_OPEN_POST:
-			if (P2P_OpenPost(pData) != 0)
-				return NDIS_STATUS_FAILURE;
-			break;
-
-		case CMD_RTPRIV_IOCTL_P2P_CLOSE:
-			P2P_Close(pData);
-			break;
-#endif /* P2P_SUPPORT */
 
 		case CMD_RTPRIV_IOCTL_BEACON_UPDATE:
 		/* update all beacon contents */
-#ifdef CONFIG_AP_SUPPORT
-			APMakeAllBssBeacon(pAd);
-			APUpdateAllBeaconFrame(pAd);
-#endif /* CONFIG_AP_SUPPORT */
 			break;
 
 		case CMD_RTPRIV_IOCTL_RXPATH_GET:
@@ -1189,12 +1009,6 @@ INT RTMP_COM_IoctlHandle(
 			}
 			else
 			{
-#ifdef CONFIG_AP_SUPPORT
-				extern VOID APMakeAllBssBeacon(IN PRTMP_ADAPTER pAd);
-				extern VOID  APUpdateAllBeaconFrame(IN PRTMP_ADAPTER pAd);
-				APMakeAllBssBeacon(pAd);
-				APUpdateAllBeaconFrame(pAd);
-#endif /* CONFIG_AP_SUPPORT */
 			}
 			VIRTUAL_IF_INC(pAd);
 		}
@@ -1241,52 +1055,6 @@ INT RTMP_COM_IoctlHandle(
 					pStats->rx_frame_errors = pAd->Counters8023.RcvAlignmentErrors;          /* recv'd frame alignment error*/
 					pStats->rx_fifo_errors = pAd->Counters8023.RxNoBuffer;                   /* recv'r fifo overrun*/
 				}
-#ifdef CONFIG_AP_SUPPORT
-				else if(pAd->OpMode == OPMODE_AP)
-				{
-					INT index;
-					for(index = 0; index < MAX_MBSSID_NUM(pAd); index++)
-					{
-						if (pAd->ApCfg.MBSSID[index].MSSIDDev == (PNET_DEV)(pStats->pNetDev))
-						{
-							break;
-						}
-					}
-						
-					if(index >= MAX_MBSSID_NUM(pAd))
-					{
-						//reset counters
-						pStats->rx_packets = 0;
-						pStats->tx_packets = 0;
-						pStats->rx_bytes = 0;
-						pStats->tx_bytes = 0;
-						pStats->rx_errors = 0;
-						pStats->tx_errors = 0;
-						pStats->multicast = 0;   /* multicast packets received*/
-						pStats->collisions = 0;  /* Collision packets*/
-						pStats->rx_over_errors = 0; /* receiver ring buff overflow*/
-						pStats->rx_crc_errors = 0; /* recved pkt with crc error*/
-						pStats->rx_frame_errors = 0; /* recv'd frame alignment error*/
-						pStats->rx_fifo_errors = 0; /* recv'r fifo overrun*/
-						   
-						DBGPRINT(RT_DEBUG_ERROR, ("CMD_RTPRIV_IOCTL_INF_STATS_GET: can not find mbss I/F\n"));
-						return NDIS_STATUS_FAILURE;
-					}
-					
-					pStats->rx_packets = pAd->ApCfg.MBSSID[index].RxCount;
-					pStats->tx_packets = pAd->ApCfg.MBSSID[index].TxCount;
-					pStats->rx_bytes = pAd->ApCfg.MBSSID[index].ReceivedByteCount;
-					pStats->tx_bytes = pAd->ApCfg.MBSSID[index].TransmittedByteCount;
-					pStats->rx_errors = pAd->ApCfg.MBSSID[index].RxErrorCount;
-					pStats->tx_errors = pAd->ApCfg.MBSSID[index].TxErrorCount;
-					pStats->multicast = pAd->ApCfg.MBSSID[index].mcPktsRx; /* multicast packets received */
-					pStats->collisions = 0;  /* Collision packets*/
-					pStats->rx_over_errors = 0;                   /* receiver ring buff overflow*/
-					pStats->rx_crc_errors = 0;/* recved pkt with crc error*/
-					pStats->rx_frame_errors = 0;          /* recv'd frame alignment error*/
-					pStats->rx_fifo_errors = 0;                   /* recv'r fifo overrun*/
-				}
-#endif
 			}
 			break;
 
@@ -1294,9 +1062,6 @@ INT RTMP_COM_IoctlHandle(
 		/* get wireless statistics */
 		{
 			UCHAR CurOpMode = OPMODE_AP;
-#ifdef CONFIG_AP_SUPPORT 
-			PMAC_TABLE_ENTRY pMacEntry = NULL;
-#endif /* CONFIG_AP_SUPPORT */
 			RT_CMD_IW_STATS *pStats = (RT_CMD_IW_STATS *)pData;
 
 			pStats->qual = 0;
@@ -1308,10 +1073,6 @@ INT RTMP_COM_IoctlHandle(
 			if (pAd->OpMode == OPMODE_STA)
 			{
 				CurOpMode = OPMODE_STA;
-#ifdef P2P_SUPPORT
-				if (pStats->priv_flags == INT_P2P)
-					CurOpMode = OPMODE_AP;
-#endif /* P2P_SUPPORT */					
 			}
 #endif /* CONFIG_STA_SUPPORT */
 
@@ -1319,45 +1080,11 @@ INT RTMP_COM_IoctlHandle(
 			if(!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_INTERRUPT_IN_USE))
 				return NDIS_STATUS_FAILURE;	
 
-#ifdef CONFIG_AP_SUPPORT
-			if (CurOpMode == OPMODE_AP)
-			{
-#ifdef APCLI_SUPPORT
-				if ((pStats->priv_flags == INT_APCLI)
-#ifdef P2P_SUPPORT
-					|| (P2P_CLI_ON(pAd))
-#endif /* P2P_SUPPORT */
-					)
-				{
-					INT ApCliIdx = ApCliIfLookUp(pAd, (PUCHAR)pStats->dev_addr);
-					if ((ApCliIdx >= 0) && VALID_WCID(pAd->ApCfg.ApCliTab[ApCliIdx].MacTabWCID))
-						pMacEntry = &pAd->MacTab.Content[pAd->ApCfg.ApCliTab[ApCliIdx].MacTabWCID];
-				}
-				else
-#endif /* APCLI_SUPPORT */
-				{
-					/*
-						only AP client support wireless stats function.
-						return NULL pointer for all other cases.
-					*/
-					pMacEntry = NULL;
-				}
-			}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 			if (CurOpMode == OPMODE_STA)
 				pStats->qual = ((pAd->Mlme.ChannelQuality * 12)/10 + 10);
 #endif /* CONFIG_STA_SUPPORT */
-#ifdef CONFIG_AP_SUPPORT
-			if (CurOpMode == OPMODE_AP)
-			{
-				if (pMacEntry != NULL)
-					pStats->qual = ((pMacEntry->ChannelQuality * 12)/10 + 10);
-				else
-					pStats->qual = ((pAd->Mlme.ChannelQuality * 12)/10 + 10);
-			}
-#endif /* CONFIG_AP_SUPPORT */
 
 			if (pStats->qual > 100)
 				pStats->qual = 100;
@@ -1371,31 +1098,7 @@ INT RTMP_COM_IoctlHandle(
 									pAd->StaCfg.RssiSample.AvgRssi2);
 			}
 #endif /* CONFIG_STA_SUPPORT */
-#ifdef CONFIG_AP_SUPPORT
-			if (CurOpMode == OPMODE_AP)
-			{
-				if (pMacEntry != NULL)
-					pStats->level =
-						RTMPMaxRssi(pAd, pMacEntry->RssiSample.AvgRssi0,
-										pMacEntry->RssiSample.AvgRssi1,
-										pMacEntry->RssiSample.AvgRssi2);
-#ifdef P2P_APCLI_SUPPORT
-				else
-					pStats->level =
-						RTMPMaxRssi(pAd, pAd->StaCfg.RssiSample.AvgRssi0,
-										pAd->StaCfg.RssiSample.AvgRssi1,
-										pAd->StaCfg.RssiSample.AvgRssi2);
-#endif /* P2P_APCLI_SUPPORT */
-			}
-#endif /* CONFIG_AP_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-			pStats->noise = RTMPMaxRssi(pAd, pAd->ApCfg.RssiSample.AvgRssi0,
-										pAd->ApCfg.RssiSample.AvgRssi1,
-										pAd->ApCfg.RssiSample.AvgRssi2) -
-										RTMPMinSnr(pAd, pAd->ApCfg.RssiSample.AvgSnr0,
-										pAd->ApCfg.RssiSample.AvgSnr1);
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 			pStats->noise = RTMPMaxRssi(pAd, pAd->StaCfg.RssiSample.AvgRssi0,
 										pAd->StaCfg.RssiSample.AvgRssi1,
@@ -1424,6 +1127,25 @@ INT RTMP_COM_IoctlHandle(
 				return NDIS_STATUS_FAILURE;
 			break;
 
+#ifdef WDS_SUPPORT
+		case CMD_RTPRIV_IOCTL_WDS_INIT:
+			WDS_Init(pAd, pData);
+			break;
+
+		case CMD_RTPRIV_IOCTL_WDS_REMOVE:
+			WDS_Remove(pAd);
+			break;
+
+		case CMD_RTPRIV_IOCTL_WDS_STATS_GET:
+			if (Data == INT_WDS)
+			{
+				if (WDS_StatsGet(pAd, pData) != TRUE)
+					return NDIS_STATUS_FAILURE;
+			}
+			else
+				return NDIS_STATUS_FAILURE;
+			break;
+#endif /* WDS_SUPPORT */
 
 #ifdef RALINK_ATE
 #ifdef RALINK_QA
@@ -1449,31 +1171,6 @@ INT RTMP_COM_IoctlHandle(
 			for(i=0; i<6; i++)
 				*(UCHAR *)(pData+i) = PermanentAddress[i];
 			break;
-#ifdef CONFIG_AP_SUPPORT
-		case CMD_RTPRIV_IOCTL_AP_SIOCGIWRATEQ:
-		/* handle for SIOCGIWRATEQ */
-		{
-			RT_CMD_IOCTL_RATE *pRate = (RT_CMD_IOCTL_RATE *)pData;
-			HTTRANSMIT_SETTING HtPhyMode;
-
-#ifdef APCLI_SUPPORT
-			if (pRate->priv_flags == INT_APCLI)
-				HtPhyMode = pAd->ApCfg.ApCliTab[pObj->ioctl_if].HTPhyMode;
-			else
-#endif /* APCLI_SUPPORT */
-			{
-				HtPhyMode = pAd->ApCfg.MBSSID[pObj->ioctl_if].HTPhyMode;
-#ifdef MBSS_SUPPORT
-				/* reset phy mode for MBSS */
-				MBSS_PHY_MODE_RESET(pObj->ioctl_if, HtPhyMode);
-#endif /* MBSS_SUPPORT */
-			}
-			RtmpDrvMaxRateGet(pAd, HtPhyMode.field.MODE, HtPhyMode.field.ShortGI,
-							HtPhyMode.field.BW, HtPhyMode.field.MCS,
-							(UINT32 *)&pRate->BitRate);
-		}
-			break;
-#endif /* CONFIG_AP_SUPPORT */
 
 		case CMD_RTPRIV_IOCTL_SIOCGIWNAME:
 			RtmpIoctl_rt_ioctl_giwname(pAd, pData, 0);
@@ -1546,29 +1243,6 @@ INT Set_SiteSurvey_Proc(
 
     NdisZeroMemory(&Ssid, sizeof(NDIS_802_11_SSID));
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef AP_SCAN_SUPPORT
-#ifdef P2P_SUPPORT
-	if (pObj->ioctl_if_type == INT_P2P)
-#else
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-	{
-		if ((strlen(arg) != 0) && (strlen(arg) <= MAX_LEN_OF_SSID))
-    	{
-        	NdisMoveMemory(Ssid.Ssid, arg, strlen(arg));
-        	Ssid.SsidLength = strlen(arg);
-		}
-
-		if (Ssid.SsidLength == 0)
-			ApSiteSurvey(pAd, &Ssid, SCAN_PASSIVE, FALSE);
-		else
-			ApSiteSurvey(pAd, &Ssid, SCAN_ACTIVE, FALSE);
-
-		return TRUE;
-	}
-#endif /* AP_SCAN_SUPPORT */
-#endif // CONFIG_AP_SUPPORT //
 
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -1649,4 +1323,5 @@ INT Set_MO_FalseCCATh_Proc(
 	return TRUE;
 }
 #endif /* MICROWAVE_OVEN_SUPPORT */
+
 

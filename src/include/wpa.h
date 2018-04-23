@@ -1,30 +1,29 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology	5th	Rd.
- * Science-based Industrial	Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2004, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved.	Ralink's source	code is	an unpublished work	and	the
- * use of a	copyright notice does not imply	otherwise. This	source code
- * contains	confidential trade secret material of Ralink Tech. Any attemp
- * or participation	in deciphering,	decoding, reverse engineering or in	any
- * way altering	the	source code	is stricitly prohibited, unless	the	prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Module Name:
-	wpa.h
-
-	Abstract:
-
-	Revision History:
-	Who			When			What
-	--------	----------		----------------------------------------------
-	Name		Date			Modification logs
-*/
 
 #ifndef	__WPA_H__
 #define	__WPA_H__
@@ -200,14 +199,6 @@
 
 #endif /* End of Driver Mode */
 
-#ifdef CONFIG_AP_SUPPORT
-/*========================================
-	The prototype is defined in ap_wpa.c
-  ========================================*/
-VOID WPA_APSetGroupRekeyAction(
-	IN PRTMP_ADAPTER pAd);
-
-#endif /* CONFIG_AP_SUPPORT */
 
 /*========================================
 	The prototype is defined in cmm_wpa.c
@@ -413,86 +404,6 @@ PSTRING GetEapolMsgType(
 	CHAR msg);
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef ADHOC_WPA2PSK_SUPPORT
-/* 
- =====================================	
- 	function prototype in cmm_wpa_adhoc.c
- =====================================	
-*/
-VOID Adhoc_WpaEAPOLStartAction(
-	IN PRTMP_ADAPTER pAd,
-	IN MLME_QUEUE_ELEM *Elem);
-
-VOID Adhoc_WpaEAPOLKeyAction(
-	IN PRTMP_ADAPTER pAd,
-	IN MLME_QUEUE_ELEM *Elem);
-
-VOID Adhoc_WpaStart4WayHS(
-	IN PRTMP_ADAPTER pAd,
-	IN MAC_TABLE_ENTRY *pEntry,
-	IN ULONG TimeInterval);
-
-VOID Adhoc_PeerPairMsg1Action(
-	IN PRTMP_ADAPTER pAd,
-	IN MAC_TABLE_ENTRY *pEntry,
-	IN MLME_QUEUE_ELEM *Elem);
-
-VOID Adhoc_PeerPairMsg2Action(
-	IN PRTMP_ADAPTER pAd,
-	IN MAC_TABLE_ENTRY *pEntry,
-	IN MLME_QUEUE_ELEM *Elem);
-
-VOID Adhoc_PeerPairMsg3Action(
-	IN PRTMP_ADAPTER pAd,
-	IN MAC_TABLE_ENTRY *pEntry,
-	IN MLME_QUEUE_ELEM *Elem);
-
-VOID Adhoc_PeerPairMsg4Action(
-	IN PRTMP_ADAPTER pAd,
-	IN MAC_TABLE_ENTRY *pEntry,
-	IN MLME_QUEUE_ELEM *Elem);
-
-VOID Adhoc_PeerGroupMsg1Action(
-	IN PRTMP_ADAPTER pAd,
-	IN MAC_TABLE_ENTRY *pEntry,
-	IN MLME_QUEUE_ELEM *Elem);
-
-VOID Adhoc_Wpa4WayComplete(
-	IN PRTMP_ADAPTER pAd,
-	IN MAC_TABLE_ENTRY *pEntry);
-
-VOID Adhoc_WpaRetryExec(
-	IN PVOID SystemSpecific1,
-	IN PVOID FunctionContext,
-	IN PVOID SystemSpecific2,
-	IN PVOID SystemSpecific3);
-
-VOID Adhoc_ConstructEapolMsg(
-	IN PMAC_TABLE_ENTRY pEntry,
-	IN UCHAR GroupKeyWepStatus,
-	IN UCHAR MsgType,
-	IN UCHAR DefaultKeyIdx,
-	IN UCHAR *KeyNonce,
-	IN UCHAR *TxRSC,
-	IN UCHAR *GTK,
-	IN UCHAR *RSNIE,
-	IN UCHAR RSNIE_Len,
-	IN PFOUR_WAY_HANDSHAKE_PROFILE p4WayProfile,
-	OUT PEAPOL_PACKET pMsg);
-
-VOID Adhoc_ConstructEapolKeyData(
-	IN PMAC_TABLE_ENTRY pEntry,
-	IN UCHAR GroupKeyWepStatus,
-	IN UCHAR keyDescVer,
-	IN UCHAR MsgType,
-	IN UCHAR DefaultKeyIdx,
-	IN UCHAR *GTK,
-	IN UCHAR *RSNIE,
-	IN UCHAR RSNIE_LEN,
-	IN PFOUR_WAY_HANDSHAKE_PROFILE p4WayProfile,
-	OUT PEAPOL_PACKET pMsg);
-
-#endif /* ADHOC_WPA2PSK_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 
 /* 

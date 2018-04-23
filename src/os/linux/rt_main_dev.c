@@ -1,30 +1,28 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
-
-    Module Name:
-    rt_main_dev.c
-
-    Abstract:
-    Create and register network interface.
-
-    Revision History:
-    Who         When            What
-    --------    ----------      ----------------------------------------------
-*/
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
 
 #define RTMP_MODULE_OS
@@ -166,10 +164,6 @@ int MainVirtualIF_open(IN struct net_device *net_dev)
 	if (pAd == NULL)
 		return 0; /* close ok */
 
-#ifdef CONFIG_AP_SUPPORT
-/*	pAd->ApCfg.MBSSID[MAIN_MBSSID].bBcnSntReq = TRUE; */
-	RTMP_DRIVER_AP_MAIN_OPEN(pAd);
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef IFUP_IN_PROBE	
 	while (RTMP_DRIVER_IOCTL_SANITY_CHECK(pAd, NULL) != NDIS_STATUS_SUCCESS)
@@ -360,22 +354,18 @@ int rt28xx_open(VOID *dev)
 	/* the function can not be moved to RT2860_probe() even register_netdev()
 	   is changed as register_netdevice().
 	   Or in some PC, kernel will panic (Fedora 4) */
-#ifndef P2P_APCLI_SUPPORT
 	RT28xx_MBSS_Init(pAd, net_dev);
-#endif /* P2P_APCLI_SUPPORT */
 #endif /* MBSS_SUPPORT */
 
+#ifdef WDS_SUPPORT
+	RT28xx_WDS_Init(pAd, net_dev);
+#endif /* WDS_SUPPORT */
 
 #ifdef APCLI_SUPPORT
-#ifndef P2P_APCLI_SUPPORT
 	RT28xx_ApCli_Init(pAd, net_dev);
-#endif /* P2P_APCLI_SUPPORT */
 #endif /* APCLI_SUPPORT */
 
 
-#ifdef P2P_SUPPORT
-	RTMP_P2P_Init(pAd, net_dev);
-#endif /* P2P_SUPPORT */
 
 #ifdef LINUX
 #ifdef RT_CFG80211_SUPPORT
@@ -584,9 +574,6 @@ static int rt28xx_send_packets(
 	}
 
 	NdisZeroMemory((PUCHAR)&skb_p->cb[CB_OFF], 15);
-#ifdef P2P_SUPPORT
-	NdisZeroMemory((PUCHAR)&skb_p->cb[CB_OFF+26], 1);
-#endif /* P2P_SUPPORT */
 	RTMP_SET_PACKET_NET_DEVICE_MBSSID(skb_p, MAIN_MBSSID);
 	MEM_DBG_PKT_ALLOC_INC(skb_p);
 
@@ -606,8 +593,6 @@ struct iw_statistics *rt28xx_get_wireless_stats(struct net_device *net_dev)
 	GET_PAD_FROM_NET_DEV(pAd, net_dev);	
 
 
-#ifdef P2P_SUPPORT
-#endif /* P2P_SUPPORT */
 	DBGPRINT(RT_DEBUG_TRACE, ("rt28xx_get_wireless_stats --->\n"));
 
 
@@ -657,23 +642,11 @@ INT rt28xx_ioctl(
 
 	RTMP_DRIVER_OP_MODE_GET(pAd, &OpMode);
 
-#ifdef CONFIG_AP_SUPPORT
-/*	IF_DEV_CONFIG_OPMODE_ON_AP(pAd) */
-	RT_CONFIG_IF_OPMODE_ON_AP(OpMode)
-	{
-		ret = rt28xx_ap_ioctl(net_dev, rq, cmd);
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 /*	IF_DEV_CONFIG_OPMODE_ON_STA(pAd) */
 	RT_CONFIG_IF_OPMODE_ON_STA(OpMode)
 	{
-#ifdef P2P_SUPPORT
-		if (RTMP_DRIVER_P2P_INF_CHECK(pAd, RT_DEV_PRIV_FLAGS_GET(net_dev)) == NDIS_STATUS_SUCCESS)
-			ret = rt28xx_ap_ioctl(net_dev, rq, cmd);
-		else
-#endif /* P2P_SUPPORT */
 		ret = rt28xx_sta_ioctl(net_dev, rq, cmd);
 	}
 #endif /* CONFIG_STA_SUPPORT */
@@ -763,25 +736,7 @@ BOOLEAN RtmpPhyNetDevExit(
 {
 
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef APCLI_SUPPORT
-#ifndef P2P_APCLI_SUPPORT
-	/* remove all AP-client virtual interfaces. */
-	RT28xx_ApCli_Remove(pAd);
-#endif /* P2P_APCLI_SUPPORT */
-#endif /* APCLI_SUPPORT */
 
-
-#ifdef MBSS_SUPPORT
-#ifndef P2P_APCLI_SUPPORT
-	RT28xx_MBSS_Remove(pAd);
-#endif /* P2P_APCLI_SUPPORT */
-#endif /* MBSS_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
-
-#ifdef P2P_SUPPORT
-	RTMP_P2P_Remove(pAd);
-#endif /* P2P_SUPPORT */
 
 #ifdef INF_PPA_SUPPORT
 
@@ -823,6 +778,89 @@ int RtmpOSIRQRequest(IN PNET_DEV pNetDev)
 	
 }
 
+#ifdef WDS_SUPPORT
+/*
+    ========================================================================
+
+    Routine Description:
+        return ethernet statistics counter
+
+    Arguments:
+        net_dev                     Pointer to net_device
+
+    Return Value:
+        net_device_stats*
+
+    Note:
+
+    ========================================================================
+*/
+struct net_device_stats *RT28xx_get_wds_ether_stats(
+    IN PNET_DEV net_dev)
+{
+    VOID *pAd = NULL;
+/*	INT WDS_apidx = 0,index; */
+	struct net_device_stats *pStats;
+	RT_CMD_STATS WdsStats, *pWdsStats = &WdsStats;
+
+	if (net_dev) {
+		GET_PAD_FROM_NET_DEV(pAd, net_dev);
+	}
+
+/*	if (RT_DEV_PRIV_FLAGS_GET(net_dev) == INT_WDS) */
+	{
+		if (pAd)
+		{
+
+			pWdsStats->pNetDev = net_dev;
+			if (RTMP_COM_IoctlHandle(pAd, NULL, CMD_RTPRIV_IOCTL_WDS_STATS_GET,
+					0, pWdsStats, RT_DEV_PRIV_FLAGS_GET(net_dev)) != NDIS_STATUS_SUCCESS)
+				return NULL;
+
+			pStats = (struct net_device_stats *)pWdsStats->pStats; /*pAd->stats; */
+
+			pStats->rx_packets = pWdsStats->rx_packets; /*pAd->WdsTab.WdsEntry[WDS_apidx].WdsCounter.ReceivedFragmentCount.QuadPart; */
+			pStats->tx_packets = pWdsStats->tx_packets; /*pAd->WdsTab.WdsEntry[WDS_apidx].WdsCounter.TransmittedFragmentCount.QuadPart; */
+
+			pStats->rx_bytes = pWdsStats->rx_bytes; /*pAd->WdsTab.WdsEntry[WDS_apidx].WdsCounter.ReceivedByteCount; */
+			pStats->tx_bytes = pWdsStats->tx_bytes; /*pAd->WdsTab.WdsEntry[WDS_apidx].WdsCounter.TransmittedByteCount; */
+
+			pStats->rx_errors = pWdsStats->rx_errors; /*pAd->WdsTab.WdsEntry[WDS_apidx].WdsCounter.RxErrors; */
+			pStats->tx_errors = pWdsStats->tx_errors; /*pAd->WdsTab.WdsEntry[WDS_apidx].WdsCounter.TxErrors; */
+
+			pStats->rx_dropped = 0;
+			pStats->tx_dropped = 0;
+
+	  		pStats->multicast = pWdsStats->multicast; /*pAd->WdsTab.WdsEntry[WDS_apidx].WdsCounter.MulticastReceivedFrameCount.QuadPart;   // multicast packets received */
+	  		pStats->collisions = pWdsStats->collisions; /*pAd->WdsTab.WdsEntry[WDS_apidx].WdsCounter.OneCollision + pAd->WdsTab.WdsEntry[index].WdsCounter.MoreCollisions;  // Collision packets */
+	  
+	  		pStats->rx_length_errors = 0;
+	  		pStats->rx_over_errors = pWdsStats->rx_over_errors; /*pAd->WdsTab.WdsEntry[WDS_apidx].WdsCounter.RxNoBuffer;                   // receiver ring buff overflow */
+	  		pStats->rx_crc_errors = 0;/*pAd->WlanCounters.FCSErrorCount;     // recved pkt with crc error */
+	  		pStats->rx_frame_errors = pWdsStats->rx_frame_errors; /*pAd->WdsTab.WdsEntry[WDS_apidx].WdsCounter.RcvAlignmentErrors;          // recv'd frame alignment error */
+	  		pStats->rx_fifo_errors = pWdsStats->rx_fifo_errors; /*pAd->WdsTab.WdsEntry[WDS_apidx].WdsCounter.RxNoBuffer;                   // recv'r fifo overrun */
+	  		pStats->rx_missed_errors = 0;                                            /* receiver missed packet */
+	  
+	  		    /* detailed tx_errors */
+	  		pStats->tx_aborted_errors = 0;
+	  		pStats->tx_carrier_errors = 0;
+	  		pStats->tx_fifo_errors = 0;
+	  		pStats->tx_heartbeat_errors = 0;
+	  		pStats->tx_window_errors = 0;
+	  
+	  		    /* for cslip etc */
+	  		pStats->rx_compressed = 0;
+	  		pStats->tx_compressed = 0;
+
+			return pStats;
+		}
+		else
+			return NULL;
+	}
+/*	else */
+/*    		return NULL; */
+}
+#endif /* WDS_SUPPORT */
 
 
 

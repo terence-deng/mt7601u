@@ -1,32 +1,29 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology	5th	Rd.
- * Science-based Industrial	Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2006, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved.	Ralink's source	code is	an unpublished work	and	the
- * use of a	copyright notice does not imply	otherwise. This	source code
- * contains	confidential trade secret material of Ralink Tech. Any attemp
- * or participation	in deciphering,	decoding, reverse engineering or in	any
- * way altering	the	source code	is stricitly prohibited, unless	the	prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Module Name:
-	rtusb_bulk.c
-
-	Abstract:
-
-	Revision History:
-	Who			When		What
-	--------	----------	----------------------------------------------
-	Name		Date		Modification logs
-	Paul Lin	06-25-2004	created
-	
-*/
 
 #ifdef RTMP_MAC_USB
 
@@ -354,9 +351,6 @@ VOID	RTUSBBulkOutDataPacket(
 	
 	if (((!OPSTATUS_TEST_FLAG(pAd, fOP_AP_STATUS_MEDIA_STATE_CONNECTED)) &&
 		( !OPSTATUS_TEST_FLAG(pAd, fOP_STATUS_MEDIA_STATE_CONNECTED)))
-#ifdef P2P_SUPPORT
-			&& !(P2P_GO_ON(pAd) || P2P_CLI_ON(pAd))
-#endif /* P2P_SUPPORT */
 		)
 	{
 		pAd->BulkOutPending[BulkOutPipeId] = FALSE;
@@ -577,7 +571,7 @@ VOID	RTUSBBulkOutDataPacket(
 			hex_dump("Wrong QSel Pkt:", (PUCHAR)&pWirelessPkt[TmpBulkEndPos], (pHTTXContext->CurWritePosition - pHTTXContext->NextBulkOutPosition));
 		}
 #endif /* !CONFIG_MULTI_CHANNEL */		
-		
+
 		if (pTxInfo->TxInfoPktLen <= 8)
 		{
 			BULK_OUT_UNLOCK(&pAd->TxContextQueueLock[BulkOutPipeId], IrqFlags2);
@@ -840,7 +834,7 @@ VOID	RTUSBBulkOutNullFrame(
 
 	/* Increase Total transmit byte counter*/
 	pAd->RalinkCounters.TransmittedByteCount +=  pNullContext->BulkOutSize;
-	
+
 	
 	/* Clear Null frame bulk flag*/
 	RTUSB_CLEAR_BULK_FLAG(pAd, fRTUSB_BULK_OUT_DATA_NULL);
@@ -1057,7 +1051,7 @@ VOID	RTUSBBulkOutPsPoll(
 		RTUSBInitTxDesc(pAd, pPsPollContext, 0, (usb_complete_t)RtmpUsbBulkOutPsPollComplete);
 	else
 #endif /* CONFIG_MULTI_CHANNEL */
-	RTUSBInitTxDesc(pAd, pPsPollContext, MGMTPIPEIDX, (usb_complete_t)RtmpUsbBulkOutPsPollComplete);
+		RTUSBInitTxDesc(pAd, pPsPollContext, MGMTPIPEIDX, (usb_complete_t)RtmpUsbBulkOutPsPollComplete);
 	
 	pUrb = pPsPollContext->pUrb;
 	if((ret = RTUSB_SUBMIT_URB(pUrb))!=0)
@@ -1226,18 +1220,10 @@ VOID	RTUSBBulkReceive(
 			RTMP_IRQ_UNLOCK(&pAd->BulkInLock, IrqFlags);
 
 			/* read RxContext, Since not */
-#ifdef P2P_SUPPORT
-			RxDoneInterruptHandle(pAd);
-#else
-#ifdef CONFIG_AP_SUPPORT
-			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-				APRxDoneInterruptHandle(pAd);
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 			IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 				STARxDoneInterruptHandle(pAd, TRUE);
 #endif /* CONFIG_STA_SUPPORT */
-#endif /* P2P_SUPPORT */
 
 			/* Finish to handle this bulkIn buffer.*/
 			RTMP_IRQ_LOCK(&pAd->BulkInLock, IrqFlags);
@@ -1396,9 +1382,6 @@ VOID	RTUSBKickBulkOut(
 		{
 			if (((!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_BSS_SCAN_IN_PROGRESS)) || 
 				(!OPSTATUS_TEST_FLAG(pAd, fOP_STATUS_MEDIA_STATE_CONNECTED))
-#ifdef P2P_SUPPORT
-				|| P2P_GO_ON(pAd) || P2P_CLI_ON(pAd)
-#endif /* P2P_SUPPORT */
 				))
 			{
 				RTUSBBulkOutDataPacket(pAd, EDCA_AC0_PIPE, pAd->NextBulkOutIndex[EDCA_AC0_PIPE]);
@@ -1408,9 +1391,6 @@ VOID	RTUSBKickBulkOut(
 		{		
 			if (((!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_BSS_SCAN_IN_PROGRESS)) || 
 				(!OPSTATUS_TEST_FLAG(pAd, fOP_STATUS_MEDIA_STATE_CONNECTED))
-#ifdef P2P_SUPPORT
-				|| P2P_GO_ON(pAd) || P2P_CLI_ON(pAd)
-#endif /* P2P_SUPPORT */
 				))
 			{
 				RTUSBBulkOutDataPacket(pAd, EDCA_AC1_PIPE, pAd->NextBulkOutIndex[EDCA_AC1_PIPE]);
@@ -1420,9 +1400,6 @@ VOID	RTUSBKickBulkOut(
 		{
 			if (((!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_BSS_SCAN_IN_PROGRESS)) || 
 				(!OPSTATUS_TEST_FLAG(pAd, fOP_STATUS_MEDIA_STATE_CONNECTED))
-#ifdef P2P_SUPPORT
-				|| P2P_GO_ON(pAd) || P2P_CLI_ON(pAd)
-#endif /* P2P_SUPPORT */
 				))
 			{
 				RTUSBBulkOutDataPacket(pAd, EDCA_AC2_PIPE, pAd->NextBulkOutIndex[EDCA_AC2_PIPE]);
@@ -1454,8 +1431,8 @@ VOID	RTUSBKickBulkOut(
 		else if (RTUSB_TEST_BULK_FLAG(pAd, fRTUSB_BULK_OUT_DATA_NULL))
 		{
 #ifdef CONFIG_MULTI_CHANNEL
-			if (INFRA_ON(pAd) && (pAd->CommonCfg.Channel == pAd->LatchRfRegs.Channel ||
-				pAd->CommonCfg.CentralChannel== pAd->LatchRfRegs.Channel ))
+			if ((INFRA_ON(pAd) && (pAd->CommonCfg.Channel == pAd->LatchRfRegs.Channel ||
+				pAd->CommonCfg.CentralChannel== pAd->LatchRfRegs.Channel )) && (!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_BSS_SCAN_IN_PROGRESS)))
 #else
 			if (!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_BSS_SCAN_IN_PROGRESS))
 #endif /* CONFIG_MULTI_CHANNEL */

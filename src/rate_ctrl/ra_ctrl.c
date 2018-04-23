@@ -1,16 +1,29 @@
-/****************************************************************************
+/*
+ *************************************************************************
  * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
  * Taiwan, R.O.C.
  *
- * (c) Copyright 2010, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************/
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
+
 
 #include "rt_config.h"
 
@@ -641,143 +654,6 @@ USHORT MlmeGetTxQuality(
 }
 
 
-#ifdef CONFIG_AP_SUPPORT
-VOID APMlmeSetTxRate(
-	IN RTMP_ADAPTER *pAd,
-	IN MAC_TABLE_ENTRY *pEntry,
-	IN RTMP_RA_LEGACY_TB *pTxRate)
-{
-#ifdef DOT11_N_SUPPORT
-	if ((pTxRate->STBC) && (pEntry->MaxHTPhyMode.field.STBC))
-		pEntry->HTPhyMode.field.STBC = STBC_USE;
-	else
-		pEntry->HTPhyMode.field.STBC = STBC_NONE;
-
-	if (((pTxRate->ShortGI) && (pEntry->MaxHTPhyMode.field.ShortGI))
-         || (pAd->WIFItestbed.bShortGI && pEntry->MaxHTPhyMode.field.ShortGI) )
-		pEntry->HTPhyMode.field.ShortGI = GI_400;
-	else
-		pEntry->HTPhyMode.field.ShortGI = GI_800;
-#endif /* DOT11_N_SUPPORT */
-
-	if (pTxRate->CurrMCS < MCS_AUTO)
-		pEntry->HTPhyMode.field.MCS = pTxRate->CurrMCS;
-
-	pEntry->HTPhyMode.field.MODE = pTxRate->Mode;
-
-#ifdef DOT11_N_SUPPORT
-	if ((pAd->WIFItestbed.bGreenField & pEntry->HTCapability.HtCapInfo.GF) && (pEntry->HTPhyMode.field.MODE == MODE_HTMIX))
-	{
-		/* force Tx GreenField */
-		pEntry->HTPhyMode.field.MODE = MODE_HTGREENFIELD;
-	}
-
-	/* BW depends on BSSWidthTrigger and Negotiated BW */
-	if (pAd->CommonCfg.bRcvBSSWidthTriggerEvents ||
-		(pEntry->MaxHTPhyMode.field.BW==BW_20) ||
-		(pAd->CommonCfg.BBPCurrentBW==BW_20))
-		pEntry->HTPhyMode.field.BW = BW_20;
-	else
-		pEntry->HTPhyMode.field.BW = BW_40;
-
-#ifdef DOT11_VHT_AC
-	if (pAd->CommonCfg.BBPCurrentBW==BW_80 &&
-		pEntry->MaxHTPhyMode.field.BW == BW_80 &&
-		pEntry->MaxHTPhyMode.field.MODE == MODE_VHT)
-		pEntry->HTPhyMode.field.BW = BW_80;
-
-#ifdef NEW_RATE_ADAPT_SUPPORT
-	if (pEntry->pTable == RateTableVht2S)
-	{
-		RTMP_RA_GRP_TB *pAdaptTbEntry = (RTMP_RA_GRP_TB *)pTxRate;
-		pEntry->HTPhyMode.field.MCS = pAdaptTbEntry->CurrMCS | ((pAdaptTbEntry->dataRate -1) <<4);
-	}
-#endif /* NEW_RATE_ADAPT_SUPPORT */
-
-#ifdef AGS_SUPPORT
-	if (pEntry->pTable == Ags2x2VhtRateTable)
-	{
-		RTMP_RA_AGS_TB *pAgsTbEntry = (RTMP_RA_AGS_TB *)pTxRate;
-		pEntry->HTPhyMode.field.MCS = pAgsTbEntry->CurrMCS | (pAgsTbEntry->Nss <<4);
-	}
-#endif /* AGS_SUPPORT */
-#endif /* DOT11_VHT_AC */
-
-#ifdef RANGE_EXTEND
-#ifdef NEW_RATE_ADAPT_SUPPORT
-	/* 20 MHz Fallback */
-	if (pTxRate->Mode >= MODE_HTMIX &&
-	    pEntry->HTPhyMode.field.BW == BW_40 &&
-	    ADAPT_RATE_TABLE(pEntry->pTable))
-	{
-		if (pEntry->HTPhyMode.field.MCS == 32
-#ifdef DBG_CTRL_SUPPORT
-			&& (pAd->CommonCfg.DebugFlags & DBF_DISABLE_20MHZ_MCS0) == 0
-#endif /* DBG_CTRL_SUPPORT */
-		)
-		{
-			/* Map HT Duplicate to 20MHz MCS0 */
-			pEntry->HTPhyMode.field.BW = BW_20;
-			pEntry->HTPhyMode.field.MCS = 0;
-		}
-		else if (pEntry->HTPhyMode.field.MCS == 0 &&
-				(pAd->CommonCfg.DebugFlags & DBF_FORCE_20MHZ) == 0
-#ifdef DBG_CTRL_SUPPORT
-				&& (pAd->CommonCfg.DebugFlags & DBF_DISABLE_20MHZ_MCS1) == 0
-#endif /* DBG_CTRL_SUPPORT */
-		)
-		{
-			/* Map 40MHz MCS0 to 20MHz MCS1 */
-			pEntry->HTPhyMode.field.BW = BW_20;
-			pEntry->HTPhyMode.field.MCS = 1;
-		}
-		else if (pEntry->HTPhyMode.field.MCS==8
-#ifdef DBG_CTRL_SUPPORT
-			&& (pAd->CommonCfg.DebugFlags & DBF_ENABLE_20MHZ_MCS8)
-#endif /* DBG_CTRL_SUPPORT */
-			)
-		{
-			/* Map 40MHz MCS8 to 20MHz MCS8 */
-			pEntry->HTPhyMode.field.BW = BW_20;
-		}
-	}
-#endif /* NEW_RATE_ADAPT_SUPPORT */
-
-#ifdef DBG_CTRL_SUPPORT
-	/* Debug Option: Force BW */
-	if (pAd->CommonCfg.DebugFlags & DBF_FORCE_40MHZ)
-	{
-		pEntry->HTPhyMode.field.BW = BW_40;
-	}
-	else if (pAd->CommonCfg.DebugFlags & DBF_FORCE_20MHZ)
-	{
-		pEntry->HTPhyMode.field.BW = BW_20;
-	}
-#endif /* DBG_CTRL_SUPPORT */
-#endif /* RANGE_EXTEND */
-
-	/* Reexam each bandwidth's SGI support. */
-	if ((pEntry->HTPhyMode.field.BW==BW_20 && !CLIENT_STATUS_TEST_FLAG(pEntry, fCLIENT_STATUS_SGI20_CAPABLE)) ||
-		(pEntry->HTPhyMode.field.BW==BW_40 && !CLIENT_STATUS_TEST_FLAG(pEntry, fCLIENT_STATUS_SGI40_CAPABLE)) )
-		pEntry->HTPhyMode.field.ShortGI = GI_800;
-
-#ifdef DBG_CTRL_SUPPORT
-	/* Debug option: Force Short GI */
-	if (pAd->CommonCfg.DebugFlags & DBF_FORCE_SGI)
-		pEntry->HTPhyMode.field.ShortGI = GI_400;
-#endif /* DBG_CTRL_SUPPORT */
-#endif /* DOT11_N_SUPPORT */
-
-	pAd->LastTxRate = (USHORT)(pEntry->HTPhyMode.word);
-
-#ifdef FIFO_EXT_SUPPORT
-	AsicFifoExtEntryClean(pAd, pEntry);
-#endif /* FIFO_EXT_SUPPORT */
-
-
-	
-}
-#endif /* CONFIG_AP_SUPPORT */
 
 
 #ifdef CONFIG_STA_SUPPORT
@@ -1340,45 +1216,6 @@ VOID MlmeSelectTxRateTable(
 			break;
 		}
 #ifdef DOT11_N_SUPPORT
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-#ifdef DOT11N_SS3_SUPPORT
-			if (pAd->CommonCfg.TxStream >= 3)
-			{
-#ifdef NEW_RATE_ADAPT_SUPPORT
-				if (pAd->rateAlg == RATE_ALG_GRP)
-				{
-					if (pEntry->HTCapability.MCSSet[2] == 0)
-						*ppTable = RateSwitchTableAdapt11N2S;
-					else
-						*ppTable = RateSwitchTableAdapt11N3S;
-				}
-				else
-#endif /* NEW_RATE_ADAPT_SUPPORT */
-				{
-					if (pEntry->HTCapability.MCSSet[2] == 0)
-						*ppTable = RateSwitchTable11N2S;
-					else
-						*ppTable = RateSwitchTable11N3S;
-				}
-			}
-			else
-#endif /* DOT11N_SS3_SUPPORT */
-			{
-				/*
-					Temp solution for:
-					EX: when the extend rate only supports 6, 12, 24 in
-					the association req frame. So the pEntry->RateLen is 7.
-				*/
-				if (pAd->LatchRfRegs.Channel <= 14)
-					*ppTable = RateSwitchTable11BG;
-				else
-					*ppTable = RateSwitchTable11G;
-			}
-			break;
-		}
-#endif /* CONFIG_AP_SUPPORT */
 #endif /* DOT11_N_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
@@ -2056,12 +1893,6 @@ VOID MlmeNewTxRate(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *pEntry)
 		pNextTxRate = PTX_RA_LEGACY_ENTRY(pTable, pEntry->CurrTxRateIndex);
 
 	/*  Set new rate */
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		APMlmeSetTxRate(pAd, pEntry, pNextTxRate);
-	}
-#endif /*  CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{
@@ -2248,17 +2079,6 @@ VOID RTMPSetSupportMCS(
 			pDesired_ht_phy = &pAd->StaCfg.DesiredHtPhyInfo;
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-		if (OpMode == OPMODE_AP)
-		{
-#ifdef APCLI_SUPPORT
-			if (IS_ENTRY_APCLI(pEntry))
-				pDesired_ht_phy = &pAd->ApCfg.ApCliTab[pEntry->apidx].DesiredHtPhyInfo;
-			else
-#endif /* APCLI_SUPPORT */
-				pDesired_ht_phy = &pAd->ApCfg.MBSSID[pEntry->apidx].DesiredHtPhyInfo;
-		}
-#endif /* CONFIG_AP_SUPPORT */
 
 		if (pDesired_ht_phy == NULL)
 			return;

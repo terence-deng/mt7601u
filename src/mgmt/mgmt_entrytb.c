@@ -1,6 +1,29 @@
 /*
+ *************************************************************************
+ * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
+ *
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-*/
 
 #include <rt_config.h>
 
@@ -115,23 +138,6 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 			do
 			{
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
-				if (apidx >= MIN_NET_DEVICE_FOR_P2P_GO)
-				{
-					SET_ENTRY_CLIENT(pEntry);
-					pEntry->isCached = FALSE;
-					break;
-				}
-#endif /* P2P_SUPPORT */
-#ifdef DOT11Z_TDLS_SUPPORT
-			if (apidx >= MIN_NET_DEVICE_FOR_TDLS)
-			{
-				SET_ENTRY_TDLS(pEntry);
-				pEntry->isCached = FALSE;
-				break;
-			}
-			else
-#endif /* DOT11Z_TDLS_SUPPORT */
 #ifdef QOS_DLS_SUPPORT
 			if (apidx >= MIN_NET_DEVICE_FOR_DLS)
 			{
@@ -144,54 +150,9 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 #endif /* CONFIG_STA_SUPPORT */
 
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef APCLI_SUPPORT
-					if (apidx >= MIN_NET_DEVICE_FOR_APCLI)
-					{
-						SET_ENTRY_APCLI(pEntry);
-						pEntry->isCached = FALSE;
-#ifdef P2P_SUPPORT
-						SET_P2P_CLI_ENTRY(pEntry);
-						pAd->P2pCfg.MyGOwcid = i;
-#endif /* P2P_SUPPORT */
-						break;
-					}
-#endif /* APCLI_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
-					if (OpMode == OPMODE_AP)
-#else
-					IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-					{	/* be a regular-entry*/
-						if ((apidx < pAd->ApCfg.BssidNum) &&
-							(apidx < MAX_MBSSID_NUM(pAd)) &&
-							((apidx < HW_BEACON_MAX_NUM)) &&
-							(pAd->ApCfg.MBSSID[apidx].MaxStaNum != 0) &&
-							(pAd->ApCfg.MBSSID[apidx].StaCount >= pAd->ApCfg.MBSSID[apidx].MaxStaNum))
-						{
-							DBGPRINT(RT_DEBUG_WARN, ("%s: The connection table is full in ra%d.\n", __FUNCTION__, apidx));
-							NdisReleaseSpinLock(&pAd->MacTabLock);
-							return NULL;
-						}
-#ifdef P2P_SUPPORT
-						SET_P2P_GO_ENTRY(pEntry);
-#endif /* P2P_SUPPORT */
-				}
-#endif /* CONFIG_AP_SUPPORT */
 						SET_ENTRY_CLIENT(pEntry);
 
-#ifdef IWSC_SUPPORT
-#ifdef CONFIG_STA_SUPPORT
-				IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-				{
-					pEntry->bIWscSmpbcAccept = FALSE;
-					pEntry->bUpdateInfoFromPeerBeacon = FALSE;
-				}
-#endif // CONFIG_STA_SUPPORT //
-#endif // IWSC_SUPPORT //
 		} while (FALSE);
 
 			pEntry->bIAmBadAtheros = FALSE;
@@ -199,35 +160,8 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 			RTMPInitTimer(pAd, &pEntry->EnqueueStartForPSKTimer, GET_TIMER_FUNCTION(EnqueueStartForPSKExec), pEntry, FALSE);
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef ADHOC_WPA2PSK_SUPPORT
-    		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-			{
-    		    RTMPInitTimer(pAd, &pEntry->WPA_Authenticator.MsgRetryTimer, GET_TIMER_FUNCTION(Adhoc_WpaRetryExec), pEntry, FALSE);
-            }
-#endif /* ADHOC_WPA2PSK_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
-			if (OpMode == OPMODE_AP)
-#else
-			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-			{
-				if (IS_ENTRY_CLIENT(pEntry)) /* Only Clent entry need the retry timer.*/
-				{
-					RTMPInitTimer(pAd, &pEntry->RetryTimer, GET_TIMER_FUNCTION(WPARetryExec), pEntry, FALSE);
-
-	/*				RTMP_OS_Init_Timer(pAd, &pEntry->RetryTimer, GET_TIMER_FUNCTION(WPARetryExec), pAd);*/
-				}
-#ifdef APCLI_SUPPORT
-				else if (IS_ENTRY_APCLI(pEntry))
-				{
-					RTMPInitTimer(pAd, &pEntry->RetryTimer, GET_TIMER_FUNCTION(WPARetryExec), pEntry, FALSE);
-				}
-#endif /* APCLI_SUPPORT */
-			}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef TXBF_SUPPORT
 			if (pAd->chipCap.FlgHwTxBfCap)
@@ -252,81 +186,17 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 			else if (IS_ENTRY_DLS(pEntry))
 				pEntry->apidx = (apidx - MIN_NET_DEVICE_FOR_DLS);
 #endif /* QOS_DLS_SUPPORT */
-#ifdef DOT11Z_TDLS_SUPPORT
-			else if (IS_ENTRY_TDLS(pEntry))
-				pEntry->apidx = (apidx - MIN_NET_DEVICE_FOR_TDLS);
-#endif /* DOT11Z_TDLS_SUPPORT */
-#ifdef P2P_SUPPORT
-			else if (apidx == MIN_NET_DEVICE_FOR_P2P_GO)
-				pEntry->apidx = (apidx - MIN_NET_DEVICE_FOR_P2P_GO);
-#endif /* P2P_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 			else
 				pEntry->apidx = apidx;
 
-#ifdef CONFIG_AP_SUPPORT
-			if ((apidx < pAd->ApCfg.BssidNum) &&
-				(apidx < MAX_MBSSID_NUM(pAd)) &&
-				(apidx < HW_BEACON_MAX_NUM))
-				pEntry->pMbss = &pAd->ApCfg.MBSSID[pEntry->apidx];
-			else
-				pEntry->pMbss = NULL;
-#endif /* CONFIG_AP_SUPPORT */
 
 			do
 			{
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef APCLI_SUPPORT
-					if (IS_ENTRY_APCLI(pEntry))
-					{
-						pEntry->AuthMode = pAd->ApCfg.ApCliTab[pEntry->apidx].AuthMode;
-						pEntry->WepStatus = pAd->ApCfg.ApCliTab[pEntry->apidx].WepStatus;
-					
-						if (pEntry->AuthMode < Ndis802_11AuthModeWPA)
-						{
-							pEntry->WpaState = AS_NOTUSE;
-							pEntry->PrivacyFilter = Ndis802_11PrivFilterAcceptAll;
-						}
-						else
-						{
-							pEntry->WpaState = AS_PTKSTART;
-							pEntry->PrivacyFilter = Ndis802_11PrivFilter8021xWEP;
-						}
-						pEntry->MatchAPCLITabIdx = pEntry->apidx;
-						break;
-					}
-#endif /* APCLI_SUPPORT */
-#ifdef P2P_SUPPORT
-					if (OpMode == OPMODE_AP)
-#else
-					IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-					{
-						MBSS_MR_APIDX_SANITY_CHECK(pAd, apidx);
-						pEntry->AuthMode = pAd->ApCfg.MBSSID[apidx].AuthMode;
-						pEntry->WepStatus = pAd->ApCfg.MBSSID[apidx].WepStatus;
-						pEntry->GroupKeyWepStatus = pAd->ApCfg.MBSSID[apidx].GroupKeyWepStatus;
-					
-						if (pEntry->AuthMode < Ndis802_11AuthModeWPA)
-							pEntry->WpaState = AS_NOTUSE;
-						else
-							pEntry->WpaState = AS_INITIALIZE;
-
-						pEntry->PrivacyFilter = Ndis802_11PrivFilterAcceptAll;
-						pEntry->StaIdleTimeout = pAd->ApCfg.StaIdleTimeout;
-						pAd->ApCfg.MBSSID[apidx].StaCount++;
-						pAd->ApCfg.EntryClientCount++;
-						break;
-				}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
-					if (OpMode == OPMODE_STA)
-#else
 				IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-#endif /* P2P_SUPPORT */
 				{
 					pEntry->AuthMode = pAd->StaCfg.AuthMode;
 					pEntry->WepStatus = pAd->StaCfg.WepStatus;
@@ -361,22 +231,14 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 					break;
 				}
 #endif // APCLI_SUPPORT //
-#ifdef P2P_SUPPORT
-				if (apidx == MIN_NET_DEVICE_FOR_P2P_GO)
+#ifdef WDS_SUPPORT
+				if (IS_ENTRY_WDS(pEntry))
 				{
-					COPY_MAC_ADDR(pEntry->HdrAddr2, pAd->P2PCurrentAddress);
-					COPY_MAC_ADDR(pEntry->HdrAddr3, pAd->P2PCurrentAddress);
+					COPY_MAC_ADDR(pEntry->HdrAddr2, pAd->ApCfg.MBSSID[MAIN_MBSSID].Bssid);
+					COPY_MAC_ADDR(pEntry->HdrAddr3, pAd->ApCfg.MBSSID[MAIN_MBSSID].Bssid);
 					break;
 				}
-#endif /* P2P_SUPPORT */
-#ifdef CONFIG_AP_SUPPORT
-				if (OpMode == OPMODE_AP)
-				{
-					COPY_MAC_ADDR(pEntry->HdrAddr2, pAd->ApCfg.MBSSID[apidx].Bssid);
-					COPY_MAC_ADDR(pEntry->HdrAddr3, pAd->ApCfg.MBSSID[apidx].Bssid);
-					break;
-				}
-#endif // CONFIG_AP_SUPPORT //
+#endif // WDS_SUPPORT //
 #ifdef CONFIG_STA_SUPPORT
 				if (OpMode == OPMODE_STA)
 				{
@@ -396,6 +258,9 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 			pEntry->NoDataIdleCount = 0;
 			pEntry->AssocDeadLine = MAC_TABLE_ASSOC_TIMEOUT;
 			pEntry->ContinueTxFailCnt = 0;
+#ifdef WDS_SUPPORT
+			pEntry->LockEntryTx = FALSE;
+#endif /* WDS_SUPPORT */
 			pEntry->TimeStamp_toTxRing = 0;
 			InitializeQueueHeader(&pEntry->PsQueue);
 
@@ -404,22 +269,6 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 
 #endif /* STREAM_MODE_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
-			if (OpMode == OPMODE_AP)
-#else
-			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-			{
-#ifdef UAPSD_SUPPORT
-				if (IS_ENTRY_CLIENT(pEntry)) /* Ralink WDS doesn't support any power saving.*/
-				{
-					/* init U-APSD enhancement related parameters */
-					UAPSD_MR_ENTRY_INIT(pEntry);
-				}
-#endif /* UAPSD_SUPPORT */
-			}
-#endif /* CONFIG_AP_SUPPORT */
 
 			pAd->MacTab.Size ++;
 
@@ -430,19 +279,6 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 			RTMP_STA_ENTRY_ADD(pAd, pEntry);
 
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
-			if (OpMode == OPMODE_AP)
-#else
-			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-			{
-#ifdef WSC_AP_SUPPORT
-				pEntry->bWscCapable = FALSE;
-				pEntry->Receive_EapolStart_EapRspId = 0;
-#endif /* WSC_AP_SUPPORT */
-			}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef TXBF_SUPPORT
 			if (pAd->chipCap.FlgHwTxBfCap)
@@ -457,9 +293,6 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 	/* add this MAC entry into HASH table */
 	if (pEntry)
 	{
-#ifdef IWSC_SUPPORT
-		PWSC_PEER_ENTRY pWscPeerEntry = NULL;
-#endif /* IWSC_SUPPORT */
 
 		HashIdx = MAC_ADDR_HASH_INDEX(pAddr);
 		if (pAd->MacTab.Hash[HashIdx] == NULL)
@@ -473,37 +306,7 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 				pCurrEntry = pCurrEntry->pNext;
 			pCurrEntry->pNext = pEntry;
 		}
-#ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
-		if (OpMode == OPMODE_AP)
-#else
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-		{
 
-#ifdef WSC_AP_SUPPORT
-			if (IS_ENTRY_CLIENT(pEntry) &&
-				(pEntry->apidx < pAd->ApCfg.BssidNum) &&
-				MAC_ADDR_EQUAL(pEntry->Addr, pAd->ApCfg.MBSSID[pEntry->apidx].WscControl.EntryAddr))
-			{
-				NdisZeroMemory(pAd->ApCfg.MBSSID[pEntry->apidx].WscControl.EntryAddr, MAC_ADDR_LEN);
-			}
-#endif /* WSC_AP_SUPPORT */
-
-
-		}
-#endif /* CONFIG_AP_SUPPORT */
-
-#ifdef IWSC_SUPPORT
-		if (pAd->StaCfg.BssType == BSS_ADHOC)
-		{
-			pWscPeerEntry = WscFindPeerEntry(&pAd->StaCfg.WscControl.WscPeerList, pEntry->Addr);
-			if (pWscPeerEntry && pWscPeerEntry->bIWscSmpbcAccept)
-			{
-				IWSC_AddSmpbcEnrollee(pAd, pEntry->Addr);
-			}
-		}
-#endif /* IWSC_SUPPORT */
 
 	}
 
@@ -568,67 +371,8 @@ BOOLEAN MacTableDeleteEntry(
 
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef ADHOC_WPA2PSK_SUPPORT
-			IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-			{
-				RTMPReleaseTimer(&pEntry->WPA_Authenticator.MsgRetryTimer, &Cancelled);
-			}
-#endif /* ADHOC_WPA2PSK_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-			if (IS_ENTRY_CLIENT(pEntry)
-#ifdef P2P_SUPPORT
-				&& (IS_P2P_GO_ENTRY(pEntry))
-#endif /* P2P_SUPPORT */
-			)
-			{
-#ifdef DOT1X_SUPPORT 
-				INT		PmkCacheIdx = -1;
-#endif /* DOT1X_SUPPORT */
-			
-				RTMPReleaseTimer(&pEntry->RetryTimer, &Cancelled);
-
-#ifdef DOT1X_SUPPORT    
-				/* Notify 802.1x daemon to clear this sta info*/
-				if (pEntry->AuthMode == Ndis802_11AuthModeWPA || 
-					pEntry->AuthMode == Ndis802_11AuthModeWPA2 ||
-					pAd->ApCfg.MBSSID[pEntry->apidx].IEEE8021X)
-					DOT1X_InternalCmdAction(pAd, pEntry, DOT1X_DISCONNECT_ENTRY);
-
-				/* Delete the PMK cache for this entry if it exists.*/
-		    	if ((PmkCacheIdx = RTMPSearchPMKIDCache(pAd, pEntry->apidx, pEntry->Addr)) != -1)
-		    	{
-					RTMPDeletePMKIDCache(pAd, pEntry->apidx, PmkCacheIdx);
-				}
-#endif /* DOT1X_SUPPORT */
-
-#ifdef WAPI_SUPPORT
-				RTMPCancelWapiRekeyTimerAction(pAd, pEntry);
-#endif /* WAPI_SUPPORT */
-
-#ifdef IGMP_SNOOP_SUPPORT
-				IgmpGroupDelMembers(pAd, (PUCHAR)pEntry->Addr, pAd->ApCfg.MBSSID[pEntry->apidx].MSSIDDev);
-#endif /* IGMP_SNOOP_SUPPORT */
-				pAd->ApCfg.MBSSID[pEntry->apidx].StaCount--;
-				pAd->ApCfg.EntryClientCount--;
-
-#ifdef HOSTAPD_SUPPORT
-				if(pEntry && pAd->ApCfg.MBSSID[pEntry->apidx].Hostapd == TRUE )
-				{
-					RtmpOSWrielessEventSendExt(pAd->net_dev, RT_WLAN_EVENT_EXPIRED, -1, pEntry->Addr,
-						NULL, 0,pEntry->apidx);
-				}
-#endif
-
-			}
-#ifdef APCLI_SUPPORT
-			else if (IS_ENTRY_APCLI(pEntry))
-			{
-				RTMPReleaseTimer(&pEntry->RetryTimer, &Cancelled);
-			}
-#endif /* APCLI_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
            
 			pPrevEntry = NULL;
 			pProbeEntry = pAd->MacTab.Hash[HashIdx];
@@ -659,20 +403,9 @@ BOOLEAN MacTableDeleteEntry(
 			/* not found !!!*/
 			ASSERT(pProbeEntry != NULL);
 
-#ifdef CONFIG_AP_SUPPORT
-			APCleanupPsQueue(pAd, &pEntry->PsQueue); /* return all NDIS packet in PSQ*/
-#endif /* CONFIG_AP_SUPPORT */
 			/*RTMP_REMOVE_PAIRWISE_KEY_ENTRY(pAd, wcid);*/
 
 #ifdef UAPSD_SUPPORT
-#ifdef DOT11Z_TDLS_SUPPORT
-			hex_dump("mac=", pEntry->Addr, 6);
-			UAPSD_MR_ENTRY_RESET(pAd, pEntry);
-#else
-#ifdef CONFIG_AP_SUPPORT
-            UAPSD_MR_ENTRY_RESET(pAd, pEntry);
-#endif /* CONFIG_AP_SUPPORT */
-#endif /* DOT11Z_TDLS_SUPPORT */
 #endif /* UAPSD_SUPPORT */
 
 		if (pEntry->EnqueueEapolStartTimerRunning != EAPOL_START_DISABLE)
@@ -683,82 +416,23 @@ BOOLEAN MacTableDeleteEntry(
 		RTMPReleaseTimer(&pEntry->EnqueueStartForPSKTimer, &Cancelled);
 
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef WSC_AP_SUPPORT
-            if (IS_ENTRY_CLIENT(pEntry))
-            {
-            	PWSC_CTRL	pWscControl = &pAd->ApCfg.MBSSID[pEntry->apidx].WscControl;
-            	if (MAC_ADDR_EQUAL(pEntry->Addr, pWscControl->EntryAddr))
-            	{
-            		/*
-            			Some WPS Client will send dis-assoc close to WSC_DONE. 
-            			If AP misses WSC_DONE, WPS Client still sends dis-assoc to AP.
-            			Do not cancel timer if WscState is WSC_STATE_WAIT_DONE.
-            		*/
-					if ((pWscControl->EapolTimerRunning == TRUE) &&
-						(pWscControl->WscState != WSC_STATE_WAIT_DONE))
-					{
-	            	    RTMPCancelTimer(&pWscControl->EapolTimer, &Cancelled);
-	            	    pWscControl->EapolTimerRunning = FALSE;
-						pWscControl->EapMsgRunning = FALSE;
-						NdisZeroMemory(&(pWscControl->EntryAddr[0]), MAC_ADDR_LEN);
-					}            	    
-            	}
-            	pEntry->Receive_EapolStart_EapRspId = 0;
-				pEntry->bWscCapable = FALSE;
-           	}
-#endif /* WSC_AP_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 
 //   			NdisZeroMemory(pEntry, sizeof(MAC_TABLE_ENTRY));
-			NdisZeroMemory(pEntry->Addr, MAC_ADDR_LEN);
-			/* invalidate the entry */
-			SET_ENTRY_NONE(pEntry);
-#ifdef P2P_SUPPORT
-			if (IS_P2P_GO_ENTRY(pEntry))
-			{
-				if (pEntry->WpaState == AS_PTKINITDONE)
-				SET_P2P_ENTRY_NONE(pEntry);
-				/* Legacy is leaving */
-				if (pEntry->bP2pClient == FALSE)
-				{
-#ifdef RT_P2P_SPECIFIC_WIRELESS_EVENT
-					P2pSendWirelessEvent(pAd, RT_P2P_LEGACY_DISCONNECTED, NULL, pEntry->Addr);
-#endif /* RT_P2P_SPECIFIC_WIRELESS_EVENT */
-				}
-			}
-#endif /* P2P_SUPPORT */
+//			NdisZeroMemory(pEntry->Addr, MAC_ADDR_LEN);
+//			/* invalidate the entry */
+//			SET_ENTRY_NONE(pEntry);
+
+//                      NdisZeroMemory(pEntry, sizeof(MAC_TABLE_ENTRY));
+                        NdisZeroMemory(pEntry->Addr, MAC_ADDR_LEN);
+                        /* invalidate the entry */
+                        SET_ENTRY_NONE(pEntry);
+
 			pAd->MacTab.Size --;
 #ifdef TXBF_SUPPORT
 			if (pAd->chipCap.FlgHwTxBfCap)
 				NdisFreeSpinLock(&pEntry->TxSndgLock);
 #endif /* TXBF_SUPPORT */
-#ifdef P2P_SUPPORT
-			if (P2P_GO_ON(pAd))
-			{
-				UINT32 i, p2pEntryCnt=0;
-				MAC_TABLE_ENTRY *pEntry;
-				PWSC_CTRL           pWscControl = &pAd->ApCfg.MBSSID[0].WscControl;
-
-				for (i=0; i<MAX_LEN_OF_MAC_TABLE; i++)
-				{
-					pEntry = &pAd->MacTab.Content[i];
-					if (IS_P2P_GO_ENTRY(pEntry))
-						p2pEntryCnt++;
-				}
-
-				if ((p2pEntryCnt == 0) && 
-					(pWscControl->WscState == WSC_STATE_CONFIGURED) &&
-					(pAd->flg_p2p_OpStatusFlags == P2P_GO_UP))
-				{
-#ifdef RTMP_MAC_USB
-					RTEnqueueInternalCmd(pAd, CMDTHREAD_SET_P2P_LINK_DOWN, NULL, 0);	
-#endif /* RTMP_MAC_USB */
-				}
-				DBGPRINT(RT_DEBUG_ERROR, ("MacTableDeleteEntry1 - Total= %d. p2pEntry = %d.\n", pAd->MacTab.Size, p2pEntryCnt));
-			}
-#endif /* P2P_SUPPORT */
 			DBGPRINT(RT_DEBUG_TRACE, ("MacTableDeleteEntry1 - Total= %d\n", pAd->MacTab.Size));
 		}
 		else
@@ -777,10 +451,6 @@ BOOLEAN MacTableDeleteEntry(
 #endif /* DOT11_N_SUPPORT */
 		RTMP_UPDATE_PROTECT(pAd, 0, ALLN_SETPROTECT, TRUE, 0);
 	}
-#ifdef CONFIG_AP_SUPPORT
-	/*APUpdateCapabilityAndErpIe(pAd);*/
-	RTMP_AP_UPDATE_CAPABILITY_AND_ERPIE(pAd);  /* edit by johnli, fix "in_interrupt" error when call "MacTableDeleteEntry" in Rx tasklet*/
-#endif /* CONFIG_AP_SUPPORT */
 
 	return TRUE;
 }
@@ -798,14 +468,6 @@ VOID MacTableReset(
 {
 	int         i;
 	BOOLEAN     Cancelled;    
-#ifdef CONFIG_AP_SUPPORT
-	PUCHAR      pOutBuffer = NULL;
-	NDIS_STATUS NStatus;
-	ULONG       FrameLen = 0;
-	HEADER_802_11 DeAuthHdr;
-	USHORT      Reason;
-    UCHAR       apidx = MAIN_MBSSID;
-#endif /* CONFIG_AP_SUPPORT */
 
 	DBGPRINT(RT_DEBUG_TRACE, ("MacTableReset\n"));
 	/*NdisAcquireSpinLock(&pAd->MacTabLock);*/
@@ -820,48 +482,9 @@ VOID MacTableReset(
 			/*MacTableDeleteEntry(pAd, i, pAd->MacTab.Content[i].Addr);*/
 			RTMPReleaseTimer(&pAd->MacTab.Content[i].EnqueueStartForPSKTimer, &Cancelled);
 #ifdef CONFIG_STA_SUPPORT
-#ifdef ADHOC_WPA2PSK_SUPPORT
-			IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-			{
-				RTMPReleaseTimer(&pAd->MacTab.Content[i].WPA_Authenticator.MsgRetryTimer, &Cancelled);
-            }
-#endif /* ADHOC_WPA2PSK_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
             pAd->MacTab.Content[i].EnqueueEapolStartTimerRunning = EAPOL_START_DISABLE;
 
-#ifdef CONFIG_AP_SUPPORT
-			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-			{
-				/* Before reset MacTable, send disassociation packet to client.*/
-				if (pAd->MacTab.Content[i].Sst == SST_ASSOC)
-				{
-					/*  send out a De-authentication request frame*/
-					NStatus = MlmeAllocateMemory(pAd, &pOutBuffer);
-					if (NStatus != NDIS_STATUS_SUCCESS)
-					{
-						DBGPRINT(RT_DEBUG_TRACE, (" MlmeAllocateMemory fail  ..\n"));
-						/*NdisReleaseSpinLock(&pAd->MacTabLock);*/
-						return;
-					}
-					
-					Reason = REASON_NO_LONGER_VALID;
-					DBGPRINT(RT_DEBUG_WARN, ("Send DEAUTH - Reason = %d frame tO %02x:%02x:%02x:%02x:%02x:%02x \n",Reason, PRINT_MAC(pAd->MacTab.Content[i].Addr)));
-					MgtMacHeaderInit(pAd, &DeAuthHdr, SUBTYPE_DEAUTH, 0, pAd->MacTab.Content[i].Addr, 
-#ifdef P2P_SUPPORT
-										pAd->ApCfg.MBSSID[pAd->MacTab.Content[i].apidx].Bssid,
-#endif /* P2P_SUPPORT */
-										pAd->ApCfg.MBSSID[pAd->MacTab.Content[i].apidx].Bssid);
-			    	MakeOutgoingFrame(pOutBuffer,            &FrameLen,
-			    	                  sizeof(HEADER_802_11), &DeAuthHdr,
-			    	                  2,                     &Reason,
-			    	                  END_OF_ARGS);
-
-			    	MiniportMMRequest(pAd, 0, pOutBuffer, FrameLen);
-			    	MlmeFreeMemory(pAd, pOutBuffer);
-					RTMPusecDelay(5000);
-				}
-			}
-#endif /* CONFIG_AP_SUPPORT */
 
 			/* Delete a entry via WCID */
 			MacTableDeleteEntry(pAd, i, pAd->MacTab.Content[i].Addr);
@@ -873,37 +496,6 @@ VOID MacTableReset(
 		}
 	}
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		for (apidx = MAIN_MBSSID; apidx < pAd->ApCfg.BssidNum; apidx++)
-		{
-#ifdef WSC_AP_SUPPORT
-			BOOLEAN Cancelled;
-			
-	    	RTMPCancelTimer(&pAd->ApCfg.MBSSID[apidx].WscControl.EapolTimer, &Cancelled);
-	    	pAd->ApCfg.MBSSID[apidx].WscControl.EapolTimerRunning = FALSE;
-			NdisZeroMemory(pAd->ApCfg.MBSSID[apidx].WscControl.EntryAddr, MAC_ADDR_LEN);
-	    	pAd->ApCfg.MBSSID[apidx].WscControl.EapMsgRunning = FALSE;
-#endif /* WSC_AP_SUPPORT */
-			pAd->ApCfg.MBSSID[apidx].StaCount = 0; 
-		}
-		DBGPRINT(RT_DEBUG_TRACE, ("McastPsQueue.Number %ld...\n",pAd->MacTab.McastPsQueue.Number));
-		if (pAd->MacTab.McastPsQueue.Number > 0)
-			APCleanupPsQueue(pAd, &pAd->MacTab.McastPsQueue);
-		DBGPRINT(RT_DEBUG_TRACE, ("2McastPsQueue.Number %ld...\n",pAd->MacTab.McastPsQueue.Number));
-
-		/* ENTRY PREEMPTION: Zero Mac Table but entry's content */
-/*		NdisZeroMemory(&pAd->MacTab, sizeof(MAC_TABLE));*/
-		NdisZeroMemory(&pAd->MacTab.Size,
-						sizeof(MAC_TABLE)-
-							sizeof(pAd->MacTab.Hash)-
-							sizeof(pAd->MacTab.Content));
-
-		InitializeQueueHeader(&pAd->MacTab.McastPsQueue);
-		/*NdisReleaseSpinLock(&pAd->MacTabLock);*/
-	}
-#endif /* CONFIG_AP_SUPPORT */
 	return;
 }
 

@@ -1,30 +1,29 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology	5th	Rd.
- * Science-based Industrial	Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2004, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved.	Ralink's source	code is	an unpublished work	and	the
- * use of a	copyright notice does not imply	otherwise. This	source code
- * contains	confidential trade secret material of Ralink Tech. Any attemp
- * or participation	in deciphering,	decoding, reverse engineering or in	any
- * way altering	the	source code	is stricitly prohibited, unless	the	prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Module Name:
-	rtmp_phy.h
-
-	Abstract:
-	Ralink Wireless Chip PHY(BBP/RF) related definition & structures
-
-	Revision History:
-	Who			When		  What
-	--------	----------	  ----------------------------------------------
-*/
 
 #ifndef __RTMP_PHY_H__
 #define __RTMP_PHY_H__
@@ -181,6 +180,7 @@
 #define BBP_R60			60
 #define BBP_R57			57
 #define BBP_R58			58
+#define BBP_R61			61
 #define BBP_R62			62 /* Rx SQ0 Threshold HIGH */
 #define BBP_R63			63
 #define BBP_R64			64
@@ -204,6 +204,7 @@
 #define BBP_R84			84
 #define BBP_R85			85
 #define BBP_R86			86
+#define BBP_R87			87
 #define BBP_R88			88
 #define BBP_R91			91
 #define BBP_R92			92

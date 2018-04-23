@@ -1,16 +1,29 @@
-/****************************************************************************
+/*
+ *************************************************************************
+ * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
+ *
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-    Module Name:
-	rt_os_net.h
-
-	Abstract:
-	All function prototypes are defined in NETIF modules.
-
-    Revision History:
-    Who          When          What
-    ---------    ----------    ----------------------------------------------
-
-***************************************************************************/
 
 #ifndef __RT_OS_NET_H__
 #define __RT_OS_NET_H__
@@ -229,15 +242,6 @@ int P2P_PacketSend(
 	IN	PNET_DEV					pDev,
 	IN	RTMP_NET_PACKET_TRANSMIT	Func);
 
-#ifdef CONFIG_AP_SUPPORT
-INT RTMP_AP_IoctlHandle(
-	IN	VOID					*pAd, 
-	IN	RTMP_IOCTL_INPUT_STRUCT	*wrq,
-	IN	INT						cmd,
-	IN	USHORT					subcmd,
-	IN	VOID					*pData,
-	IN	ULONG					Data);
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 INT RTMP_STA_IoctlHandle(
@@ -288,12 +292,6 @@ __inline VOID VIRTUAL_IF_DOWN(VOID *pAd)
 
 #ifdef RTMP_MODULE_OS
 
-#ifdef CONFIG_AP_SUPPORT
-INT rt28xx_ap_ioctl(
-	IN	PNET_DEV		net_dev, 
-	IN	OUT	struct ifreq	*rq, 
-	IN	INT			cmd);
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 INT rt28xx_sta_ioctl(

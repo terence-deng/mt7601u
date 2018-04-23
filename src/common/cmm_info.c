@@ -1,28 +1,30 @@
-/****************************************************************************
+/*
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
- * (c) Copyright 2002, Ralink Technology, Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ****************************************************************************
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-    Module Name:
-	cmm_info.c
- 
-    Abstract:
- 
-    Revision History:
-    Who          When          What
-    ---------    ----------    ----------------------------------------------
- */
- 
+
 #include	"rt_config.h"
 
 
@@ -39,10 +41,6 @@ INT Set_DriverVersion_Proc(
 	IN	PRTMP_ADAPTER	pAd, 
 	IN	PSTRING			arg)
 {
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		DBGPRINT(RT_DEBUG_TRACE, ("Driver version-%s\n", AP_DRIVER_VERSION));
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -122,51 +120,10 @@ INT	Set_Cmm_WirelessMode_Proc(
 	IN	BOOLEAN			FlgIsDiffMbssModeUsed)
 {
 	INT	success = TRUE;
-#ifdef CONFIG_AP_SUPPORT
-	UINT32 i = 0;
-#ifdef MBSS_SUPPORT
-	POS_COOKIE pObj = (POS_COOKIE) pAd->OS_Cookie;
-
-	if (FlgIsDiffMbssModeUsed) {
-		LONG cfg_mode = simple_strtol(arg, 0, 10);
-		
-		/* assign wireless mode for the BSS */
-		pAd->ApCfg.MBSSID[pObj->ioctl_if].PhyMode = 
-					cfgmode_2_wmode((UCHAR)cfg_mode);
-
-		/*
-			If the band is different with other BSS, we will correct it in
-			RT_CfgSetMbssWirelessMode()
-		*/
-		success = RT_CfgSetMbssWirelessMode(pAd, arg);
-	}
-	else
-#endif /* MBSS_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 	success = RT_CfgSetWirelessMode(pAd, arg);
 
 	if (success)
 	{
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-			/* recover Wmm Capable for "each" BSS */
-			/* all phy mode of MBSS are the same */
-			for(i=0; i<pAd->ApCfg.BssidNum; i++)
-			{
-				pAd->ApCfg.MBSSID[i].bWmmCapable = \
-										pAd->ApCfg.MBSSID[i].bWmmCapableOrg;
-
-#ifdef MBSS_SUPPORT
-				/* In Same-MBSS Mode, all phy modes are the same */
-				if (FlgIsDiffMbssModeUsed == 0)
-					pAd->ApCfg.MBSSID[i].PhyMode = pAd->CommonCfg.PhyMode;
-#endif /* MBSS_SUPPORT */
-			}
-
-			RTMPSetPhyMode(pAd, pAd->CommonCfg.PhyMode);
-		}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -187,25 +144,6 @@ INT	Set_Cmm_WirelessMode_Proc(
 #endif /* CONFIG_STA_SUPPORT */
 
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef MBSS_SUPPORT
-		DBGPRINT(RT_DEBUG_TRACE, ("Set_Cmm_WirelessMode_Proc::(=%d)\n", pAd->CommonCfg.PhyMode));
-		DBGPRINT(RT_DEBUG_TRACE, ("Set_Cmm_WirelessMode_Proc::(BSS%d=%d)\n",
-				pObj->ioctl_if, pAd->ApCfg.MBSSID[pObj->ioctl_if].PhyMode));
-
-		for(i=0; i<pAd->ApCfg.BssidNum; i++)
-		{
-			/*
-				When last mode is not 11B-only, new mode is 11B, we need to re-make
-				beacon frame content.
-
-				Because we put support rate/extend support rate element in
-				APMakeBssBeacon(), not APUpdateBeaconFrame().
-			*/
-			APMakeBssBeacon(pAd, i);
-		}
-#endif /* MBSS_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 	}
 	else
 	{
@@ -216,24 +154,6 @@ INT	Set_Cmm_WirelessMode_Proc(
 }
 
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef MBSS_SUPPORT
-/* 
-    ==========================================================================
-    Description:
-        Set Wireless Mode for MBSS
-    Return:
-        TRUE if all parameters are OK, FALSE otherwise
-    ==========================================================================
-*/
-INT	Set_MBSS_WirelessMode_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg)
-{
-	return Set_Cmm_WirelessMode_Proc(pAd, arg, 1);
-}
-#endif /* MBSS_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 /* 
     ==========================================================================
@@ -263,9 +183,6 @@ INT	Set_Channel_Proc(
 	IN	PRTMP_ADAPTER	pAd, 
 	IN	PSTRING			arg)
 {
-#ifdef CONFIG_AP_SUPPORT
-	INT		i;
-#endif /* CONFIG_AP_SUPPORT */
  	INT		success = TRUE;
 	UCHAR	Channel;	
 
@@ -306,13 +223,6 @@ INT	Set_Channel_Proc(
 	}
 	else
 	{
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-			Channel = FirstChannel(pAd);
-			DBGPRINT(RT_DEBUG_WARN,("This channel is out of channel list, set as the first channel(%d) \n ", Channel));
-		}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -321,61 +231,6 @@ INT	Set_Channel_Proc(
 #endif /* CONFIG_STA_SUPPORT */
 	}
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		if ((WMODE_CAP_5G(pAd->CommonCfg.PhyMode))
-			&& (pAd->CommonCfg.bIEEE80211H == TRUE))
-		{
-			for (i = 0; i < pAd->ChannelListNum; i++)
-			{
-				if (pAd->ChannelList[i].Channel == Channel)
-				{
-					if (pAd->ChannelList[i].RemainingTimeForUse > 0)
-					{
-						DBGPRINT(RT_DEBUG_ERROR, ("ERROR: previous detection of a radar on this channel(Channel=%d)\n", Channel));
-						success = FALSE;
-						break;
-					}
-					else
-					{
-						DBGPRINT(RT_DEBUG_INFO, ("RemainingTimeForUse %d ,Channel %d\n",
-								pAd->ChannelList[i].RemainingTimeForUse, Channel));
-					}
-				}
-			}
-		}
-
-		if (success == TRUE)
-		{
-			pAd->CommonCfg.Channel = Channel;
-#ifdef DOT11_N_SUPPORT
-			N_ChannelCheck(pAd);
-#endif /* DOT11_N_SUPPORT */
-
-			if ((pAd->CommonCfg.Channel > 14 )
-				&& (pAd->CommonCfg.bIEEE80211H == TRUE))
-			{
-				if (pAd->Dot11_H.RDMode == RD_SILENCE_MODE)
-				{
-					APStop(pAd);
-					APStartUp(pAd);
-				}
-				else
-				{
-					NotifyChSwAnnToPeerAPs(pAd, ZERO_MAC_ADDR, pAd->CurrentAddress, 1, pAd->CommonCfg.Channel);
-					pAd->Dot11_H.RDMode = RD_SWITCHING_MODE;
-					pAd->Dot11_H.CSCount = 0;
-				}
-			}
-			else
-			{
-				APStop(pAd);
-				APStartUp(pAd);
-			}
-		}
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 	if (success == TRUE)
 		DBGPRINT(RT_DEBUG_TRACE, ("Set_Channel_Proc::(Channel=%d)\n", pAd->CommonCfg.Channel));
@@ -424,10 +279,6 @@ INT	Set_TxPower_Proc(
 	TxPower = simple_strtol(arg, 0, 10);
 	if (TxPower <= 100)
 	{
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-			pAd->CommonCfg.TxPowerPercentage = TxPower;
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -473,10 +324,6 @@ INT	Set_BGProtection_Proc(
 			return FALSE;
 	}
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		APUpdateCapabilityAndErpIe(pAd);
-#endif /* CONFIG_AP_SUPPORT */
 
 	DBGPRINT(RT_DEBUG_TRACE, ("Set_BGProtection_Proc::(BGProtection=%ld)\n", pAd->CommonCfg.UseBGProtection));	
 
@@ -499,11 +346,6 @@ INT	Set_TxPreamble_Proc(
 
 	Preamble = (RT_802_11_PREAMBLE)simple_strtol(arg, 0, 10);
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	if (Preamble == Rt802_11PreambleAuto)
-		return FALSE;
-#endif /* CONFIG_AP_SUPPORT */
 
 	switch (Preamble)
 	{
@@ -671,15 +513,6 @@ INT	Set_PktAggregate_Proc(
 	else
 		return FALSE;  /*Invalid argument */
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef PIGGYBACK_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		pAd->CommonCfg.bPiggyBackCapable = pAd->CommonCfg.bAggregationCapable;
-		RTMPSetPiggyBack(pAd, pAd->CommonCfg.bPiggyBackCapable);
-	}
-#endif /* PIGGYBACK_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 	DBGPRINT(RT_DEBUG_TRACE, ("Set_PktAggregate_Proc::(AGGRE=%d)\n", pAd->CommonCfg.bAggregationCapable));
 
@@ -1208,142 +1041,6 @@ INT Set_ChannelListDel_Proc(
 }
 #endif /* EXT_BUILD_CHANNEL_LIST  */
 
-#ifdef WSC_INCLUDED
-INT	Set_WscGenPinCode_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg)
-{
-    PWSC_CTRL   pWscControl = NULL;
-    POS_COOKIE  pObj = (POS_COOKIE) pAd->OS_Cookie;
-    UCHAR	    apidx = pObj->ioctl_if;
-    
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-#ifdef APCLI_SUPPORT
-	    if (pObj->ioctl_if_type == INT_APCLI)
-	    {
-	        pWscControl = &pAd->ApCfg.ApCliTab[apidx].WscControl;
-	        DBGPRINT(RT_DEBUG_TRACE, ("IF(apcli%d) Set_WscGenPinCode_Proc:: This command is from apcli interface now.\n", apidx));
-	    }
-	    else
-#endif /* APCLI_SUPPORT */
-	    {
-			pWscControl = &pAd->ApCfg.MBSSID[apidx].WscControl;
-	        DBGPRINT(RT_DEBUG_TRACE, ("IF(ra%d) Set_WscGenPinCode_Proc:: This command is from ra interface now.\n", apidx));
-	    }
-	}
-#endif /* CONFIG_AP_SUPPORT */
-
-#ifdef P2P_SUPPORT
-	if (pObj->ioctl_if_type == INT_P2P)
-	{
-			pWscControl = &pAd->ApCfg.ApCliTab[apidx].WscControl;
-			DBGPRINT(RT_DEBUG_TRACE, ("IF(p2p%d) Set_WscGenPinCode_Proc:: This command is from apcli interface now.\n", apidx));
-		}
-#endif /* P2P_SUPPORT */
-
-#ifdef CONFIG_STA_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-	{
-#ifdef P2P_SUPPORT
-		if (pObj->ioctl_if_type != INT_P2P)
-#endif /* P2P_SUPPORT */
-{
-    	pWscControl = &pAd->StaCfg.WscControl;
-	}
-	}
-#endif /* CONFIG_STA_SUPPORT */
-
-	if (pWscControl == NULL)
-	{
-		DBGPRINT(RT_DEBUG_ERROR, ("%s: pWscControl == NULL!\n", __FUNCTION__));
-		return TRUE;
-	}
-
-	if (pWscControl->WscEnrollee4digitPinCode)	
-	{
-		pWscControl->WscEnrolleePinCodeLen = 4;
-		pWscControl->WscEnrolleePinCode = WscRandomGen4digitPinCode(pAd);
-	}
-	else
-	{
-		pWscControl->WscEnrolleePinCodeLen = 8;
-		pWscControl->WscEnrolleePinCode = WscRandomGeneratePinCode(pAd, apidx);
-	}
-
-#ifdef P2P_SUPPORT
-	if (pObj->ioctl_if_type == INT_P2P)	
-	{
-		PWSC_CTRL   pApWscControl = &pAd->ApCfg.MBSSID[apidx].WscControl;
-		pApWscControl->WscEnrolleePinCodeLen  = pWscControl->WscEnrolleePinCodeLen;
-		pApWscControl->WscEnrolleePinCode  = pWscControl->WscEnrolleePinCode;
-	}
-#endif /* P2P_SUPPORT */
-
-	DBGPRINT(RT_DEBUG_TRACE, ("Set_WscGenPinCode_Proc:: Enrollee PinCode\t\t%08u\n", pWscControl->WscEnrolleePinCode));
-
-	return TRUE;
-}
-
-INT Set_WscVendorPinCode_Proc(
-    IN  PRTMP_ADAPTER   pAd, 
-    IN  PSTRING          arg)
-{
-	PWSC_CTRL   pWscControl = NULL;
-	POS_COOKIE  pObj = (POS_COOKIE) pAd->OS_Cookie;
-
-#ifdef CONFIG_AP_SUPPORT
-/*	POS_COOKIE  pObj = (POS_COOKIE) pAd->OS_Cookie;*/
-/*	UCHAR       apidx = pObj->ioctl_if;*/
-
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-#ifdef APCLI_SUPPORT
-		if (pObj->ioctl_if_type == INT_APCLI)
-		{
-			pWscControl = &pAd->ApCfg.ApCliTab[apidx].WscControl;
-			DBGPRINT(RT_DEBUG_TRACE, ("Set_WscVendorPinCode_Proc() for apcli(%d)\n", apidx));
-		}
-		else
-#endif /* APCLI_SUPPORT */
-		{
-			pWscControl = &pAd->ApCfg.MBSSID[apidx].WscControl;
-			DBGPRINT(RT_DEBUG_TRACE, ("Set_WscVendorPinCode_Proc() for ra%d!\n", apidx));
-		}
-	}
-#endif /* CONFIG_AP_SUPPORT */
-
-#ifdef P2P_SUPPORT
-	if (pObj->ioctl_if_type == INT_P2P)
-	{
-		pWscControl = &pAd->ApCfg.MBSSID[apidx].WscControl;
-		RT_CfgSetWscPinCode(pAd, arg, pWscControl);
-
-		pWscControl = &pAd->ApCfg.ApCliTab[apidx].WscControl;
-		RT_CfgSetWscPinCode(pAd, arg, pWscControl);
-
-		DBGPRINT(RT_DEBUG_TRACE, ("Set_WscVendorPinCode_Proc() for p2p(%d)\n", apidx));
-		return TRUE;
-	}
-#endif /* P2P_SUPPORT */
-
-#ifdef CONFIG_STA_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
- 	{
-#ifdef P2P_SUPPORT
-		if (pObj->ioctl_if_type != INT_P2P)
-#endif /* P2P_SUPPORT */
- 		pWscControl = &pAd->StaCfg.WscControl;
- 	}
-#endif /* CONFIG_STA_SUPPORT */
-
-	if (!pWscControl)
-		return FALSE;
-	else
-	return RT_CfgSetWscPinCode(pAd, arg, pWscControl);
-}
-#endif /* WSC_INCLUDED */
 
 #ifdef DBG
 /* 
@@ -1428,8 +1125,6 @@ INT	Set_ResetStatCounter_Proc(
 	NdisZeroMemory(&pAd->Counters8023, sizeof(COUNTER_802_3));
 	NdisZeroMemory(&pAd->RalinkCounters, sizeof(COUNTER_RALINK));
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef TXBF_SUPPORT
 	if (pAd->chipCap.FlgHwTxBfCap)
@@ -1827,11 +1522,6 @@ VOID RTMPSetPhyMode(
 
 	if (i == pAd->ChannelListNum)
 	{
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		if (pAd->CommonCfg.Channel != 0)
-				pAd->CommonCfg.Channel = FirstChannel(pAd);
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 			pAd->CommonCfg.Channel = FirstChannel(pAd);
@@ -1935,39 +1625,7 @@ VOID RTMPSetPhyMode(
 			break;
 	}
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		UINT	apidx;
-		
-		for (apidx = 0; apidx < pAd->ApCfg.BssidNum; apidx++)
-		{
-			MlmeUpdateTxRates(pAd, FALSE, apidx);
-		}	
-#ifdef APCLI_SUPPORT
-		for (apidx = 0; apidx < MAX_APCLI_NUM; apidx++)
-		{				
-			MlmeUpdateTxRates(pAd, FALSE, apidx + MIN_NET_DEVICE_FOR_APCLI);			
-		}
-#endif /* APCLI_SUPPORT */		
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
-#ifdef P2P_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-	{
-		UINT	apidx;
-		for (apidx = 0; apidx < pAd->ApCfg.BssidNum; apidx++)
-		{
-			MlmeUpdateTxRates(pAd, FALSE, apidx + MIN_NET_DEVICE_FOR_P2P_GO);
-		}
-
-		for (apidx = 0; apidx < MAX_APCLI_NUM; apidx++)
-		{				
-			MlmeUpdateTxRates(pAd, FALSE, apidx + MIN_NET_DEVICE_FOR_APCLI);			
-		}
-	}
-#endif /* P2P_SUPPORT */
 
 #ifdef DOT11_N_SUPPORT
 	SetCommonHT(pAd);
@@ -1997,47 +1655,8 @@ VOID	RTMPAddWcidAttributeEntry(
 	USHORT		offset;
 	UCHAR		IVEIV = 0;
 	USHORT		Wcid = 0;
-#ifdef CONFIG_AP_SUPPORT
-	BOOLEAN		IEEE8021X = FALSE;
-#endif /* CONFIG_AP_SUPPORT */
 
 	{
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-#ifdef APCLI_SUPPORT
-			if (BssIdx >= MIN_NET_DEVICE_FOR_APCLI)
-			{
-				if (pEntry)		
-					BssIdx -= MIN_NET_DEVICE_FOR_APCLI;		
-				else
-				{
-					DBGPRINT(RT_DEBUG_WARN, ("RTMPAddWcidAttributeEntry: AP-Client link doesn't need to set Group WCID Attribute. \n"));	
-					return;
-				}
-			}	
-			else 
-#endif /* APCLI_SUPPORT */
-			{
-				if (BssIdx >= pAd->ApCfg.BssidNum)
-				{
-					DBGPRINT(RT_DEBUG_ERROR, ("RTMPAddWcidAttributeEntry: The BSS-index(%d) is out of range for MBSSID link. \n", BssIdx));	
-					return;
-				}
-			}
-
-			/* choose wcid number*/
-			if (pEntry)
-				Wcid = pEntry->Aid;
-			else
-				GET_GroupKey_WCID(pAd, Wcid, BssIdx);		
-
-#ifdef DOT1X_SUPPORT
-			if ((BssIdx < pAd->ApCfg.BssidNum) && (BssIdx < MAX_MBSSID_NUM(pAd)) && (BssIdx < HW_BEACON_MAX_NUM))
-				IEEE8021X = pAd->ApCfg.MBSSID[BssIdx].IEEE8021X;
-#endif /* DOT1X_SUPPORT */			
-		}
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		{
@@ -2062,27 +1681,6 @@ VOID	RTMPAddWcidAttributeEntry(
 
 	/* Update WCID attribute table*/
 	offset = MAC_WCID_ATTRIBUTE_BASE + (Wcid * HW_WCID_ATTRI_SIZE);
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		/*
-			1.	Wds-links and Mesh-links always use Pair-wise key table.
-			2. 	When the CipherAlg is TKIP, AES or the dynamic WEP is enabled,
-				it needs to set key into Pair-wise Key Table.
-			3.	The pair-wise key security mode is set NONE, it means as no security.
-		*/
-		if (pEntry && (IS_ENTRY_WDS(pEntry) || IS_ENTRY_MESH(pEntry)))
-			WCIDAttri = (BssIdx<<4) | (CipherAlg<<1) | PAIRWISEKEYTABLE;
-		else if ((pEntry) && 
-				((CipherAlg == CIPHER_TKIP) || 
-				 (CipherAlg == CIPHER_AES) || 
-				 (CipherAlg == CIPHER_NONE) || 
-				 (IEEE8021X == TRUE)))
-			WCIDAttri = (BssIdx<<4) | (CipherAlg<<1) | PAIRWISEKEYTABLE;
-		else
-			WCIDAttri = (BssIdx<<4) | (CipherAlg<<1) | SHAREDKEYTABLE;
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -2155,10 +1753,6 @@ PSTRING GetEncryptType(CHAR enc)
     	return "AES";
 	if(enc == Ndis802_11Encryption4Enabled)
     	return "TKIPAES";
-#ifdef WAPI_SUPPORT
-	if(enc == Ndis802_11EncryptionSMS4Enabled)
-    	return "SMS4";
-#endif /* WAPI_SUPPORT */
     else
     	return "UNKNOW";
 }
@@ -2185,12 +1779,6 @@ PSTRING GetAuthMode(CHAR auth)
     	return "WPA1WPA2";
 	if(auth == Ndis802_11AuthModeWPA1PSKWPA2PSK)
     	return "WPA1PSKWPA2PSK";
-#ifdef WAPI_SUPPORT
-	if(auth == Ndis802_11AuthModeWAICERT)
-    	return "WAI-CERT";
-	if(auth == Ndis802_11AuthModeWAIPSK)
-    	return "WAI-PSK";
-#endif /* WAPI_SUPPORT */
 	
     	return "UNKNOW";
 }		
@@ -2217,9 +1805,6 @@ PSTRING GetAuthMode(CHAR auth)
 #define	LINE_LEN	(4+33+20+23+9+7+7+3)	/* Channel+SSID+Bssid+Security+Signal+WiressMode+ExtCh+NetworkType*/
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef WSC_STA_SUPPORT
-#define	WPS_LINE_LEN	(4+5)	/* WPS+DPID*/
-#endif /* WSC_STA_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 VOID	RTMPCommSiteSurveyData(
 	IN  PSTRING		msg,
@@ -2421,9 +2006,6 @@ VOID RTMPIoctlGetSiteSurvey(
 	UINT32 TotalLen, BufLen = IW_SCAN_MAX_DATA;
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef WSC_STA_SUPPORT
-	max_len += WPS_LINE_LEN;
-#endif /* WSC_STA_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 
 	TotalLen = sizeof(CHAR)*((MAX_LEN_OF_BSS_TABLE)*max_len) + 100;
@@ -2447,9 +2029,6 @@ VOID RTMPIoctlGetSiteSurvey(
 	sprintf(msg+strlen(msg),"%-4s%-33s%-20s%-23s%-9s%-7s%-7s%-3s\n",
 	    "Ch", "SSID", "BSSID", "Security", "Siganl(%)", "W-Mode", " ExtCH"," NT");	
 
-#ifdef WSC_INCLUDED
-	sprintf(msg+strlen(msg)-1,"%-4s%-5s\n", " WPS", " DPID");
-#endif /* WSC_INCLUDED */
 
 #ifdef CONFIG_STA_SUPPORT
 #endif /* CONFIG_STA_SUPPORT */
@@ -2475,20 +2054,6 @@ VOID RTMPIoctlGetSiteSurvey(
 
 		RTMPCommSiteSurveyData(msg, pBss, TotalLen);
 		
-#ifdef WSC_INCLUDED
-        /*WPS*/
-        if (pBss->WpsAP & 0x01)
-			sprintf(msg+strlen(msg)-1,"%-4s", " YES");
-		else
-			sprintf(msg+strlen(msg)-1,"%-4s", "  NO");
-
-		if (pBss->WscDPIDFromWpsAP == DEV_PASS_ID_PIN)
-			sprintf(msg+strlen(msg),"%-5s\n", " PIN");
-		else if (pBss->WscDPIDFromWpsAP == DEV_PASS_ID_PBC)
-			sprintf(msg+strlen(msg),"%-5s\n", " PBC");
-		else
-			sprintf(msg+strlen(msg),"%-5s\n", " ");
-#endif /* WSC_INCLUDED */
 
 #ifdef CONFIG_STA_SUPPORT
 #endif /* CONFIG_STA_SUPPORT */
@@ -2614,168 +2179,8 @@ LabelOK:
 		os_free_mem(NULL, pMacTab);
 }
 
-#ifdef INF_AR9
-#ifdef AR9_MAPI_SUPPORT
-#ifdef CONFIG_AP_SUPPORT
-VOID RTMPAR9IoctlGetMacTable(
-	IN PRTMP_ADAPTER pAd, 
-	IN RTMP_IOCTL_INPUT_STRUCT *wrq)
-{
-	INT i;
-	char *msg;
-
-/*	msg = kmalloc(sizeof(CHAR)*(MAX_LEN_OF_MAC_TABLE*MAC_LINE_LEN), MEM_ALLOC_FLAG);*/
-	os_alloc_mem(NULL, (UCHAR **)&msg, sizeof(CHAR)*(MAX_LEN_OF_MAC_TABLE*MAC_LINE_LEN));
-	if (msg == NULL)
-	{
-		DBGPRINT(RT_DEBUG_ERROR, ("%s():Alloc memory failed\n", __FUNCTION__));
-		return;
-	}
-	memset(msg, 0 ,MAX_LEN_OF_MAC_TABLE*MAC_LINE_LEN );
-	sprintf(msg,"%s","\n");
-	sprintf(msg+strlen(msg),"%-14s%-4s%-4s%-4s%-4s%-6s%-6s%-10s%-10s%-10s\n",
-		"MAC", "AP",  "AID", "PSM", "AUTH", "CTxR", "LTxR","LDT", "RxB", "TxB");
-	
-	for (i=0; i<MAX_LEN_OF_MAC_TABLE; i++)
-	{
-		PMAC_TABLE_ENTRY pEntry = &pAd->MacTab.Content[i];
-		if (IS_ENTRY_CLIENT(pEntry) && (pEntry->Sst == SST_ASSOC))
-		{
-			if((strlen(msg)+MAC_LINE_LEN ) >= (MAX_LEN_OF_MAC_TABLE*MAC_LINE_LEN) )
-				break;	
-			sprintf(msg+strlen(msg),"%02x%02x%02x%02x%02x%02x  ",
-				pEntry->Addr[0], pEntry->Addr[1], pEntry->Addr[2],
-				pEntry->Addr[3], pEntry->Addr[4], pEntry->Addr[5]);
-			sprintf(msg+strlen(msg),"%-4d", (int)pEntry->apidx);
-			sprintf(msg+strlen(msg),"%-4d", (int)pEntry->Aid);
-			sprintf(msg+strlen(msg),"%-4d", (int)pEntry->PsMode);
-			sprintf(msg+strlen(msg),"%-4d", (int)pEntry->AuthState);
-			sprintf(msg+strlen(msg),"%-6d",RateIdToMbps[pAd->MacTab.Content[i].CurrTxRate]);
-			sprintf(msg+strlen(msg),"%-6d",0/*RateIdToMbps[pAd->MacTab.Content[i].HTPhyMode.word]*/); /* ToDo*/
-			sprintf(msg+strlen(msg),"%-10d",0/*pAd->MacTab.Content[i].HSCounter.LastDataPacketTime*/); /* ToDo*/
-			sprintf(msg+strlen(msg),"%-10d",0/*pAd->MacTab.Content[i].HSCounter.TotalRxByteCount*/); /* ToDo*/
-			sprintf(msg+strlen(msg),"%-10d\n",0/*pAd->MacTab.Content[i].HSCounter.TotalTxByteCount*/); /* ToDo*/
-
-		}
-	} 
-	/* for compatible with old API just do the printk to console*/
-	wrq->u.data.length = strlen(msg);
-	if (copy_to_user(wrq->u.data.pointer, msg, wrq->u.data.length))
-	{
-		DBGPRINT(RT_DEBUG_OFF, ("%s", msg));
-	}
-
-/*	kfree(msg);*/
-	os_free_mem(NULL, msg);
-}
-
-VOID RTMPIoctlGetSTAT2(
-	IN PRTMP_ADAPTER pAd, 
-	IN RTMP_IOCTL_INPUT_STRUCT *wrq)
-{
-	char *msg;
-	PMULTISSID_STRUCT	pMbss;
-	INT apidx;
-
-
-/*	msg = kmalloc(sizeof(CHAR)*(pAd->ApCfg.BssidNum*(14*128)), MEM_ALLOC_FLAG);*/
-	os_alloc_mem(NULL, (UCHAR **)&msg, sizeof(CHAR)*(pAd->ApCfg.BssidNum*(14*128)));
-	if (msg == NULL)
-	{
-		DBGPRINT(RT_DEBUG_ERROR, ("%s():Alloc memory failed\n", __FUNCTION__));
-		return;
-	}
-	memset(msg, 0 ,pAd->ApCfg.BssidNum*(14*128));
-	sprintf(msg,"%s","\n");
-	
-	for (apidx=0; apidx<pAd->ApCfg.BssidNum; apidx++)
-	{
-		pMbss=&pAd->ApCfg.MBSSID[apidx];
-		
-		sprintf(msg+strlen(msg),"ra%d\n",apidx);
-		sprintf(msg+strlen(msg),"bytesTx = %ld\n",(pMbss->TransmittedByteCount));
-		sprintf(msg+strlen(msg),"bytesRx = %ld\n",(pMbss->ReceivedByteCount));
-		sprintf(msg+strlen(msg),"pktsTx = %ld\n",pMbss->TxCount);
-		sprintf(msg+strlen(msg),"pktsRx = %ld\n",pMbss->RxCount);
-		sprintf(msg+strlen(msg),"errorsTx = %ld\n",pMbss->TxErrorCount);
-		sprintf(msg+strlen(msg),"errorsRx = %ld\n",pMbss->RxErrorCount);
-		sprintf(msg+strlen(msg),"discardPktsTx = %ld\n",pMbss->TxDropCount);
-		sprintf(msg+strlen(msg),"discardPktsRx = %ld\n",pMbss->RxDropCount);
-		sprintf(msg+strlen(msg),"ucPktsTx = %ld\n",pMbss->ucPktsTx);
-		sprintf(msg+strlen(msg),"ucPktsRx = %ld\n",pMbss->ucPktsRx);
-		sprintf(msg+strlen(msg),"mcPktsTx = %ld\n",pMbss->mcPktsTx);
-		sprintf(msg+strlen(msg),"mcPktsRx = %ld\n",pMbss->mcPktsRx);
-		sprintf(msg+strlen(msg),"bcPktsTx = %ld\n",pMbss->bcPktsTx);
-		sprintf(msg+strlen(msg),"bcPktsRx = %ld\n",pMbss->bcPktsRx);
-		
-	}
-
-	wrq->u.data.length = strlen(msg);
-	if (copy_to_user(wrq->u.data.pointer, msg, wrq->u.data.length))
-	{
-		DBGPRINT(RT_DEBUG_OFF, ("%s", msg));
-	}
-
-/*	kfree(msg);*/
-	os_free_mem(NULL, msg);
-}
-
-
-VOID RTMPIoctlGetRadioDynInfo(
-	IN PRTMP_ADAPTER pAd, 
-	IN RTMP_IOCTL_INPUT_STRUCT *wrq)
-{
-	char *msg;
-	PMULTISSID_STRUCT	pMbss;
-	INT status,bandwidth,ShortGI;
-	
-
-/*	msg = kmalloc(sizeof(CHAR)*(4096), MEM_ALLOC_FLAG);*/
-	os_alloc_mem(NULL, (UCHAR **)&msg, sizeof(CHAR)*(4096));
-	if (msg == NULL)
-	{
-		DBGPRINT(RT_DEBUG_ERROR, ("%s():Alloc memory failed\n", __FUNCTION__));
-		return;
-	}
-	memset(msg, 0 ,4096);
-	sprintf(msg,"%s","\n");
-	
-
-		pMbss=&pAd->ApCfg.MBSSID[0];
-		if(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_RADIO_OFF))
-			status = 0;
-		else
-			status = 1;
-
-		if(pAd->CommonCfg.HtCapability.HtCapInfo.ChannelWidth  == BW_40)
-			bandwidth = 1;
-		else
-			bandwidth = 0;
-
-		if(pAd->CommonCfg.RegTransmitSetting.field.ShortGI == GI_800)
-			ShortGI = 1;
-		else
-			ShortGI = 0;
-
-		
-		sprintf(msg+strlen(msg),"status = %d\n",status);
-		sprintf(msg+strlen(msg),"channelsInUse = %d\n",pAd->ChannelListNum);
-		sprintf(msg+strlen(msg),"channel = %d\n",pAd->CommonCfg.Channel);
-		sprintf(msg+strlen(msg),"chanWidth = %d\n",bandwidth);
-		sprintf(msg+strlen(msg),"guardIntvl = %d\n",ShortGI);
-		sprintf(msg+strlen(msg),"MCS = %d\n",pMbss->DesiredTransmitSetting.field.MCS);
-		
-	wrq->u.data.length = strlen(msg);
-
-	if (copy_to_user(wrq->u.data.pointer, msg, wrq->u.data.length))
-	{
-		DBGPRINT(RT_DEBUG_OFF, ("%s", msg));
-	}
-
-/*	kfree(msg);*/
-	os_free_mem(NULL, msg);
-}
-#endif/*CONFIG_AP_SUPPORT*/
+#if defined(INF_AR9) || defined(BB_SOC)
+#if defined(AR9_MAPI_SUPPORT) || defined(BB_SOC)
 #endif/*AR9_MAPI_SUPPORT*/
 #endif/* INF_AR9 */
 
@@ -2997,9 +2402,6 @@ INT	Set_HtMcs_Proc(
 	IN	PSTRING			arg)
 {
 	ULONG HtMcs, Mcs_tmp, ValidMcs = 15;
-#ifdef CONFIG_AP_SUPPORT    
-    POS_COOKIE pObj = (POS_COOKIE) pAd->OS_Cookie;
-#endif /* CONFIG_AP_SUPPORT */	
 #ifdef CONFIG_STA_SUPPORT    
     BOOLEAN bAutoRate = FALSE;
 #endif /* CONFIG_STA_SUPPORT */
@@ -3016,14 +2418,6 @@ INT	Set_HtMcs_Proc(
 	else
 		HtMcs = MCS_AUTO;	
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		pAd->ApCfg.MBSSID[pObj->ioctl_if].DesiredTransmitSetting.field.MCS = HtMcs;
-		DBGPRINT(RT_DEBUG_TRACE, ("Set_HtMcs_Proc::(HtMcs=%d) for ra%d\n", 
-				pAd->ApCfg.MBSSID[pObj->ioctl_if].DesiredTransmitSetting.field.MCS, pObj->ioctl_if));
-	}
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{
@@ -3249,11 +2643,6 @@ INT	Set_HtBaWinSize_Proc(
 	
 	Value = simple_strtol(arg, 0, 10);
 
-#ifdef CONFIG_AP_SUPPORT
-	/* Intel IOT*/
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		Value = 64;
-#endif /* CONFIG_AP_SUPPORT */
 
 	if (Value >=1 && Value <= 64)
 	{
@@ -3464,107 +2853,6 @@ INT	Set_HtMIMOPSmode_Proc(
 	return TRUE;																																	
 }
 
-#ifdef CONFIG_AP_SUPPORT
-/* 
-    ==========================================================================
-    Description:
-        Set Tx Stream number
-    Return:
-        TRUE if all parameters are OK, FALSE otherwise
-    ==========================================================================
-*/
-INT	Set_HtTxStream_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg)
-{
-	ULONG 	Value;	
-		
-	Value = simple_strtol(arg, 0, 10);
-
-	if ((Value <= 3) && (Value >= 1) && (Value <= pAd->Antenna.field.TxPath)) /* 3*3*/
-		pAd->CommonCfg.TxStream = Value;
-	else
-		pAd->CommonCfg.TxStream = pAd->Antenna.field.TxPath;
-
-	if ((pAd->MACVersion < RALINK_2883_VERSION) &&
-		(pAd->CommonCfg.TxStream > 2))
-	{
-		pAd->CommonCfg.TxStream = 2; /* only 2 TX streams for RT2860 series*/
-	}
-
-	SetCommonHT(pAd);
-
-	APStop(pAd);
-	APStartUp(pAd);
-
-	DBGPRINT(RT_DEBUG_TRACE, ("Set_HtTxStream_Proc::(Tx Stream=%d)\n",pAd->CommonCfg.TxStream));
-		
-	return TRUE;
-}
-
-/* 
-    ==========================================================================
-    Description:
-        Set Rx Stream number
-    Return:
-        TRUE if all parameters are OK, FALSE otherwise
-    ==========================================================================
-*/
-INT	Set_HtRxStream_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg)
-{
-	ULONG 	Value;	
-		
-	Value = simple_strtol(arg, 0, 10);
-
-	if ((Value <= 3) && (Value >= 1) && (Value <= pAd->Antenna.field.RxPath))
-		pAd->CommonCfg.RxStream = Value;
-	else
-		pAd->CommonCfg.RxStream = pAd->Antenna.field.RxPath;
-
-	if ((pAd->MACVersion < RALINK_2883_VERSION) &&
-		(pAd->CommonCfg.RxStream > 2)) /* 3*3*/
-	{
-		pAd->CommonCfg.RxStream = 2; /* only 2 RX streams for RT2860 series*/
-	}
-
-	SetCommonHT(pAd);
-
-	APStop(pAd);
-	APStartUp(pAd);
-
-	DBGPRINT(RT_DEBUG_TRACE, ("Set_HtRxStream_Proc::(Rx Stream=%d)\n",pAd->CommonCfg.RxStream));
-		
-	return TRUE;
-}
-
-#ifdef DOT11_N_SUPPORT
-#ifdef GREENAP_SUPPORT
-INT	Set_GreenAP_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg)
-{
-	ULONG Value;
-
-	Value = simple_strtol(arg, 0, 10);
-	if (Value == 0)
-	{
-		pAd->ApCfg.bGreenAPActive=FALSE;
-		pAd->ApCfg.bGreenAPEnable = FALSE;
-	}
-	else if (Value == 1)	
-		pAd->ApCfg.bGreenAPEnable = TRUE;
-	else
-		return FALSE; /*Invalid argument*/
-
-	DBGPRINT(RT_DEBUG_TRACE, ("Set_GreenAP_Proc::(bGreenAPEnable=%d)\n",pAd->ApCfg.bGreenAPEnable));
-
-	return TRUE;
-}
-#endif /* GREENAP_SUPPORT */
-#endif /* DOT11_N_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 INT	Set_ForceShortGI_Proc(
 	IN	PRTMP_ADAPTER	pAd, 
@@ -3731,16 +3019,9 @@ INT	Set_VhtStbc_Proc(
 
 INT	Set_FixedTxMode_Proc(RTMP_ADAPTER *pAd, PSTRING arg)
 {
-#ifdef CONFIG_AP_SUPPORT    
-    POS_COOKIE pObj = (POS_COOKIE) pAd->OS_Cookie;
-#endif /* CONFIG_AP_SUPPORT */		
 	INT	fix_tx_mode = RT_CfgSetFixedTxPhyMode(arg);
 
 	
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		pAd->ApCfg.MBSSID[pObj->ioctl_if].DesiredTransmitSetting.field.FixedTxMode = fix_tx_mode;
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		pAd->StaCfg.DesiredTransmitSetting.field.FixedTxMode = fix_tx_mode;
@@ -4361,15 +3642,6 @@ INT	Show_SSID_Proc(
 
 
 	NdisZeroMemory(&ssid_str[0], 33);
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		POS_COOKIE pObj = (POS_COOKIE) pAd->OS_Cookie;
-		NdisMoveMemory(&ssid_str[0], 
-						pAd->ApCfg.MBSSID[pObj->ioctl_if].Ssid, 
-						pAd->ApCfg.MBSSID[pObj->ioctl_if].SsidLen);
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -4552,12 +3824,6 @@ INT	Show_HtMcs_Proc(
 	OUT	PSTRING			pBuf,
 	IN	ULONG			BufLen)
 {
-#ifdef CONFIG_AP_SUPPORT    
-    POS_COOKIE pObj = (POS_COOKIE) pAd->OS_Cookie;
-
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		snprintf(pBuf, BufLen, "\t%u", pAd->ApCfg.MBSSID[pObj->ioctl_if].DesiredTransmitSetting.field.MCS);
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -4717,12 +3983,6 @@ INT	Show_WmmCapable_Proc(
 	OUT	PSTRING			pBuf,
 	IN	ULONG			BufLen)
 {
-#ifdef CONFIG_AP_SUPPORT    
-    POS_COOKIE pObj = (POS_COOKIE) pAd->OS_Cookie;
-
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		snprintf(pBuf, BufLen, "\t%s", pAd->ApCfg.MBSSID[pObj->ioctl_if].bWmmCapable ? "TRUE":"FALSE");
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -4769,30 +4029,6 @@ INT	Show_NetworkType_Proc(
 	return 0;
 }
 
-#ifdef WSC_STA_SUPPORT
-INT	Show_WpsPbcBand_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	OUT	PSTRING			pBuf,
-	IN	ULONG			BufLen)
-{
-	switch(pAd->StaCfg.WscControl.WpsApBand)
-	{
-		case PREFERRED_WPS_AP_PHY_TYPE_2DOT4_G_FIRST:
-			snprintf(pBuf, BufLen, "\t2.4G");
-			break;
-		case PREFERRED_WPS_AP_PHY_TYPE_5_G_FIRST:
-			snprintf(pBuf, BufLen, "\t5G");
-			break;
-		case PREFERRED_WPS_AP_PHY_TYPE_AUTO_SELECTION:
-			snprintf(pBuf, BufLen, "\tAuto");
-			break;
-		default:
-			snprintf(pBuf, BufLen, "\tUnknow Value(%d)", pAd->StaCfg.WscControl.WpsApBand);
-			break;
-	}
-	return 0;
-}
-#endif /* WSC_STA_SUPPORT */
 
 INT	Show_WPAPSK_Proc(
 	IN	PRTMP_ADAPTER	pAd, 
@@ -4830,12 +4066,6 @@ INT	Show_AuthMode_Proc(
 	IN	ULONG			BufLen)
 {
 	NDIS_802_11_AUTHENTICATION_MODE	AuthMode = Ndis802_11AuthModeOpen; 
-#ifdef CONFIG_AP_SUPPORT    
-    POS_COOKIE pObj = (POS_COOKIE) pAd->OS_Cookie;
-	
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		AuthMode = pAd->ApCfg.MBSSID[pObj->ioctl_if].AuthMode;
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -4845,12 +4075,6 @@ INT	Show_AuthMode_Proc(
 	if ((AuthMode >= Ndis802_11AuthModeOpen) && 
 		(AuthMode <= Ndis802_11AuthModeWPA1PSKWPA2PSK))
 		snprintf(pBuf, BufLen, "\t%s", RTMPGetRalinkAuthModeStr(AuthMode));
-#ifdef WAPI_SUPPORT
-	else if (AuthMode == Ndis802_11AuthModeWAICERT)
-		snprintf(pBuf, BufLen, "\t%s", "WAI_CERT");
-	else if (AuthMode == Ndis802_11AuthModeWAIPSK)
-		snprintf(pBuf, BufLen, "\t%s", "WAI_PSK");				 
-#endif /* WAPI_SUPPORT */
 	else
 		snprintf(pBuf, BufLen, "\tUnknow Value(%d)", AuthMode);
 	
@@ -4863,12 +4087,6 @@ INT	Show_EncrypType_Proc(
 	IN	ULONG			BufLen)
 {
 	NDIS_802_11_WEP_STATUS	WepStatus = Ndis802_11WEPDisabled;
-#ifdef CONFIG_AP_SUPPORT    
-    POS_COOKIE pObj = (POS_COOKIE) pAd->OS_Cookie;
-	
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		WepStatus = pAd->ApCfg.MBSSID[pObj->ioctl_if].WepStatus;
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -4878,10 +4096,6 @@ INT	Show_EncrypType_Proc(
 	if ((WepStatus >= Ndis802_11WEPEnabled) && 
 		(WepStatus <= Ndis802_11Encryption4KeyAbsent))
 		snprintf(pBuf, BufLen, "\t%s", RTMPGetRalinkEncryModeStr(WepStatus));
-#ifdef WAPI_SUPPORT
-	else if (WepStatus == Ndis802_11EncryptionSMS4Enabled)
-		snprintf(pBuf, BufLen, "\t%s", "WPI_SMS4");
-#endif /* WAPI_SUPPORT */
 	else
 		snprintf(pBuf, BufLen, "\tUnknow Value(%d)", WepStatus);
 	
@@ -4894,12 +4108,6 @@ INT	Show_DefaultKeyID_Proc(
 	IN	ULONG			BufLen)
 {
 	UCHAR DefaultKeyId = 0;
-#ifdef CONFIG_AP_SUPPORT    
-    POS_COOKIE pObj = (POS_COOKIE) pAd->OS_Cookie;
-	
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		DefaultKeyId = pAd->ApCfg.MBSSID[pObj->ioctl_if].DefaultKeyId;
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -4919,12 +4127,6 @@ INT	Show_WepKey_Proc(
 {
 	UCHAR   Key[16] = {0}, KeyLength = 0;
 	INT		index = BSS0;
-#ifdef CONFIG_AP_SUPPORT    
-    POS_COOKIE pObj = (POS_COOKIE) pAd->OS_Cookie;
-	
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		index = pObj->ioctl_if;
-#endif /* CONFIG_AP_SUPPORT */
 
 	KeyLength = pAd->SharedKey[index][KeyIdx].KeyLen;
 	NdisMoveMemory(Key, pAd->SharedKey[index][KeyIdx].Key, KeyLength);		
@@ -4986,12 +4188,6 @@ INT	Show_PMK_Proc(
 	INT 	idx;
 	UCHAR	PMK[32] = {0};
 
-#ifdef CONFIG_AP_SUPPORT    
-    POS_COOKIE pObj = (POS_COOKIE) pAd->OS_Cookie;
-	
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		NdisMoveMemory(PMK, pAd->ApCfg.MBSSID[pObj->ioctl_if].PMK, 32);
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -5046,6 +4242,7 @@ INT	Show_STA_RAInfo_Proc(
 }
 
 
+
 INT	Show_MacTable_Proc(
 	IN	PRTMP_ADAPTER	pAd, 
 	IN	PSTRING			arg)
@@ -5073,31 +4270,12 @@ INT	Show_MacTable_Proc(
 	{
 		PMAC_TABLE_ENTRY pEntry = &pAd->MacTab.Content[i];
 
-#if defined(DPA_S) && defined(P2P_SUPPORT)
-		if ((IS_P2P_GO_ENTRY(pEntry) || IS_P2P_CLI_ENTRY(pEntry)) 
-			&& (pEntry->PortSecured == WPA_802_1X_PORT_SECURED))
-#else /* DPA_S */
 		if ((IS_ENTRY_CLIENT(pEntry) || IS_ENTRY_APCLI(pEntry))
 			&& (pEntry->Sst == SST_ASSOC))
-#endif /* !DPA_S */
 		{
 			DataRate=0;
 			getRate(pEntry->HTPhyMode, &DataRate);
 
-#if defined(DPA_S) && defined(P2P_SUPPORT)
-			if (IS_P2P_GO_ENTRY(pEntry))
-			{
-				index = P2pGroupTabSearch(pAd, pEntry->Addr);
-				if(index != P2P_NOT_FOUND)
-					bFound = TRUE;
-				else
-					bFound = FALSE;
-			}
-			else
-			{
-				bFound = FALSE;
-			}
-#endif
 
 			printk("%02X:%02X:%02X:%02X:%02X:%02X  ", PRINT_MAC(pEntry->Addr));
 			printk("%-4d", (int)pEntry->Aid);
@@ -5136,9 +4314,6 @@ INT	Show_MacTable_Proc(
 			printk("%-6d", pEntry->MaxHTPhyMode.field.ShortGI);
 			printk("%-6d\n", pEntry->MaxHTPhyMode.field.STBC);
 			
-#if defined(DPA_S) && defined(P2P_SUPPORT)
-			printk("%-32s%\n", bFound ? &pAd->P2pTable.Client[index].DeviceName[0]:"N/A");
-#endif  /* DPA_S */
 			printk("\n");
 		}
 	} 
@@ -5204,69 +4379,6 @@ INT show_devinfo_proc(RTMP_ADAPTER *pAd, PSTRING arg)
 }
 
 
-#ifdef WSC_STA_SUPPORT
-INT	Show_WpsManufacturer_Proc(
-	IN	PRTMP_ADAPTER	pAd,
-	OUT	PSTRING			pBuf,
-	IN ULONG			BufLen)
-{
-	sprintf(pBuf, "\tManufacturer = %s", pAd->StaCfg.WscControl.RegData.SelfInfo.Manufacturer);	
-	return 0;
-}
-
-INT	Show_WpsModelName_Proc(
-	IN	PRTMP_ADAPTER	pAd,
-	OUT	PSTRING			pBuf,
-	IN ULONG			BufLen)
-{
-	sprintf(pBuf, "\tModelName = %s", pAd->StaCfg.WscControl.RegData.SelfInfo.ModelName);
-	return 0;
-}
-
-INT	Show_WpsDeviceName_Proc(
-	IN	PRTMP_ADAPTER	pAd,
-	OUT	PSTRING			pBuf,
-	IN ULONG			BufLen)
-{
-	sprintf(pBuf, "\tDeviceName = %s", pAd->StaCfg.WscControl.RegData.SelfInfo.DeviceName);
-	return 0;
-}
-
-INT	Show_WpsModelNumber_Proc(
-	IN	PRTMP_ADAPTER	pAd,
-	OUT	PSTRING			pBuf,
-	IN ULONG			BufLen)
-{
-	sprintf(pBuf, "\tModelNumber = %s", pAd->StaCfg.WscControl.RegData.SelfInfo.ModelNumber);
-	return 0;
-}
-
-INT	Show_WpsSerialNumber_Proc(
-	IN	PRTMP_ADAPTER	pAd,
-	OUT	PSTRING			pBuf,
-	IN ULONG			BufLen)
-{
-	sprintf(pBuf, "\tSerialNumber = %s", pAd->StaCfg.WscControl.RegData.SelfInfo.SerialNumber);
-	return 0;
-}
-
-INT	Show_WpsUuid_Proc(
-	IN	PRTMP_ADAPTER	pAd,
-	OUT	PSTRING			pBuf,
-	IN ULONG			BufLen)
-{
-	UCHAR *bin = pAd->StaCfg.WscControl.RegData.SelfInfo.Uuid;
-
-	sprintf(pBuf, "\tUuid = %02x%02x%02x%02x-%02x%02x-%02x%02x-"
-			  "%02x%02x-%02x%02x%02x%02x%02x%02x",
-			  bin[0], bin[1], bin[2], bin[3],
-			  bin[4], bin[5], bin[6], bin[7],
-			  bin[8], bin[9], bin[10], bin[11],
-			  bin[12], bin[13], bin[14], bin[15]);
-	
-	return 0;
-}
-#endif /* WSC_STA_SUPPORT */
 
 
 #ifdef SINGLE_SKU
@@ -6464,15 +5576,6 @@ INT Set_RateAdaptInterval(
 			RTMP_IRQ_LOCK(&pAd->irq_lock, irqFlags);
 			pAd->ra_interval = ra_time;
 			pAd->ra_fast_interval = ra_qtime;
-#ifdef CONFIG_AP_SUPPORT
-			if (pAd->ApCfg.ApQuickResponeForRateUpTimerRunning == TRUE)
-			{
-				BOOLEAN Cancelled;
-				
-				RTMPCancelTimer(&pAd->ApCfg.ApQuickResponeForRateUpTimer, &Cancelled);	
-				pAd->ApCfg.ApQuickResponeForRateUpTimerRunning = FALSE;
-			}
-#endif /* CONFIG_AP_SUPPORT  */
 			RTMP_IRQ_UNLOCK(&pAd->irq_lock, irqFlags);
 			return TRUE;
 		}
@@ -6585,13 +5688,7 @@ INT set_fpga_mode(RTMP_ADAPTER *pAd, PSTRING arg)
 		pAd->data_gi = 1;
 		pAd->data_mcs = 7;
 		pAd->data_basize = 31;
-#ifdef CONFIG_AP_SUPPORT
-		pAd->ApCfg.MBSSID[0].bAutoTxRateSwitch = FALSE;
-#endif /* CONFIG_AP_SUPPORT */
 	} else {
-#ifdef CONFIG_AP_SUPPORT
-		pAd->ApCfg.MBSSID[0].bAutoTxRateSwitch = TRUE;
-#endif /* CONFIG_AP_SUPPORT */
 	}
 
 	if (fpga_on & 4)
@@ -6606,11 +5703,6 @@ INT set_fpga_mode(RTMP_ADAPTER *pAd, PSTRING arg)
 	DBGPRINT(RT_DEBUG_TRACE, ("%s(): data_gi=%d\n", __FUNCTION__, pAd->data_gi));
 	DBGPRINT(RT_DEBUG_TRACE, ("%s(): data_basize=%d\n", __FUNCTION__, pAd->data_basize));
 
-#ifdef CONFIG_AP_SUPPORT
-	DBGPRINT(RT_DEBUG_TRACE, ("%s(): bAutoTxRateSwitch=%d\n",
-				__FUNCTION__,
-				pAd->ApCfg.MBSSID[0].bAutoTxRateSwitch));
-#endif /* CONFIG_AP_SUPPORT */
 	
 	return TRUE;
 }
@@ -6694,15 +5786,6 @@ static struct {
 	{"IEEE80211H",				Show_IEEE80211H_Proc},
 #ifdef CONFIG_STA_SUPPORT	
     {"NetworkType",				Show_NetworkType_Proc},        
-#ifdef WSC_STA_SUPPORT
-    {"WpsApBand",				Show_WpsPbcBand_Proc},
-    {"Manufacturer",			Show_WpsManufacturer_Proc},
-    {"ModelName",				Show_WpsModelName_Proc},
-    {"DeviceName",				Show_WpsDeviceName_Proc},
-    {"ModelNumber",				Show_WpsModelNumber_Proc},
-    {"SerialNumber",			Show_WpsSerialNumber_Proc},
-    {"Uuid",					Show_WpsUuid_Proc},
-#endif /* WSC_STA_SUPPORT */
 	{"WPAPSK",					Show_WPAPSK_Proc},
 	{"AutoReconnect", 			Show_AutoReconnect_Proc},
 #endif /* CONFIG_STA_SUPPORT */

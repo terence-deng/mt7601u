@@ -1,3 +1,30 @@
+/*
+ *************************************************************************
+ * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
+ *
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
+
+
 #ifdef DOT11_N_SUPPORT
 
 #include "rt_config.h"
@@ -92,8 +119,6 @@ VOID BA_MaxWinSizeReasign(
 	else
 		MaxSize = 7;
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 #endif /* CONFIG_STA_SUPPORT */
@@ -128,25 +153,10 @@ void Announce_Reordering_Packet(IN PRTMP_ADAPTER			pAd,
 	{
 		
 		/* pass this 802.3 packet to upper layer or forward this packet to WM directly */
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-			AP_ANNOUNCE_OR_FORWARD_802_3_PACKET(pAd, pPacket, RTMP_GET_PACKET_IF(pPacket));
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
-		if (IS_OPMODE_AP(mpdu))
-		{
-			AP_ANNOUNCE_OR_FORWARD_802_3_PACKET(pAd, pPacket, RTMP_GET_PACKET_IF(pPacket));
-		}
-		else
-		{
-			ANNOUNCE_OR_FORWARD_802_3_PACKET(pAd, pPacket, RTMP_GET_PACKET_IF(pPacket));
-		}
-#else
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 			ANNOUNCE_OR_FORWARD_802_3_PACKET(pAd, pPacket, RTMP_GET_PACKET_IF(pPacket));
-#endif /* P2P_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 	}
 }
@@ -588,9 +598,6 @@ VOID BAOriSessionAdd(
 	ULONG           FrameLen;
 	FRAME_BAR       FrameBar;
 	UCHAR			MaxPeerBufSize;
-#ifdef CONFIG_AP_SUPPORT
-	UCHAR			apidx;
-#endif /* CONFIG_AP_SUPPORT */
 
 	TID = pFrame->BaParm.TID;
 	Idx = pEntry->BAOriWcidArray[TID];  
@@ -634,32 +641,11 @@ VOID BAOriSessionAdd(
 			return;
 		}
 
-#ifdef P2P_SUPPORT
-		BarHeaderInit(pAd, &FrameBar, pAd->MacTab.Content[pBAEntry->Wcid].Addr, pAd->MacTab.Content[pBAEntry->Wcid].HdrAddr2);
-#else
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-#ifdef APCLI_SUPPORT
-			if (IS_ENTRY_APCLI(&pAd->MacTab.Content[pBAEntry->Wcid]))
-			{			
-				apidx = pAd->MacTab.Content[pBAEntry->Wcid].MatchAPCLITabIdx;
-				BarHeaderInit(pAd, &FrameBar, pAd->MacTab.Content[pBAEntry->Wcid].Addr, pAd->ApCfg.ApCliTab[apidx].CurrentAddress);
-			}	
-			else
-#endif /* APCLI_SUPPORT */			
-			{			
-				apidx = pAd->MacTab.Content[pBAEntry->Wcid].apidx;
-				BarHeaderInit(pAd, &FrameBar, pAd->MacTab.Content[pBAEntry->Wcid].Addr, pAd->ApCfg.MBSSID[apidx].Bssid);
-			}
-		}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 			BarHeaderInit(pAd, &FrameBar, pAd->MacTab.Content[pBAEntry->Wcid].Addr, pAd->CurrentAddress);
 #endif /* CONFIG_STA_SUPPORT */
-#endif /* P2P_SUPPORT */
 
 		FrameBar.StartingSeq.field.FragNum = 0;	/* make sure sequence not clear in DEL function.*/
 		FrameBar.StartingSeq.field.StartSeq = pBAEntry->Sequence; /* make sure sequence not clear in DEL funciton.*/
@@ -1156,11 +1142,7 @@ VOID BAOriSessionSetupTimeout(
 		MLME_ADDBA_REQ_STRUCT    AddbaReq;  
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
-	if ((pAd->OpMode == OPMODE_STA) && IS_ENTRY_CLIENT(pEntry) && IS_P2P_ENTRY_NONE(pEntry))
-#else
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-#endif /* P2P_SUPPORT */
 		{
 			if (INFRA_ON(pAd) && 
 				RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_BSS_SCAN_IN_PROGRESS) &&
@@ -1253,9 +1235,6 @@ VOID PeerAddBAReqAction(
 	ULONG       FrameLen;
 	PULONG      ptemp;
 	PMAC_TABLE_ENTRY	pMacEntry;
-#ifdef CONFIG_AP_SUPPORT
-	INT         apidx;
-#endif /* CONFIG_AP_SUPPORT */
 
 	DBGPRINT(RT_DEBUG_TRACE, ("%s ==> (Wcid = %d)\n", __FUNCTION__, Elem->Wcid));
 
@@ -1302,45 +1281,6 @@ VOID PeerAddBAReqAction(
 
 	NdisZeroMemory(&ADDframe, sizeof(FRAME_ADDBA_RSP));
 	/* 2-1. Prepare ADDBA Response frame.*/
-#ifdef P2P_SUPPORT
-		if (pMacEntry)
-		{
-#ifdef CONFIG_STA_SUPPORT
-			if (ADHOC_ON(pAd)
-#ifdef QOS_DLS_SUPPORT
-				|| (IS_ENTRY_DLS(&pAd->MacTab.Content[Elem->Wcid]))
-#endif /* QOS_DLS_SUPPORT */
-#ifdef DOT11Z_TDLS_SUPPORT
-				|| (IS_ENTRY_TDLS(&pAd->MacTab.Content[Elem->Wcid]))
-#endif /* DOT11Z_TDLS_SUPPORT */
-				)
-			{
-				ActHeaderInit(pAd, &ADDframe.Hdr, pAddr, pAd->CurrentAddress, pAd->CommonCfg.Bssid);
-			}
-			else
-#endif /* CONFIG_STA_SUPPORT */
-			{
-				ActHeaderInit(pAd, &ADDframe.Hdr, pAddr, pMacEntry->HdrAddr2, pMacEntry->HdrAddr3);
-			}
-		}
-#else
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-#ifdef APCLI_SUPPORT
-		if (IS_ENTRY_APCLI(&pAd->MacTab.Content[Elem->Wcid]))
-		{
-			apidx = pAd->MacTab.Content[Elem->Wcid].MatchAPCLITabIdx;
-			ActHeaderInit(pAd, &ADDframe.Hdr, pAddr, pAd->ApCfg.ApCliTab[apidx].CurrentAddress, pAddr);		
-		}
-		else
-#endif /* APCLI_SUPPORT */
-		{
-			apidx = pAd->MacTab.Content[Elem->Wcid].apidx;
-			ActHeaderInit(pAd, &ADDframe.Hdr, pAddr, pAd->ApCfg.MBSSID[apidx].Bssid, pAd->ApCfg.MBSSID[apidx].Bssid);
-		}
-	}
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{
@@ -1348,16 +1288,12 @@ VOID PeerAddBAReqAction(
 #ifdef QOS_DLS_SUPPORT
 			|| (IS_ENTRY_DLS(&pAd->MacTab.Content[Elem->Wcid]))
 #endif /* QOS_DLS_SUPPORT */
-#ifdef DOT11Z_TDLS_SUPPORT
-			|| (IS_ENTRY_TDLS(&pAd->MacTab.Content[Elem->Wcid]))
-#endif /* DOT11Z_TDLS_SUPPORT */
 			)
 			ActHeaderInit(pAd, &ADDframe.Hdr, pAddr, pAd->CurrentAddress, pAd->CommonCfg.Bssid);
 		else
 			ActHeaderInit(pAd, &ADDframe.Hdr, pAd->CommonCfg.Bssid, pAd->CurrentAddress, pAddr);
 	}
 #endif /* CONFIG_STA_SUPPORT */
-#endif /* P2P_SUPPORT */
 	ADDframe.Category = CATEGORY_BA;
 	ADDframe.Action = ADDBA_RESP;
 	ADDframe.Token = pAddreqFrame->Token;
@@ -1550,12 +1486,6 @@ VOID SendPSMPAction(
 	NDIS_STATUS NStatus;
 	FRAME_PSMP_ACTION Frame;
 	ULONG FrameLen;
-#ifdef CONFIG_AP_SUPPORT	
-	UCHAR apidx;
-#endif /* CONFIG_AP_SUPPORT */
-#ifdef P2P_SUPPORT
-	PMAC_TABLE_ENTRY pEntry;
-#endif /* P2P_SUPPORT */
 
 	NStatus = MlmeAllocateMemory(pAd, &pOutBuffer);	 /*Get an unused nonpaged memory*/
 	if (NStatus != NDIS_STATUS_SUCCESS)
@@ -1564,37 +1494,10 @@ VOID SendPSMPAction(
 		return;
 	}
 
-#ifdef P2P_SUPPORT
-	if (VALID_WCID(Wcid))
-	{
-		pEntry = &pAd->MacTab.Content[Wcid];
-
-		if (pEntry)
-			ActHeaderInit(pAd, &Frame.Hdr, pAd->MacTab.Content[Wcid].Addr, pEntry->HdrAddr2, pEntry->HdrAddr3);
-	}
-#else
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-#ifdef APCLI_SUPPORT
-		if (IS_ENTRY_APCLI(&pAd->MacTab.Content[Wcid]))
-		{
-			apidx = pAd->MacTab.Content[Wcid].MatchAPCLITabIdx;
-			ActHeaderInit(pAd, &Frame.Hdr, pAd->MacTab.Content[Wcid].Addr, pAd->ApCfg.ApCliTab[apidx].CurrentAddress, pAd->MacTab.Content[Wcid].Addr);		
-		}
-		else
-#endif /* APCLI_SUPPORT */
-		{
-			apidx = pAd->MacTab.Content[Wcid].apidx;
-			ActHeaderInit(pAd, &Frame.Hdr, pAd->MacTab.Content[Wcid].Addr, pAd->ApCfg.MBSSID[apidx].Bssid, pAd->ApCfg.MBSSID[apidx].Bssid);
-		}
-	}
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		ActHeaderInit(pAd, &Frame.Hdr, pAd->CommonCfg.Bssid, pAd->CurrentAddress, pAd->MacTab.Content[Wcid].Addr);
 #endif /* CONFIG_STA_SUPPORT */
-#endif /* P2P_SUPPORT */
 
 	Frame.Category = CATEGORY_HT;
 	Frame.Action = SMPS_ACTION;
@@ -1642,64 +1545,6 @@ typedef struct GNU_PACKED _MEASUREMENT_REQ
 	UCHAR	Type;
 } MEASUREMENT_REQ;
 
-#ifdef CONFIG_AP_SUPPORT
-VOID SendBeaconRequest(
-				   IN PRTMP_ADAPTER		pAd,
-				   IN UCHAR				Wcid)
-{
-	PUCHAR          	pOutBuffer = NULL;
-	NDIS_STATUS     	NStatus;
-	FRAME_RM_REQ_ACTION   Frame;
-	ULONG           	FrameLen;
-	BEACON_REQUEST		BeaconReq;
-	MEASUREMENT_REQ		MeasureReg;
-	UCHAR				apidx;
-
-	if (IS_ENTRY_APCLI(&pAd->MacTab.Content[Wcid]))
-		return;
-
-	NStatus = MlmeAllocateMemory(pAd, &pOutBuffer);	 /*Get an unused nonpaged memory*/
-	if (NStatus != NDIS_STATUS_SUCCESS)
-	{
-		DBGPRINT(RT_DEBUG_ERROR,("Radio - SendBeaconRequest() allocate memory failed \n"));
-		return;
-	}
-	apidx = pAd->MacTab.Content[Wcid].apidx;
-	ActHeaderInit(pAd, &Frame.Hdr, pAd->MacTab.Content[Wcid].Addr, pAd->ApCfg.MBSSID[apidx].Bssid, pAd->ApCfg.MBSSID[apidx].Bssid);
-
-	Frame.Category = CATEGORY_RM;
-	Frame.Action = RADIO_MEASUREMENT_REQUEST_ACTION;
-	Frame.Token = 1;
-	Frame.Repetition = 0;	/* executed once*/
-
-	BeaconReq.RegulatoryClass = 32;		/* ?????*/
-	BeaconReq.ChannelNumber = 255;		/* all channels*/
-	BeaconReq.RandomInterval = 0;
-	BeaconReq.MeasurementDuration = 10;	/* 10 TU*/
-	BeaconReq.MeasurementMode = 1; 		/* Active mode */
-	COPY_MAC_ADDR(BeaconReq.BSSID, 	BROADCAST_ADDR);
-	BeaconReq.ReportingCondition = 254;	/* report not necesssary*/
-	BeaconReq.Threshold = 0;			/* minimum RCPI*/
-	BeaconReq.SSIDIE[0] = 0;
-	BeaconReq.SSIDIE[1] = 0; 			/* wildcard SSID zero length */
-
-
-	MeasureReg.ID = IE_MEASUREMENT_REQUEST;
-	MeasureReg.Token = 0;
-	MeasureReg.RequestMode = 0;
-	MeasureReg.Type = 5;				/* Beacon Request*/
-	MeasureReg.Length = sizeof(MEASUREMENT_REQ)+sizeof(BEACON_REQUEST)-2;
-
-	MakeOutgoingFrame(pOutBuffer,               &FrameLen,
-					  sizeof(FRAME_RM_REQ_ACTION),      &Frame,
-					  sizeof(MEASUREMENT_REQ),			&MeasureReg,
-					  sizeof(BEACON_REQUEST),			&BeaconReq,
-					  END_OF_ARGS);
-	MiniportMMRequest(pAd, QID_AC_BE, pOutBuffer, FrameLen);
-	MlmeFreeMemory(pAd, pOutBuffer);
-	DBGPRINT(RT_DEBUG_TRACE,("Radio - SendBeaconRequest\n"));
-}
-#endif /* CONFIG_AP_SUPPORT */
 
 
 void convert_reordering_packet_to_preAMSDU_or_802_3_packet(
@@ -1716,25 +1561,10 @@ void convert_reordering_packet_to_preAMSDU_or_802_3_packet(
 		a. pointer pRxBlk->pData to payload
 		b. modify pRxBlk->DataSize
 */
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		RTMP_AP_802_11_REMOVE_LLC_AND_CONVERT_TO_802_3(pRxBlk, Header802_3);
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
-	if (IS_PKT_OPMODE_AP(pRxBlk))
-	{
-		RTMP_AP_802_11_REMOVE_LLC_AND_CONVERT_TO_802_3(pRxBlk, Header802_3);
-	}
-	else
-	{
-		RTMP_802_11_REMOVE_LLC_AND_CONVERT_TO_802_3(pRxBlk, Header802_3);
-	}
-#else
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		RTMP_802_11_REMOVE_LLC_AND_CONVERT_TO_802_3(pRxBlk, Header802_3);
-#endif /* P2P_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 
 	ASSERT(pRxBlk->pRxPacket);
@@ -1749,70 +1579,8 @@ void convert_reordering_packet_to_preAMSDU_or_802_3_packet(
 	/* copy 802.3 header, if necessary*/
 	if (!RX_BLK_TEST_FLAG(pRxBlk, fRX_AMSDU))
 	{
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-			/* maybe insert VLAN tag to the received packet */
-			UCHAR VLAN_Size = 0;
-			UCHAR *data_p;
-			USHORT VLAN_VID = 0, VLAN_Priority = 0;
-
-			/* VLAN related */
-			MBSS_VLAN_INFO_GET(pAd, VLAN_VID, VLAN_Priority, FromWhichBSSID);
-
-#ifdef WDS_VLAN_SUPPORT
-			if (VLAN_VID == 0) /* maybe WDS packet */
-				WDS_VLAN_INFO_GET(pAd, VLAN_VID, VLAN_Priority, FromWhichBSSID);
-#endif /* WDS_VLAN_SUPPORT */
-
-			if (VLAN_VID != 0)
-				VLAN_Size = LENGTH_802_1Q;
-
-			data_p = OS_PKT_HEAD_BUF_EXTEND(pRxPkt, LENGTH_802_3+VLAN_Size);
-			RT_VLAN_8023_HEADER_COPY(pAd, VLAN_VID, VLAN_Priority,
-									Header802_3, LENGTH_802_3,
-									data_p, FromWhichBSSID, TPID);
-		}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
-		if (IS_PKT_OPMODE_AP(pRxBlk))
-		{
-			/* maybe insert VLAN tag to the received packet */
-			UCHAR VLAN_Size = 0;
-			UCHAR *data_p;
-			USHORT VLAN_VID = 0, VLAN_Priority = 0;
-			UCHAR	WhichBSSID = FromWhichBSSID;
-	
-			if (FromWhichBSSID >= MIN_NET_DEVICE_FOR_P2P_GO)
-				WhichBSSID = FromWhichBSSID - MIN_NET_DEVICE_FOR_P2P_GO;
-
-			/* VLAN related */
-			MBSS_VLAN_INFO_GET(pAd, VLAN_VID, VLAN_Priority, WhichBSSID);
-			
-#ifdef WDS_VLAN_SUPPORT
-			if (VLAN_VID == 0) /* maybe WDS packet */
-				WDS_VLAN_INFO_GET(pAd, VLAN_VID, VLAN_Priority, FromWhichBSSID);
-#endif /* WDS_VLAN_SUPPORT */
-
-			if (VLAN_VID != 0)
-				VLAN_Size = LENGTH_802_1Q;
-
-			data_p = OS_PKT_HEAD_BUF_EXTEND(pRxPkt, LENGTH_802_3+VLAN_Size);
-			RT_VLAN_8023_HEADER_COPY(pAd, VLAN_VID, VLAN_Priority, 
-									Header802_3, LENGTH_802_3,
-									data_p, FromWhichBSSID, TPID);
-		}
-		else
-		{
-#ifdef LINUX
-			UCHAR *data_p;
-			data_p = OS_PKT_HEAD_BUF_EXTEND(pRxPkt, LENGTH_802_3);
-			NdisMoveMemory(data_p, Header802_3, LENGTH_802_3);
-#endif
-		}
-#else
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		{
 #ifdef LINUX
@@ -1821,7 +1589,6 @@ void convert_reordering_packet_to_preAMSDU_or_802_3_packet(
 			NdisMoveMemory(data_p, Header802_3, LENGTH_802_3);
 #endif
 		}
-#endif /* P2P_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 	}
 }

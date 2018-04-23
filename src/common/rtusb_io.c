@@ -1,31 +1,29 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology	5th	Rd.
- * Science-based Industrial	Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2006, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved.	Ralink's source	code is	an unpublished work	and	the
- * use of a	copyright notice does not imply	otherwise. This	source code
- * contains	confidential trade secret material of Ralink Tech. Any attemp
- * or participation	in deciphering,	decoding, reverse engineering or in	any
- * way altering	the	source code	is stricitly prohibited, unless	the	prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
- 	Module Name:
-	rtusb_io.c
-
-	Abstract:
-
-	Revision History:
-	Who			When	    What
-	--------	----------  ----------------------------------------------
-	Name		Date	    Modification logs
-	Paul Lin    06-25-2004  created
-*/
 
 #ifdef RTMP_MAC_USB
 
@@ -681,6 +679,7 @@ NTSTATUS RTUSBWriteEEPROM(
 	IN	USHORT			length)
 {
 	NTSTATUS	Status = STATUS_SUCCESS;
+	USHORT Value;
 
 	Status = RTUSB_VendorRequest(
 				pAd,
@@ -1052,15 +1051,29 @@ NTSTATUS CheckGPIOHdlr(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
 			UINT32 data;
 			/* Read GPIO pin2 as Hardware controlled radio state*/
 
-			RTUSBReadMACRegister( pAd, GPIO_CTRL_CFG, &data);
-
-			if (data & 0x04)
+#ifdef MT7601
+			if ( IS_MT7601(pAd) )
 			{
-				pAd->StaCfg.bHwRadio = TRUE;
+				RTMP_IO_READ32(pAd, WLAN_FUN_CTRL, &data);
+
+				if (data & 0x400)
+					pAd->StaCfg.bHwRadio = TRUE;
+				else
+					pAd->StaCfg.bHwRadio = FALSE;
 			}
 			else
+#endif /* MT7601 */
 			{
-				pAd->StaCfg.bHwRadio = FALSE;
+				RTUSBReadMACRegister( pAd, GPIO_CTRL_CFG, &data);
+
+				if (data & 0x04)
+				{
+					pAd->StaCfg.bHwRadio = TRUE;
+				}
+				else
+				{
+					pAd->StaCfg.bHwRadio = FALSE;
+				}
 			}
 
 			if (pAd->StaCfg.bRadio != (pAd->StaCfg.bHwRadio && pAd->StaCfg.bSwRadio))
@@ -1540,29 +1553,8 @@ static NTSTATUS UpdateProtectHdlr(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
 }
 
 
-#ifdef CONFIG_AP_SUPPORT
-static NTSTATUS APUpdateCapabilityAndErpieHdlr(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
-{
-	APUpdateCapabilityAndErpIe(pAd);
-	return NDIS_STATUS_SUCCESS;
-}
-#endif /* CONFIG_AP_SUPPORT */
 
 
-#ifdef CONFIG_AP_SUPPORT
-static NTSTATUS _802_11_CounterMeasureHdlr(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
-{
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		MAC_TABLE_ENTRY *pEntry;
-
-		pEntry = (MAC_TABLE_ENTRY *)CMDQelmt->buffer;
-		HandleCounterMeasure(pAd, pEntry);
-	}
-
-	return NDIS_STATUS_SUCCESS;
-}
-#endif /* CONFIG_AP_SUPPORT */
 
 
 #ifdef CONFIG_STA_SUPPORT
@@ -1617,62 +1609,6 @@ NTSTATUS QkeriodicExecutHdlr(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
 #endif /* CONFIG_STA_SUPPORT*/
 
 
-#ifdef CONFIG_AP_SUPPORT
-static NTSTATUS APEnableTXBurstHdlr(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
-{
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		EDCA_AC_CFG_STRUC Ac0Cfg;
-		DBGPRINT(RT_DEBUG_TRACE, ("CmdThread::CMDTHREAD_AP_ENABLE_TX_BURST  \n"));
-
-		RTUSBReadMACRegister(pAd, EDCA_AC0_CFG, &Ac0Cfg.word);
-		Ac0Cfg.field.AcTxop = 0x20;
-		RTUSBWriteMACRegister(pAd, EDCA_AC0_CFG, Ac0Cfg.word, FALSE);
-	}
-
-	return NDIS_STATUS_SUCCESS;
-}
-
-
-static NTSTATUS APDisableTXBurstHdlr(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
-{
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		EDCA_AC_CFG_STRUC Ac0Cfg;
-		DBGPRINT(RT_DEBUG_TRACE, ("CmdThread::CMDTHREAD_AP_DISABLE_TX_BURST  \n"));
-
-		RTUSBReadMACRegister(pAd, EDCA_AC0_CFG, &Ac0Cfg.word);
-		Ac0Cfg.field.AcTxop = 0x0;
-		RTUSBWriteMACRegister(pAd, EDCA_AC0_CFG, Ac0Cfg.word, FALSE);
-	}
-
-	return NDIS_STATUS_SUCCESS;
-}
-
-
-static NTSTATUS APAdjustEXPAckTimeHdlr(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
-{
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		DBGPRINT(RT_DEBUG_TRACE, ("CmdThread::CMDTHREAD_AP_ADJUST_EXP_ACK_TIME  \n"));
-		RTUSBWriteMACRegister(pAd, EXP_ACK_TIME, 0x005400ca, FALSE);
-	}
-
-	return NDIS_STATUS_SUCCESS;
-}
-
-
-static NTSTATUS APRecoverEXPAckTimeHdlr(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
-{
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		DBGPRINT(RT_DEBUG_TRACE, ("CmdThread::CMDTHREAD_AP_RECOVER_EXP_ACK_TIME  \n"));
-		RTUSBWriteMACRegister(pAd, EXP_ACK_TIME, 0x002400ca, FALSE);
-	}
-
-	return NDIS_STATUS_SUCCESS;
-}
-#endif /* CONFIG_AP_SUPPORT */
 
 
 #ifdef LED_CONTROL_SUPPORT
@@ -1689,59 +1625,8 @@ static NTSTATUS SetLEDStatusHdlr(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
 }
 #endif /* LED_CONTROL_SUPPORT */
 
-#ifdef WSC_INCLUDED
-#ifdef WSC_LED_SUPPORT
-/*WPS LED MODE 10*/
-static NTSTATUS LEDWPSMode10Hdlr(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
-{
-	UINT WPSLedMode10 = *((PUINT)(CMDQelmt->buffer));
-
-	DBGPRINT(RT_DEBUG_INFO, ("WPS LED mode 10::ON or Flash or OFF : %x\n", WPSLedMode10));
-
-	switch(WPSLedMode10)
-	{
-		case LINK_STATUS_WPS_MODE10_TURN_ON:
-			RTMPSetLEDStatus(pAd, LED_WPS_MODE10_TURN_ON);
-			break;
-		case LINK_STATUS_WPS_MODE10_FLASH:
-			RTMPSetLEDStatus(pAd,LED_WPS_MODE10_FLASH);
-			break;
-		case LINK_STATUS_WPS_MODE10_TURN_OFF:
-			RTMPSetLEDStatus(pAd, LED_WPS_MODE10_TURN_OFF);
-			break;
-		default:
-			DBGPRINT(RT_DEBUG_INFO, ("WPS LED mode 10:: No this status %d!!!\n", WPSLedMode10));
-			break;
-	}
-
-	return NDIS_STATUS_SUCCESS;
-}
-#endif /* WSC_LED_SUPPORT */
-#endif /* WSC_INCLUDED */
 
 
-#ifdef CONFIG_AP_SUPPORT
-static NTSTATUS ChannelRescanHdlr(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
-{
-	DBGPRINT(RT_DEBUG_TRACE, ("cmd> Re-scan channel! \n"));
-
-	pAd->CommonCfg.Channel = AP_AUTO_CH_SEL(pAd, TRUE);
-#ifdef DOT11_N_SUPPORT
-	/* If WMODE_CAP_N(phymode) and BW=40 check extension channel, after select channel  */
-	N_ChannelCheck(pAd);
-#endif /* DOT11_N_SUPPORT */
-
-	DBGPRINT(RT_DEBUG_TRACE, ("cmd> Switch to %d! \n", pAd->CommonCfg.Channel));
-	APStop(pAd);
-	APStartUp(pAd);
-
-#ifdef AP_QLOAD_SUPPORT
-	QBSS_LoadAlarmResume(pAd);
-#endif /* AP_QLOAD_SUPPORT */
-
-	return NDIS_STATUS_SUCCESS;
-}
-#endif /* CONFIG_AP_SUPPORT*/
 
 
 #ifdef LINUX
@@ -1776,13 +1661,6 @@ static NTSTATUS RT_Mac80211_ConnResultInfom(IN PRTMP_ADAPTER pAd, IN PCmdQElmt C
 #endif /* RT_CFG80211_SUPPORT */
 #endif /* LINUX */
 
-#ifdef P2P_SUPPORT
-static NTSTATUS SetP2pLinkDown(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
-{
-	P2pLinkDown(pAd, P2P_DISCONNECTED);
-	return NDIS_STATUS_SUCCESS;
-}
-#endif /* P2P_SUPPORT */
 
 
 #ifdef STREAM_MODE_SUPPORT
@@ -1828,21 +1706,12 @@ static CMDHdlr CMDHdlrTable[] = {
 	NULL,
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-	APUpdateCapabilityAndErpieHdlr,	/* CMDTHREAD_AP_UPDATE_CAPABILITY_AND_ERPIE*/
-	APEnableTXBurstHdlr,			/* CMDTHREAD_AP_ENABLE_TX_BURST*/
-	APDisableTXBurstHdlr,			/* CMDTHREAD_AP_DISABLE_TX_BURST*/
-	APAdjustEXPAckTimeHdlr,		/* CMDTHREAD_AP_ADJUST_EXP_ACK_TIME*/
-	APRecoverEXPAckTimeHdlr,		/* CMDTHREAD_AP_RECOVER_EXP_ACK_TIME*/
-	ChannelRescanHdlr,				/* CMDTHREAD_CHAN_RESCAN*/
-#else
 	NULL,
 	NULL,
 	NULL,
 	NULL,
 	NULL,
 	NULL,
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef LED_CONTROL_SUPPORT
 	SetLEDStatusHdlr,			/* CMDTHREAD_SET_LED_STATUS*/
@@ -1850,16 +1719,7 @@ static CMDHdlr CMDHdlrTable[] = {
     NULL,
 #endif /* LED_CONTROL_SUPPORT */
 
-#ifdef WSC_INCLUDED
-#ifdef WSC_LED_SUPPORT
-	LEDWPSMode10Hdlr,				/* CMDTHREAD_LED_WPS_MODE10*/
-#else
 	NULL,
-#endif /* WSC_LED_SUPPORT */
-
-#else
-	NULL,
-#endif /* WSC_INCLUDED */
 
 	/* Security related */
 	SetWcidSecInfoHdlr,				/* CMDTHREAD_SET_WCID_SEC_INFO*/
@@ -1875,11 +1735,7 @@ static CMDHdlr CMDHdlrTable[] = {
 	NULL,
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-	_802_11_CounterMeasureHdlr,	/* CMDTHREAD_802_11_COUNTER_MEASURE*/
-#else
 	NULL,
-#endif /* CONFIG_AP_SUPPORT */
 
 	UpdateProtectHdlr,				/* CMDTHREAD_UPDATE_PROTECT*/
 
@@ -1904,11 +1760,7 @@ static CMDHdlr CMDHdlrTable[] = {
 	NULL,
 #endif /* LINUX */
 
-#ifdef P2P_SUPPORT
-	SetP2pLinkDown,			/* CMDTHREAD_SET_P2P_LINK_DOWN */
-#else
 	NULL,
-#endif /* P2P_SUPPORT */
 
 	NULL,
 

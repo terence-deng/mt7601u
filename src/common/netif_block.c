@@ -1,3 +1,30 @@
+/*
+ *************************************************************************
+ * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
+ *
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
+
+
 #ifdef BLOCK_NET_IF
 
 #include "rt_config.h"
@@ -71,14 +98,6 @@ VOID StopNetIfQueue(
 	BOOLEAN valid = FALSE;
 
 
-#ifdef P2P_SUPPORT
-	if (RTMP_GET_PACKET_NET_DEVICE(pPacket) >= MIN_NET_DEVICE_FOR_P2P_GO)
-	{
-		IfIdx = (RTMP_GET_PACKET_NET_DEVICE(pPacket) - MIN_NET_DEVICE_FOR_P2P_GO) % MAX_P2P_NUM;
-		NetDev = pAd->ApCfg.MBSSID[IfIdx].MSSIDDev;
-	}
-	else
-#endif /* P2P_SUPPORT */
 #ifdef APCLI_SUPPORT
 	if (RTMP_GET_PACKET_NET_DEVICE(pPacket) >= MIN_NET_DEVICE_FOR_APCLI)
 	{
@@ -87,6 +106,14 @@ VOID StopNetIfQueue(
 	}
 	else
 #endif /* APCLI_SUPPORT */
+#ifdef WDS_SUPPORT
+	if (RTMP_GET_PACKET_NET_DEVICE(pPacket) >= MIN_NET_DEVICE_FOR_WDS)
+	{
+		IfIdx = (RTMP_GET_PACKET_NET_DEVICE(pPacket) - MIN_NET_DEVICE_FOR_WDS) % MAX_WDS_ENTRY;
+		NetDev = pAd->WdsTab.WdsEntry[IfIdx].dev;
+	}
+	else
+#endif /* WDS_SUPPORT */
 	{
 #ifdef MBSS_SUPPORT
 		if (pAd->OpMode == OPMODE_AP)
@@ -108,17 +135,8 @@ VOID StopNetIfQueue(
 	/* WMM support 4 software queues.*/
 	/* One software queue full doesn't mean device have no capbility to transmit packet.*/
 	/* So disable block Net-If queue function while WMM enable.*/
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		valid = (pAd->ApCfg.MBSSID[IfIdx].bWmmCapable == TRUE) ? FALSE : TRUE;
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 	{
-#ifdef P2P_SUPPORT
-		if (RTMP_GET_PACKET_NET_DEVICE(pPacket) >= MIN_NET_DEVICE_FOR_P2P_GO)
-			valid = (pAd->ApCfg.MBSSID[IfIdx].bWmmCapable == TRUE) ? FALSE : TRUE;
-		else
-#endif /* P2P_SUPPORT */
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		valid = (pAd->CommonCfg.bWmmCapable == TRUE) ? FALSE : TRUE;
 	}

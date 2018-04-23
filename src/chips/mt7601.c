@@ -1,30 +1,29 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2004, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Module Name:
-	mt7601.c
-
-	Abstract:
-	Specific funcitons and configurations for MT7601 (RT63xx)
-
-	Revision History:
-	Who         When          What
-	--------    ----------    ----------------------------------------------
-*/
 
 #ifdef MT7601
 
@@ -886,6 +885,7 @@ VOID MT7601_INIT_CAL(RTMP_ADAPTER *pAd)
 {
 	UCHAR RfValue;
 	UINT32 Mac_R1004;
+	UCHAR Temperature;
 	
 	DBGPRINT(RT_DEBUG_TRACE, ("==>%s\n", __FUNCTION__));
 
@@ -1002,6 +1002,9 @@ Note:
 */
 static VOID NICInitMT7601RFRegisters(RTMP_ADAPTER *pAd)
 {
+
+	UINT32 IdReg;
+
 	DBGPRINT(RT_DEBUG_TRACE, ("%s\n", __FUNCTION__));
 
 #ifdef MT7601FPGA
@@ -1038,6 +1041,7 @@ Note:
 */
 static VOID NICInitMT7601MacRegisters(RTMP_ADAPTER *pAd)
 {
+	UINT32 IdReg;
 	UINT32 MacReg = 0;
 
 	DBGPRINT(RT_DEBUG_TRACE, ("%s\n", __FUNCTION__));
@@ -1079,6 +1083,8 @@ Note:
 static VOID NICInitMT7601BbpRegisters(
 	IN	PRTMP_ADAPTER pAd)
 {
+	INT IdReg;
+
 	DBGPRINT(RT_DEBUG_TRACE, ("%s\n", __FUNCTION__));
 
 #ifdef MT7601FPGA
@@ -1194,6 +1200,65 @@ VOID MT7601_ChipAGCInit(
 }
 
 
+#ifdef ED_MONITOR
+INT MT7601_set_ed_cca(RTMP_ADAPTER *pAd, BOOLEAN enable)
+{
+	UINT32 mac_val;
+	UCHAR bbp_val;
+
+	if (enable) {
+		RTMP_IO_READ32(pAd, CH_TIME_CFG, &mac_val);
+		mac_val |= 0x05; // enable channel status check
+		RTMP_IO_WRITE32(pAd, CH_TIME_CFG, mac_val);
+
+		// BBP: enable ED_CCA and high/low threshold
+		bbp_val = 0x01; /* 0x2e */ // bit 0~7 for high threshold
+		RTMP_BBP_IO_WRITE8_BY_REG_ID(pAd, BBP_R61, bbp_val);
+
+		RTMP_BBP_IO_READ8_BY_REG_ID(pAd, BBP_R87, &bbp_val);
+		bbp_val |= 0x80; /*0x84*/ // bit 7 for enable ED_CCA
+		bbp_val &= (~0x7); // bit 0~2 for low threshold, set as 0
+		RTMP_BBP_IO_WRITE8_BY_REG_ID(pAd, BBP_R87, bbp_val);
+
+		// BBP: enable ED_2nd_CCA and and threshold
+		//bbp_val = 0x9a; // bit 0~3 for threshold
+		//RTMP_BBP_IO_WRITE8_BY_REG_ID(pAd, BBP_R83, bbp_val);
+
+		//RTMP_BBP_IO_READ8_BY_REG_ID(pAd, BBP_R65, &bbp_val);
+		//bbp_val &= (~0x02); // bit 1 for eanble/disable ED_2nd_CCA, 0: enable, 1: disable 
+		//RTMP_BBP_IO_WRITE8_BY_REG_ID(pAd, BBP_R65, bbp_val);
+
+		// MAC: enable ED_CCA/ED_2nd_CCA
+		RTMP_IO_READ32(pAd, TXOP_CTRL_CFG, &mac_val);
+		mac_val |= ((1<<20) | (1<<7));
+		RTMP_IO_WRITE32(pAd, TXOP_CTRL_CFG, mac_val);
+	}
+	else
+	{
+		RTMP_BBP_IO_READ8_BY_REG_ID(pAd, BBP_R87, &bbp_val);
+		bbp_val &= (~0x80); // bit 7 for enable/disable ED_CCA
+		RTMP_BBP_IO_WRITE8_BY_REG_ID(pAd, BBP_R87, bbp_val);
+
+		//RTMP_BBP_IO_READ8_BY_REG_ID(pAd, BBP_R65, &bbp_val);
+		//bbp_val |= (0x02); // bit 1 for eanble/disable ED_2nd_CCA, 0: enable, 1: disable 
+		//RTMP_BBP_IO_WRITE8_BY_REG_ID(pAd, BBP_R65, bbp_val);
+
+		RTMP_IO_READ32(pAd, TXOP_CTRL_CFG, &mac_val);
+		mac_val &= (~((1<<20) | (1<<7)));
+		RTMP_IO_WRITE32(pAd, TXOP_CTRL_CFG, mac_val);		
+	}
+
+	/* Clear previous status */
+	RTMP_IO_READ32(pAd, CH_IDLE_STA, &mac_val);
+	RTMP_IO_READ32(pAd, CH_BUSY_STA, &mac_val);
+	RTMP_IO_READ32(pAd, CH_BUSY_STA_SEC, &mac_val);
+	RTMP_IO_READ32(pAd, 0x1140, &mac_val);
+		
+	return TRUE;
+}
+#endif /* ED_MONITOR */
+
+
 static VOID MT7601_ChipSwitchChannel(
 	struct _RTMP_ADAPTER *pAd,
 	UCHAR Channel,
@@ -1204,6 +1269,7 @@ static VOID MT7601_ChipSwitchChannel(
 	UCHAR	index;
 	UCHAR RFValue = 0;
 	UINT32 Value = 0;
+	INT IdReg;
 	UINT32 ret;
 #ifdef SINGLE_SKU_V2
 	CHAR SkuBasePwr;
@@ -1305,7 +1371,6 @@ static VOID MT7601_ChipSwitchChannel(
 	*/
 	rlt_rf_write(pAd, RF_BANK0, RF_R04, 0x0A);
 	rlt_rf_write(pAd, RF_BANK0, RF_R05, 0x20);
-
 	rlt_rf_read(pAd, RF_BANK0, RF_R04, &RFValue);
 	RFValue = RFValue | 0x80; 
 	rlt_rf_write(pAd, RF_BANK0, RF_R04, RFValue);
@@ -1468,6 +1533,7 @@ NTSTATUS MT7601DisableTxRx(
 			bFree = FALSE;
 		if (bFree)
 			break;
+		RtmpOsMsDelay(10);
 		if (MacReg == 0xFFFFFFFF)
 		{
 			//RTMP_SET_FLAG(pAd, fRTMP_ADAPTER_NIC_NOT_EXIST);
@@ -1656,7 +1722,9 @@ NTSTATUS MT7601DisableTxRx(
 #ifdef RTMP_USB_SUPPORT
 VOID MT7601UsbAsicRadioOff(RTMP_ADAPTER *pAd, UCHAR Stage)
 {
-	UINT32 ret;
+	UINT32 Value, ret;
+
+
 	DBGPRINT(RT_DEBUG_TRACE, ("--> %s\n", __FUNCTION__));
 
 	if ( RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_IDLE_RADIO_OFF) )
@@ -1718,6 +1786,8 @@ VOID MT7601UsbAsicRadioOn(RTMP_ADAPTER *pAd, UCHAR Stage)
 {
 	UINT32 MACValue = 0;
 	UINT32 rx_filter_flag;
+	WPDMA_GLO_CFG_STRUC GloCfg;
+	RTMP_CHIP_OP *pChipOps = &pAd->chipOps;
 	UCHAR RFValue = 0;
 
 	DBGPRINT(RT_DEBUG_TRACE, ("==> %s\n", __FUNCTION__));
@@ -1786,9 +1856,9 @@ VOID MT7601UsbAsicRadioOn(RTMP_ADAPTER *pAd, UCHAR Stage)
 
 	RTMP_SET_FLAG(pAd, fRTMP_ADAPTER_MCU_SEND_IN_BAND_CMD);
 
-	AndesRFRandomWrite(pAd, 2,
-		RF_BANK0, RF_R04, 0x0A,
-		RF_BANK0, RF_R05, 0x20);
+	rlt_rf_write(pAd, RF_BANK0, RF_R04, 0x0A);
+	rlt_rf_write(pAd, RF_BANK0, RF_R05, 0x20);
+
 	rlt_rf_read(pAd, RF_BANK0, RF_R04, &RFValue);
 	RFValue = RFValue | 0x80; 
 	rlt_rf_write(pAd, RF_BANK0, RF_R04, RFValue);
@@ -1832,6 +1902,7 @@ INT MT7601_ReadChannelPwr(RTMP_ADAPTER *pAd)
 	CHAR tx_pwr1, tx_pwr2;
 	CHAR max_tx1_pwr;
 	UINT16 TargetPwr = 0;
+	BOOLEAN bUseDefault = TRUE;
 #ifdef RTMP_INTERNAL_TX_ALC
 	EEPROM_NIC_CONFIG2_STRUC NicConfig2;
 #endif /* RTMP_INTERNAL_TX_ALC */
@@ -1843,14 +1914,14 @@ INT MT7601_ReadChannelPwr(RTMP_ADAPTER *pAd)
 
 #if defined (RTMP_INTERNAL_TX_ALC) || defined (SINGLE_SKU_V2)
 	RT28xx_EEPROM_READ16(pAd, EEPROM_G_TARGET_POWER, TargetPwr);
-	tx_pwr1 = TargetPwr & 0xFF;
-	DBGPRINT(RT_DEBUG_TRACE, ("%s: EEPROM 0xD0 = 0x%x\n", __FUNCTION__, tx_pwr1));
-	
+		tx_pwr1 = TargetPwr & 0xFF;
+		DBGPRINT(RT_DEBUG_TRACE, ("%s: EEPROM 0xD0 = 0x%x\n", __FUNCTION__, tx_pwr1));
+		
 	if ( (tx_pwr1 == 0x0) || (tx_pwr1 > max_tx1_pwr) )
-	{
-		tx_pwr1 = 0x20;
-		DBGPRINT(RT_DEBUG_ERROR, ("%s: EEPROM 0xD0 Error! Use Default Target Power = 0x%x\n", __FUNCTION__, tx_pwr1));
-	}
+		{
+			tx_pwr1 = 0x20;
+			DBGPRINT(RT_DEBUG_ERROR, ("%s: EEPROM 0xD0 Error! Use Default Target Power = 0x%x\n", __FUNCTION__, tx_pwr1));
+		}
 #endif /* defined (RTMP_INTERNAL_TX_ALC) || defined (SINGLE_SKU_V2) */
 
 #ifdef SINGLE_SKU_V2
@@ -2208,6 +2279,7 @@ VOID MT7601AsicTemperatureCompensation(
 	IN BOOLEAN					bPowerOn)
 {
 	INT32	CurrentTemper;
+	INT IdReg;
 	UCHAR	RfReg;
 	RTMP_CHIP_CAP *pChipCap = &pAd->chipCap;
 	INT32 high_temp_cr_threshold, low_temp_cr_threshold;
@@ -2224,6 +2296,13 @@ VOID MT7601AsicTemperatureCompensation(
 		/* DPD-Calibration */
 		AndesCalibrationOP(pAd, ANDES_CALIBRATION_DPD, pChipCap->TemperatureDPD);
 
+		rlt_rf_write(pAd, RF_BANK0, RF_R04, 0x0A);
+		rlt_rf_write(pAd, RF_BANK0, RF_R05, 0x20);
+		rlt_rf_read(pAd, RF_BANK0, RF_R04, &RfReg);
+		RfReg = RfReg | 0x80; 
+		rlt_rf_write(pAd, RF_BANK0, RF_R04, RfReg);
+		RTMPusecDelay(2000);
+	
 		DBGPRINT(RT_DEBUG_TRACE, ("%s::ReCalibration DPD.\n", __FUNCTION__));
 	}
 #endif /* DPD_CALIBRATION_SUPPORT */
@@ -2395,6 +2474,8 @@ INT16 lin2dBd(UINT16 linearValue)
 
 VOID MT7601_EnableTSSI(IN 		PRTMP_ADAPTER 		pAd)
 {
+	UCHAR RFReg, BBPReg;
+	UINT32 ret;
 	MT7601_TX_ALC_DATA *pTxALCData = &pAd->chipCap.TxALCData;
 
 		AndesFunSetOP(pAd, 5, pTxALCData->TSSI_USE_HVGA);
@@ -2527,6 +2608,7 @@ VOID MT7601_InitDesiredTSSITable(
 	IN PRTMP_ADAPTER			pAd)
 {
 	UINT32 Value = 0;
+	UINT16 index, offset;
 	INT32 init_offset;
 	MT7601_TX_ALC_DATA *pTxALCData = &pAd->chipCap.TxALCData;
 
@@ -2590,12 +2672,14 @@ BOOLEAN MT7601_GetTssiCompensationParam(
 	OUT 	PCHAR 				TssiLinear1, 
 	OUT 	PINT32 				TargetPower)
 {
-	UCHAR BBPReg;
+	UCHAR RFReg, BBPReg;
 	UCHAR PacketType;
 	UCHAR BbpR47;
 	UCHAR BBPR4, BBPR178;
 	UCHAR TxRate;
 	INT32 Power;
+	UINT count;
+	UINT32 ret;
 	MT7601_TX_ALC_DATA *pTxALCData = &pAd->chipCap.TxALCData;
 
 	if ( pTxALCData->TssiTriggered == 0 )
@@ -2862,6 +2946,7 @@ VOID MT7601_AsicTxAlcGetAutoAgcOffset(
 	CHAR tssi_offset;
 	INT16 tssi_db, tssi_m_dc;
 	UINT32 value;
+	UCHAR BBPReg;
 	MT7601_TX_ALC_DATA *pTxALCData = &pAd->chipCap.TxALCData;
 
 #ifdef MT7601FPGA
@@ -3117,14 +3202,14 @@ VOID MT7601SetRxAnt(
        RTMP_BBP_IO_READ8_BY_REG_ID(pAd, BBP_R152, &Val);
 	   Val &= ~0x80;
        RTMP_BBP_IO_WRITE8_BY_REG_ID(pAd, BBP_R152, Val); /* Main Ant */
-       DBGPRINT(RT_DEBUG_OFF, ("\x1b[31m%s: MT7601 --> switch to main\x1b[m\n", __FUNCTION__));
+       DBGPRINT(RT_DEBUG_TRACE, ("\x1b[31m%s: MT7601 --> switch to main\x1b[m\n", __FUNCTION__));
    }
    else
    {
        RTMP_BBP_IO_READ8_BY_REG_ID(pAd, BBP_R152, &Val);
 	   Val |= 0x80;
        RTMP_BBP_IO_WRITE8_BY_REG_ID(pAd, BBP_R152, Val); /* Aux Ant */
-       DBGPRINT(RT_DEBUG_OFF, ("\x1b[31m%s: MT7601 --> switch to aux\x1b[m\n", __FUNCTION__));
+       DBGPRINT(RT_DEBUG_TRACE, ("\x1b[31m%s: MT7601 --> switch to aux\x1b[m\n", __FUNCTION__));
    }
 }
 
@@ -3167,7 +3252,7 @@ VOID MT7601_Init(RTMP_ADAPTER *pAd)
 	pChipCap->SnrFormula = SNR_FORMULA2;
 	pChipCap->FlgIsHwWapiSup = TRUE;
 	pChipCap->VcoPeriod = 10;
-	pChipCap->FlgIsVcoReCalMode = VCO_CAL_MODE_3;
+	pChipCap->FlgIsVcoReCalMode = VCO_CAL_DISABLE;
 	pChipCap->FlgIsHwAntennaDiversitySup = TRUE;
 	pChipCap->FlgSwBasedPPAD = TRUE;
 #ifdef STREAM_MODE_SUPPORT
@@ -3269,7 +3354,7 @@ VOID MT7601_Init(RTMP_ADAPTER *pAd)
 
 	/* EEPROM */
 	pChipOps->NICInitAsicFromEEPROM = MT7601_NICInitAsicFromEEPROM;
-
+	
 	/* Temperature Compensation */
 	pChipOps->InitTemperCompensation = MT7601_InitTemperatureCompensation;
 	pChipOps->TemperCompensation = MT7601_TemperatureCompensation;
@@ -3351,10 +3436,6 @@ VOID MT7601_Init(RTMP_ADAPTER *pAd)
 	Following callback functions already initiailized in RtmpChipOpsHook() 
 	1. Power save related
 */
-#ifdef GREENAP_SUPPORT
-	pChipOps->EnableAPMIMOPS = NULL;
-	pChipOps->DisableAPMIMOPS = NULL;
-#endif /* GREENAP_SUPPORT */
 	// TODO: ------Upper parameters are not finialized yet!!
 
 #ifdef MICROWAVE_OVEN_SUPPORT
@@ -3429,6 +3510,26 @@ VOID MT7601_AsicMitigateMicrowave(
 	
 }
 #endif /* MICROWAVE_OVEN_SUPPORT */
+#ifdef LED_CONTROL_SUPPORT
+INT Set_MT7610LED_Proc(
+	IN RTMP_ADAPTER		*pAd,
+	IN PSTRING			arg)
+{
+	UINT8 cmd = (UINT8)simple_strtol(arg, 0, 10);
+	/*
+		0x2300[5] Default Antenna:
+		0 for WIFI main antenna
+		1  for WIFI aux  antenna
 
+	*/
+
+	if (cmd < 33)
+	{
+			AndesLedOP(pAd, 1, cmd);
+			DBGPRINT(RT_DEBUG_TRACE, ("%s:cmd:0x%x\n", __FUNCTION__, cmd)); 
+	}
+	return TRUE;
+}
+#endif /*LED_CONTROL_SUPPORT*/
 #endif /* MT7601 */
 

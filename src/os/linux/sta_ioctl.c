@@ -1,32 +1,29 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2006, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved.	Ralink's source	code is	an unpublished work	and	the
- * use of a	copyright notice does not imply	otherwise. This	source code
- * contains	confidential trade secret material of Ralink Tech. Any attemp
- * or participation	in deciphering,	decoding, reverse engineering or in	any
- * way altering	the	source code	is stricitly prohibited, unless	the	prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-    Module Name:
-    sta_ioctl.c
-
-    Abstract:
-    IOCTL related subroutines
-
-    Revision History:
-    Who         When          What
-    --------    ----------    ----------------------------------------------
-    Rory Chen   01-03-2003    created
-	Rory Chen   02-14-2005    modify to support RT61
-*/
 
 #define RTMP_MODULE_OS
 
@@ -76,14 +73,6 @@ struct iw_priv_args privtab[] = {
 { RTPRIV_IOCTL_SHOW, IW_PRIV_TYPE_CHAR | 1024, IW_PRIV_TYPE_CHAR | IW_PRIV_SIZE_MASK,
   ""},
 /* --- sub-ioctls definitions --- */   
-#ifdef MAT_SUPPORT
-	{ SHOW_IPV4_MAT_INFO,
-	  IW_PRIV_TYPE_CHAR | 1024, IW_PRIV_TYPE_CHAR | IW_PRIV_SIZE_MASK, "ipv4_matinfo" },
-	{ SHOW_IPV6_MAT_INFO,
-	  IW_PRIV_TYPE_CHAR | 1024, IW_PRIV_TYPE_CHAR | IW_PRIV_SIZE_MASK, "ipv6_matinfo" },
-	{ SHOW_ETH_CLONE_MAC,
-	  IW_PRIV_TYPE_CHAR | 1024, IW_PRIV_TYPE_CHAR | IW_PRIV_SIZE_MASK, "cloneMAC" },
-#endif /* MAT_SUPPORT */
     { SHOW_CONN_STATUS,
 	  IW_PRIV_TYPE_CHAR | 1024, IW_PRIV_TYPE_CHAR | IW_PRIV_SIZE_MASK, "connStatus" },
 	{ SHOW_DRVIER_VERION,
@@ -104,10 +93,6 @@ struct iw_priv_args privtab[] = {
 	  IW_PRIV_TYPE_CHAR | 1024, IW_PRIV_TYPE_CHAR | IW_PRIV_SIZE_MASK, "show" },
 	{ SHOW_ADHOC_ENTRY_INFO,
 	  IW_PRIV_TYPE_CHAR | 1024, IW_PRIV_TYPE_CHAR | IW_PRIV_SIZE_MASK, "adhocEntry" },
-#ifdef DOT11Z_TDLS_SUPPORT
-	{ SHOW_TDLS_ENTRY_INFO,
-	  IW_PRIV_TYPE_CHAR | 1024, IW_PRIV_TYPE_CHAR | IW_PRIV_SIZE_MASK, "tdlsentryinfo" },
-#endif /* DOT11Z_TDLS_SUPPORT */
 	{SHOW_DEV_INFO,
 	IW_PRIV_TYPE_CHAR | 1024, IW_PRIV_TYPE_CHAR | IW_PRIV_SIZE_MASK, "devinfo"},
 	{SHOW_STA_INFO,
@@ -138,52 +123,6 @@ struct iw_priv_args privtab[] = {
   0, IW_PRIV_TYPE_CHAR | 1024,
   "get_site_survey"},
 
-#ifdef WSC_STA_SUPPORT
-{ RTPRIV_IOCTL_SET_WSC_PROFILE_U32_ITEM,
-  IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "" },
-{ RTPRIV_IOCTL_SET_WSC_PROFILE_U32_ITEM,
-  IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 0, 0, "" },
-{ RTPRIV_IOCTL_SET_WSC_PROFILE_STRING_ITEM,
-  IW_PRIV_TYPE_CHAR | 128, 0, "" },
-/* --- sub-ioctls definitions --- */    
-	{ WSC_CREDENTIAL_COUNT,
-	  IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "wsc_cred_count" },
-	{ WSC_CREDENTIAL_SSID,
-	  IW_PRIV_TYPE_CHAR | 128, 0, "wsc_cred_ssid" },
-	{ WSC_CREDENTIAL_AUTH_MODE,
-	  IW_PRIV_TYPE_CHAR | 128, 0, "wsc_cred_auth" },
-	{ WSC_CREDENTIAL_ENCR_TYPE,
-	  IW_PRIV_TYPE_CHAR | 128, 0, "wsc_cred_encr" },
-	{ WSC_CREDENTIAL_KEY_INDEX,
-	  IW_PRIV_TYPE_CHAR | 128, 0, "wsc_cred_keyIdx" },
-	{ WSC_CREDENTIAL_KEY,
-	  IW_PRIV_TYPE_CHAR | 128, 0, "wsc_cred_key" },
-	{ WSC_CREDENTIAL_MAC,
-	  IW_PRIV_TYPE_CHAR | 128, 0, "wsc_cred_mac" },	
-	{ WSC_SET_DRIVER_CONNECT_BY_CREDENTIAL_IDX,
-	  IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "wsc_conn_by_idx" },
-	{ WSC_SET_DRIVER_AUTO_CONNECT,
-	  IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "wsc_auto_conn" },
-	{ WSC_SET_CONF_MODE,
-	  IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "wsc_conf_mode" },
-	{ WSC_SET_MODE,
-	  IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "wsc_mode" },
-	{ WSC_SET_PIN,
-	  IW_PRIV_TYPE_CHAR | 128, 0, "wsc_pin" },
-	{ WSC_SET_SSID,
-	  IW_PRIV_TYPE_CHAR | 128, 0, "wsc_ssid" },
-	{ WSC_SET_BSSID,
-	  IW_PRIV_TYPE_CHAR | 128, 0, "wsc_bssid" },
-	{ WSC_START,
-	  IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 0, 0, "wsc_start" },
-	{ WSC_STOP,
-	  IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 0, 0, "wsc_stop" },
-    { WSC_GEN_PIN_CODE,
-	  IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 0, 0, "wsc_gen_pincode" },
-	{ WSC_AP_BAND,
-	  IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, 0, "wsc_ap_band" },
-/* --- sub-ioctls relations --- */
-#endif /* WSC_STA_SUPPORT */
 };
 
 extern INT32 ralinkrate[];
@@ -1050,7 +989,6 @@ int rt_ioctl_giwscan(struct net_device *dev,
 			iwe.u.freq.m = m * 100;
 			iwe.u.freq.e = 1;
 		iwe.u.freq.i = 0;
-		}
 		previous_ev = current_ev;
 		current_ev = IWE_STREAM_ADD_EVENT(info, current_ev,end_buf, &iwe, IW_EV_FREQ_LEN);
         if (current_ev == previous_ev)
@@ -1062,6 +1000,7 @@ int rt_ioctl_giwscan(struct net_device *dev,
 			break;
 #endif
 		}	    
+		}	    
 
         /*Add quality statistics */
         /*================================ */
@@ -1070,8 +1009,6 @@ int rt_ioctl_giwscan(struct net_device *dev,
     	iwe.u.qual.level = 0;
     	iwe.u.qual.noise = 0;
 		set_quality(pAd, &iwe.u.qual, &pIoctlScan->pBssTable[i].Signal);
-
-	previous_ev = current_ev;
     	current_ev = IWE_STREAM_ADD_EVENT(info, current_ev, end_buf, &iwe, IW_EV_QUAL_LEN);
 	if (current_ev == previous_ev)
 		{
@@ -1275,30 +1212,6 @@ int rt_ioctl_giwscan(struct net_device *dev,
         }
         }
 
-#ifdef WSC_INCLUDED
-		/*WPS IE */
-		if (pIoctlScan->pBssTable[i].WpsIeLen > 0)
-        {
-    		NdisZeroMemory(&iwe, sizeof(iwe));
-			memset(&custom[0], 0, MAX_CUSTOM_LEN);
-    		iwe.cmd = IWEVCUSTOM;
-            iwe.u.data.length = (pIoctlScan->pBssTable[i].WpsIeLen * 2) + 7;
-            NdisMoveMemory(custom, "wps_ie=", 7);
-			for (idx = 0; idx < pIoctlScan->pBssTable[i].WpsIeLen; idx++)
-                sprintf(custom, "%s%02x", custom, pIoctlScan->pBssTable[i].pWpsIe[idx]);
-            previous_ev = current_ev;
-    		current_ev = IWE_STREAM_ADD_POINT(info, current_ev, end_buf, &iwe,  custom);
-            if (current_ev == previous_ev)
-            {
-#if WIRELESS_EXT >= 17
-                status = -E2BIG;
-				goto go_out;
-#else
-			    break;
-#endif
-        }
-        }
-#endif /* WSC_INCLUDED */
 
 #endif /* IWEVGENIE */
 	}
@@ -1735,75 +1648,6 @@ SET_PROC:
 }
 
 
-#ifdef WSC_STA_SUPPORT
-
-static int
-rt_private_set_wsc_u32_item(struct net_device *dev, struct iw_request_info *info,
-			 u32 *uwrq, char *extra)
-{
-    VOID *pAd = NULL;
-/*    int  Status=0; */
-/*    u32 subcmd = *uwrq; */
-/*    PWSC_PROFILE    pWscProfile = NULL; */
-/*   	u32 value = 0; */
-	RT_CMD_STA_IOCTL_WSC_U32_ITEM IoctlWscU32, *pIoctlWscU32 = &IoctlWscU32;
-
-	GET_PAD_FROM_NET_DEV(pAd, dev);
-
-	/*check if the interface is down */
-/*    if(!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_INTERRUPT_IN_USE)) */
-	if (RTMP_DRIVER_IOCTL_SANITY_CHECK(pAd, NULL) != NDIS_STATUS_SUCCESS)
-    {
-       	DBGPRINT(RT_DEBUG_TRACE, ("INFO::Network is down!\n"));
-        return -ENETDOWN;
-	}
-
-    
-	pIoctlWscU32->pUWrq = uwrq;
-	pIoctlWscU32->Status = NDIS_STATUS_SUCCESS;
-	RTMP_STA_IoctlHandle(pAd, NULL, CMD_RTPRIV_IOCTL_STA_IW_SET_WSC_U32_ITEM, 0,
-						pIoctlWscU32, 0, RT_DEV_PRIV_FLAGS_GET(dev));
-
-	RT_CMD_STATUS_TRANSLATE(pIoctlWscU32->Status);
-    return pIoctlWscU32->Status;
-}
-
-static int
-rt_private_set_wsc_string_item(struct net_device *dev, struct iw_request_info *info,
-		struct iw_point *dwrq, char *extra)
-{
-	RT_CMD_STA_IOCTL_WSC_STR_ITEM IoctlWscStr, *pIoctlWscStr = &IoctlWscStr;
-/*    int  Status=0; */
-/*    u32 subcmd = dwrq->flags; */
-/*    u32 tmpProfileIndex = (u32)(extra[0] - 0x30); */
-/*    u32 dataLen; */
-    VOID *pAd = NULL;
-/*    PWSC_PROFILE    pWscProfile = NULL; */
-/*    USHORT  tmpAuth = 0, tmpEncr = 0; */
-
-	GET_PAD_FROM_NET_DEV(pAd, dev);
-
-	/*check if the interface is down */
-/*    if(!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_INTERRUPT_IN_USE)) */
-	if (RTMP_DRIVER_IOCTL_SANITY_CHECK(pAd, NULL) != NDIS_STATUS_SUCCESS)
-    {
-       	DBGPRINT(RT_DEBUG_TRACE, ("INFO::Network is down!\n"));
-        return -ENETDOWN;
-	}
-
-
-	pIoctlWscStr->Subcmd = dwrq->flags;
-	pIoctlWscStr->pData = (CHAR *)extra;
-	pIoctlWscStr->length = dwrq->length;
-
-	pIoctlWscStr->Status = RTMP_STA_IoctlHandle(pAd, NULL,
-						CMD_RTPRIV_IOCTL_STA_IW_SET_WSC_STR_ITEM, 0,
-						pIoctlWscStr, 0, RT_DEV_PRIV_FLAGS_GET(dev));
-
-	RT_CMD_STATUS_TRANSLATE(pIoctlWscStr->Status);
-    return pIoctlWscStr->Status;
-}
-#endif /* WSC_STA_SUPPORT */
 
 static int
 rt_private_get_statistics(struct net_device *dev, struct iw_request_info *info,
@@ -2499,11 +2343,7 @@ static const iw_handler rt_handler[] =
 static const iw_handler rt_priv_handlers[] = {
 	(iw_handler) NULL, /* + 0x00 */
 	(iw_handler) NULL, /* + 0x01 */
-#ifndef CONFIG_AP_SUPPORT
 	(iw_handler) rt_ioctl_setparam, /* + 0x02 */
-#else
-	(iw_handler) NULL, /* + 0x02 */
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef DBG	
 	(iw_handler) rt_private_ioctl_bbp, /* + 0x03 */	
 #else
@@ -2525,17 +2365,9 @@ static const iw_handler rt_priv_handlers[] = {
 	(iw_handler) rt_private_show, /* + 0x11 */
     (iw_handler) NULL, /* + 0x12 */
 	(iw_handler) NULL, /* + 0x13 */
-#ifdef WSC_STA_SUPPORT	
-	(iw_handler) rt_private_set_wsc_u32_item, /* + 0x14 */
-#else
     (iw_handler) NULL, /* + 0x14 */
-#endif /* WSC_STA_SUPPORT */
 	(iw_handler) NULL, /* + 0x15 */
-#ifdef WSC_STA_SUPPORT	
-	(iw_handler) rt_private_set_wsc_string_item, /* + 0x16 */
-#else
     (iw_handler) NULL, /* + 0x16 */
-#endif /* WSC_STA_SUPPORT */
 	(iw_handler) NULL, /* + 0x17 */
 	(iw_handler) NULL, /* + 0x18 */
 };

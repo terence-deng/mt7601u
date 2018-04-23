@@ -1,31 +1,30 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology	5th	Rd.
- * Science-based Industrial	Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2004, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved.	Ralink's source	code is	an unpublished work	and	the
- * use of a	copyright notice does not imply	otherwise. This	source code
- * contains	confidential trade secret material of Ralink Tech. Any attemp
- * or participation	in deciphering,	decoding, reverse engineering or in	any
- * way altering	the	source code	is stricitly prohibited, unless	the	prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Module Name:
-	wpa.c
 
-	Abstract:
-
-	Revision History:
-	Who			When			What
-	--------	----------		----------------------------------------------
-	Jan	Lee		03-07-22		Initial
-	Paul Lin	03-11-28		Modify for supplicant
-*/
 #include "rt_config.h"
 
 /* WPA OUI*/
@@ -146,15 +145,6 @@ VOID WpaEAPOLStartAction(
     PHEADER_802_11      pHeader;
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef ADHOC_WPA2PSK_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-	{			    
-    	if (ADHOC_ON(pAd)) {
-            Adhoc_WpaEAPOLStartAction(pAd, Elem);
-            return;
-        }
-    }        
-#endif /* ADHOC_WPA2PSK_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */    
 
     DBGPRINT(RT_DEBUG_TRACE, ("WpaEAPOLStartAction ===> \n"));
@@ -167,22 +157,6 @@ VOID WpaEAPOLStartAction(
     else
     {
         pEntry = MacTableLookup(pAd, pHeader->Addr2);
-#ifdef WSC_AP_SUPPORT
-        /* 
-            a WSC enabled AP must ignore EAPOL-Start frames received from clients that associated to 
-            the AP with an RSN IE or SSN IE indicating a WPA2-PSK/WPA-PSK authentication method in 
-            the assication request.  <<from page52 in Wi-Fi Simple Config Specification version 1.0g>>
-        */
-        if (pEntry && 
-            (pEntry->apidx == MAIN_MBSSID) &&
-            (pAd->ApCfg.MBSSID[pEntry->apidx].WscControl.WscConfMode != WSC_DISABLE) &&
-            ((pEntry->AuthMode == Ndis802_11AuthModeWPAPSK) || (pEntry->AuthMode == Ndis802_11AuthModeWPA2PSK)) &&
-			pEntry->bWscCapable)
-        {
-            DBGPRINT(RT_DEBUG_TRACE, ("WPS enabled AP: Ignore EAPOL-Start frames received from clients.\n"));
-            return;
-        }
-#endif /* WSC_AP_SUPPORT */
     }
     
     if (pEntry) 
@@ -228,15 +202,6 @@ VOID WpaEAPOLKeyAction(
 	UINT				eapol_len;
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef ADHOC_WPA2PSK_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-	{			    
-    	if (ADHOC_ON(pAd)) {
-            Adhoc_WpaEAPOLKeyAction(pAd, Elem);
-            return;
-        }
-    }
-#endif /* ADHOC_WPA2PSK_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */   
 
     DBGPRINT(RT_DEBUG_TRACE, ("WpaEAPOLKeyAction ===>\n"));
@@ -344,34 +309,6 @@ VOID WpaEAPOLKeyAction(
 					The frame is snet by Supplicant.So the Authenticator 
 					side shall handle this.
 				*/
-#ifdef CONFIG_AP_SUPPORT
-#ifdef QOS_DLS_SUPPORT				
-				if ((peerKeyInfo.KeyMic == 1) && 
-					(peerKeyInfo.Secure == 1) && 
-					(peerKeyInfo.Error == 0) &&
-					(peerKeyInfo.KeyType == GROUPKEY) &&
-					(pEapol_packet->KeyDesc.KeyDataLen[1] == 12))
-	    	    {
-	    	    	/* This is a ralink proprietary DLS STA-Key processing*/
-	        		RTMPHandleSTAKey(pAd, pEntry, Elem);
-		    	}
-				else
-#endif /* QOS_DLS_SUPPORT */
-				if ((peerKeyInfo.KeyMic == 1) && 
-					(peerKeyInfo.Request == 1) && 
-					(peerKeyInfo.Error == 1))
-	            {	                
-					/* The Supplicant uses a single Michael MIC Failure Report frame */
-					/* to report a MIC failure event to the Authenticator. */
-					/* A Michael MIC Failure Report is an EAPOL-Key frame with */
-					/* the following Key Information field bits set to 1: */
-					/* MIC bit, Error bit, Request bit, Secure bit.*/
-
-	                DBGPRINT(RT_DEBUG_ERROR, ("Received an Michael MIC Failure Report, active countermeasure \n"));
-	                RTMP_HANDLE_COUNTER_MEASURE(pAd, pEntry);
-	            }
-				else 
-#endif /* CONFIG_AP_SUPPORT */
 				if ((peerKeyInfo.Request == 0) && 
 					 	 (peerKeyInfo.Error == 0) && 
 					 	 (peerKeyInfo.KeyMic == 1))
@@ -403,80 +340,6 @@ VOID WpaEAPOLKeyAction(
 						PeerGroupMsg2Action(pAd, pEntry, &Elem->Msg[LENGTH_802_11], (Elem->MsgLen - LENGTH_802_11));
 					}
 				}
-#ifdef CONFIG_AP_SUPPORT				
-				else if ((peerKeyInfo.Request == 1) && (peerKeyInfo.Error == 0))
-				{			
-					INT		i;
-					UCHAR 	apidx = pEntry->apidx;	
-					
-	                /* Need to check KeyType for groupkey or pairwise key update, refer to 8021i P.114, */
-	                if (peerKeyInfo.KeyType == GROUPKEY)
-	                {
-						UINT8		Wcid;
-						PMULTISSID_STRUCT	pMbssEntry;
-	            
-	                    DBGPRINT(RT_DEBUG_TRACE, ("REQUEST=1, ERROR=0, update group key\n"));
-	        
-						pMbssEntry = &pAd->ApCfg.MBSSID[apidx];
-			
-						GenRandom(pAd, pMbssEntry->Bssid, pMbssEntry->GNonce);
-						pMbssEntry->DefaultKeyId = (pMbssEntry->DefaultKeyId == 1) ? 2 : 1;   
-						WpaDeriveGTK(pMbssEntry->GMK, 
-									 pMbssEntry->GNonce, 
-									 pMbssEntry->Bssid, 
-									 pMbssEntry->GTK, LEN_TKIP_GTK);
-	                    
-						for (i = 0; i < MAX_LEN_OF_MAC_TABLE; i++)
-	                    {
-	                    	if (IS_ENTRY_CLIENT(&pAd->MacTab.Content[i]) 
-								&& (pAd->MacTab.Content[i].WpaState == AS_PTKINITDONE)
-								&& (pAd->MacTab.Content[i].apidx == apidx))
-	                    	{
-	                        	pAd->MacTab.Content[i].GTKState = REKEY_NEGOTIATING;
-	                        	WPAStart2WayGroupHS(pAd, &pAd->MacTab.Content[i]);
-								pAd->MacTab.Content[i].ReTryCounter = GROUP_MSG1_RETRY_TIMER_CTR;
-								RTMPModTimer(&pAd->MacTab.Content[i].RetryTimer, PEER_MSG3_RETRY_EXEC_INTV);
-	                    	}
-	                	}
-
-						/* Get a specific WCID to record this MBSS key attribute */
-						GET_GroupKey_WCID(pAd, Wcid, apidx);
-
-						WPAInstallSharedKey(pAd, 
-											pMbssEntry->GroupKeyWepStatus, 
-											apidx, 
-											pMbssEntry->DefaultKeyId, 
-											Wcid, 
-											TRUE, 
-											pMbssEntry->GTK,
-											LEN_TKIP_GTK);
-
-	                }
-	                else
-	                {
-	                    DBGPRINT(RT_DEBUG_TRACE, ("REQUEST=1, ERROR= 0, update pairwise key\n"));
-	                    
-						NdisZeroMemory(&pEntry->PairwiseKey, sizeof(CIPHER_KEY));  
-						
-						/* clear this entry as no-security mode*/
-						AsicRemovePairwiseKeyEntry(pAd, pEntry->Aid); 
-
-	                    pEntry->Sst = SST_ASSOC;
-	                    if (pEntry->AuthMode == Ndis802_11AuthModeWPA || pEntry->AuthMode == Ndis802_11AuthModeWPA2)
-	                        pEntry->WpaState = AS_INITPMK;  
-	                    else if (pEntry->AuthMode == Ndis802_11AuthModeWPAPSK || pEntry->AuthMode == Ndis802_11AuthModeWPA2PSK)
-	                        pEntry->WpaState = AS_INITPSK;  
-						
-	                    pEntry->GTKState = REKEY_NEGOTIATING;
-						pEntry->PrivacyFilter = Ndis802_11PrivFilter8021xWEP;
-	                    pEntry->ReTryCounter = PEER_MSG1_RETRY_TIMER_CTR;
-						pEntry->PortSecured = WPA_802_1X_PORT_NOT_SECURED;
-						NdisZeroMemory(pEntry->R_Counter, sizeof(pEntry->R_Counter));
-	            
-			            WPAStart4WayHS(pAd, pEntry, PEER_MSG1_RETRY_EXEC_INTV);
-	                }
-	            }	
-#endif /* CONFIG_AP_SUPPORT */				
 			}			            
         }
     }while(FALSE);
@@ -515,9 +378,6 @@ VOID RTMPToWirelessSta(
     NDIS_STATUS     Status;
 
 	if ((!pEntry) || (!IS_ENTRY_CLIENT(pEntry) && !IS_ENTRY_APCLI(pEntry)
-#ifdef DOT11Z_TDLS_SUPPORT
-		 && (!IS_ENTRY_TDLS(pEntry))
-#endif /* DOT11Z_TDLS_SUPPORT */
 	))
 		return;
 
@@ -532,21 +392,6 @@ VOID RTMPToWirelessSta(
 				RTMP_SET_PACKET_CLEAR_EAP_FRAME(pPacket, 1);
 			else
 				RTMP_SET_PACKET_CLEAR_EAP_FRAME(pPacket, 0);
-#ifdef CONFIG_AP_SUPPORT		
-#ifdef APCLI_SUPPORT
-		if (IS_ENTRY_APCLI(pEntry))
-		{
-			RTMP_SET_PACKET_SOURCE(pPacket, PKTSRC_NDIS);
-			RTMP_SET_PACKET_MOREDATA(pPacket, FALSE);
-			RTMP_SET_PACKET_NET_DEVICE_APCLI(pPacket, pEntry->MatchAPCLITabIdx);
-			RTMP_SET_PACKET_WCID(pPacket, pEntry->Aid); /* to ApClient links.*/
-#ifdef P2P_SUPPORT
-			RTMP_SET_PACKET_OPMODE(pPacket, OPMODE_AP);
-#endif /* P2P_SUPPORT */
-		}
-		else
-#endif /* APCLI_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 		{
 			RTMP_SET_PACKET_SOURCE(pPacket, PKTSRC_NDIS);
 
@@ -556,39 +401,11 @@ VOID RTMPToWirelessSta(
 		
         	RTMP_SET_PACKET_WCID(pPacket, (UCHAR)pEntry->Aid);
 			RTMP_SET_PACKET_MOREDATA(pPacket, FALSE);
-#ifdef P2P_SUPPORT
-			if (IS_P2P_GO_ENTRY(pEntry))
-			{
-				RTMP_SET_PACKET_NET_DEVICE_P2P(pPacket, MAIN_MBSSID);
-				RTMP_SET_PACKET_OPMODE(pPacket, OPMODE_AP);
-			}
-#endif /* P2P_SUPPORT */
 		}
 
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-			/* send out the packet */
-			APSendPacket(pAd, pPacket);
-
-			/* Dequeue outgoing frames from TxSwQueue0..3 queue and process it*/
-			RTMPDeQueuePacket(pAd, FALSE, NUM_OF_TX_RING, MAX_TX_PROCESS);
-		}
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		{
-#ifdef P2P_SUPPORT
-			if (IS_ENTRY_APCLI(pEntry) || IS_P2P_GO_ENTRY(pEntry))
-			{
-			    	/* send out the packet */
-		        	APSendPacket(pAd, pPacket);
-
-				 /* Dequeue outgoing frames from TxSwQueue0..3 queue and process it */
-				RTMPDeQueuePacket(pAd, FALSE, NUM_OF_TX_RING, MAX_TX_PROCESS);
-	    	    		break;
-			}
-#endif /* P2P_SUPPORT */
 			/* send out the packet*/
 			Status = STASendPacket(pAd, pPacket);
 			if (Status == NDIS_STATUS_SUCCESS)
@@ -842,20 +659,8 @@ VOID WPAStart4WayHS(
     PEAPOL_PACKET	pEapolFrame;
 	PUINT8			pBssid = NULL;
 	UCHAR			group_cipher = Ndis802_11WEPDisabled;
-#ifdef CONFIG_AP_SUPPORT
-	UCHAR			apidx = 0;
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef ADHOC_WPA2PSK_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-	{			
-        if (ADHOC_ON(pAd)) {
-            Adhoc_WpaStart4WayHS(pAd, pEntry, TimeInterval);
-            return;
-        }
-    }        
-#endif /* ADHOC_WPA2PSK_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */  
 
     DBGPRINT(RT_DEBUG_TRACE, ("===> WPAStart4WayHS\n"));
@@ -866,34 +671,6 @@ VOID WPAStart4WayHS(
 		return;		
 	}
 
-#ifdef CONFIG_AP_SUPPORT	
-#ifdef P2P_SUPPORT
-	if (P2P_GO_ON(pAd))
-#else
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-	{			
-        if ((!pEntry) || !IS_ENTRY_CLIENT(pEntry))
-        {
-			DBGPRINT(RT_DEBUG_ERROR, ("[ERROR]WPAStart4WayHS : The entry doesn't exist.\n"));		
-			return;
-        }
-
-		if (pEntry->apidx < pAd->ApCfg.BssidNum)
-		{
-			apidx = pEntry->apidx;
-		}
-		else
-		{
-			DBGPRINT(RT_DEBUG_ERROR, ("[ERROR]WPAStart4WayHS : The apidx(%d) is invalid.\n", pEntry->apidx));		
-			return;
-        }
-		
-		/* pointer to the corresponding position*/
-		pBssid = pAd->ApCfg.MBSSID[apidx].Bssid;
-		group_cipher = pAd->ApCfg.MBSSID[apidx].GroupKeyWepStatus;
-	}	
-#endif /* CONFIG_AP_SUPPORT */
 
 	if (pBssid == NULL)
 	{
@@ -908,15 +685,6 @@ VOID WPAStart4WayHS(
         return;
     }
     
-#ifdef WSC_AP_SUPPORT
-    if (MAC_ADDR_EQUAL(pEntry->Addr, pAd->ApCfg.MBSSID[apidx].WscControl.EntryAddr) &&
-        pAd->ApCfg.MBSSID[apidx].WscControl.EapMsgRunning)
-    {
-        pEntry->WpaState = AS_NOTUSE;
-        DBGPRINT(RT_DEBUG_ERROR, ("This is a WSC-Enrollee. Not expect calling WPAStart4WayHS here \n"));
-        return;
-    }
-#endif /* WSC_AP_SUPPORT */
     
 	/* Increment replay counter by 1*/
 	ADD_ONE_To_64BIT_VAR(pEntry->R_Counter);
@@ -948,25 +716,6 @@ VOID WPAStart4WayHS(
 					  0,					/* RSNIE length	*/
 					  pEapolFrame);
 
-#ifdef CONFIG_AP_SUPPORT
-	/* If PMKID match in WPA2-enterprise mode, fill PMKID into Key data field and update PMK here	*/
-	if ((pEntry->AuthMode == Ndis802_11AuthModeWPA2) && (pEntry->PMKID_CacheIdx != ENTRY_NOT_FOUND))
-	{
-			/* Fill in value for KDE */
-		pEapolFrame->KeyDesc.KeyData[0] = 0xDD;
-        pEapolFrame->KeyDesc.KeyData[2] = 0x00;
-        pEapolFrame->KeyDesc.KeyData[3] = 0x0F;
-        pEapolFrame->KeyDesc.KeyData[4] = 0xAC;
-        pEapolFrame->KeyDesc.KeyData[5] = 0x04;
-
-		NdisMoveMemory(&pEapolFrame->KeyDesc.KeyData[6], &pAd->ApCfg.MBSSID[apidx].PMKIDCache.BSSIDInfo[pEntry->PMKID_CacheIdx].PMKID, LEN_PMKID);
-    	NdisMoveMemory(&pAd->ApCfg.MBSSID[apidx].PMK, &pAd->ApCfg.MBSSID[apidx].PMKIDCache.BSSIDInfo[pEntry->PMKID_CacheIdx].PMK, PMK_LEN);
-    		
-    	pEapolFrame->KeyDesc.KeyData[1] = 0x14;/* 4+LEN_PMKID*/
-    	INC_UINT16_TO_ARRARY(pEapolFrame->KeyDesc.KeyDataLen, 6 + LEN_PMKID);    			
-    	INC_UINT16_TO_ARRARY(pEapolFrame->Body_Len, 6 + LEN_PMKID);
-	}
-#endif /* CONFIG_AP_SUPPORT */
 		
 	/* Make outgoing frame*/
     MAKE_802_3_HEADER(Header802_3, pEntry->Addr, pBssid, EAPOL);            
@@ -1029,47 +778,9 @@ VOID PeerPairMsg1Action(
     if (Elem->MsgLen < (LENGTH_802_11 + LENGTH_802_1_H + LENGTH_EAPOL_H + MIN_LEN_OF_EAPOL_KEY_MSG))
         return;
 	
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-#ifdef APCLI_SUPPORT
-		if (IS_ENTRY_APCLI(pEntry))
-		{
-			UINT				IfIndex = 0;
-			
-			IfIndex = pEntry->MatchAPCLITabIdx;
-			if (IfIndex >= MAX_APCLI_NUM)
-				return;
-
-			pCurrentAddr = pAd->ApCfg.ApCliTab[IfIndex].CurrentAddress;
-			pmk_ptr = pAd->ApCfg.ApCliTab[IfIndex].PMK;
-			group_cipher = pAd->ApCfg.ApCliTab[IfIndex].GroupCipher;
-			rsnie_ptr = pAd->ApCfg.ApCliTab[IfIndex].RSN_IE;
-			rsnie_len = pAd->ApCfg.ApCliTab[IfIndex].RSNIE_Len;
-		}
-#endif /* APCLI_SUPPORT */			
-	}
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{				
-#ifdef P2P_SUPPORT
-		if (IS_ENTRY_APCLI(pEntry))
-		{
-			UINT				IfIndex = 0;
-			
-			IfIndex = pEntry->MatchAPCLITabIdx;
-			if (IfIndex >= MAX_APCLI_NUM)
-				return;
-
-			pCurrentAddr = pAd->ApCfg.ApCliTab[IfIndex].CurrentAddress;
-			pmk_ptr = pAd->ApCfg.ApCliTab[IfIndex].PMK;
-			group_cipher = pAd->ApCfg.ApCliTab[IfIndex].GroupCipher;
-			rsnie_ptr = pAd->ApCfg.ApCliTab[IfIndex].RSN_IE;
-			rsnie_len = pAd->ApCfg.ApCliTab[IfIndex].RSNIE_Len;
-		}
-		else
-#endif /* P2P_SUPPORT */
 		{
 		pCurrentAddr = pAd->CurrentAddress;
 		pmk_ptr = pAd->StaCfg.PMK;
@@ -1183,9 +894,6 @@ VOID PeerPairMsg2Action(
 	UCHAR				group_cipher = Ndis802_11WEPDisabled;
 	PUINT8				rsnie_ptr = NULL;
 	UCHAR				rsnie_len = 0;
-#ifdef CONFIG_AP_SUPPORT
-	UCHAR				apidx = 0;
-#endif /* CONFIG_AP_SUPPORT */
 
     DBGPRINT(RT_DEBUG_TRACE, ("===> PeerPairMsg2Action \n"));
 
@@ -1199,48 +907,6 @@ VOID PeerPairMsg2Action(
     if (pEntry->WpaState < AS_PTKSTART)
         return;
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
-	if (P2P_GO_ON(pAd))
-#else
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-	{			
-		if (pEntry->apidx >= pAd->ApCfg.BssidNum)
-        	return;
-		else
-			apidx = pEntry->apidx;
-			
-		pBssid = pAd->ApCfg.MBSSID[apidx].Bssid;
-		pmk_ptr = pAd->ApCfg.MBSSID[apidx].PMK;
-		gtk_ptr = pAd->ApCfg.MBSSID[apidx].GTK;
-		group_cipher = pAd->ApCfg.MBSSID[apidx].GroupKeyWepStatus;
-		default_key = pAd->ApCfg.MBSSID[apidx].DefaultKeyId;
-
-		/* Get Group TxTsc form Asic*/
-		RTMPGetTxTscFromAsic(pAd, apidx, TxTsc);
-
-		if ((pEntry->AuthMode == Ndis802_11AuthModeWPA) || (pEntry->AuthMode == Ndis802_11AuthModeWPAPSK))
-        {
-			rsnie_len = pAd->ApCfg.MBSSID[apidx].RSNIE_Len[0];
-			rsnie_ptr = &pAd->ApCfg.MBSSID[apidx].RSN_IE[0][0];
-        }
-        else
-        {
-            if ((pAd->ApCfg.MBSSID[apidx].AuthMode == Ndis802_11AuthModeWPA1PSKWPA2PSK) ||
-				(pAd->ApCfg.MBSSID[apidx].AuthMode == Ndis802_11AuthModeWPA1WPA2)) 
-            {
-                rsnie_len = pAd->ApCfg.MBSSID[apidx].RSNIE_Len[1];
-                rsnie_ptr = &pAd->ApCfg.MBSSID[apidx].RSN_IE[1][0];
-            }
-            else
-            {
-                rsnie_len = pAd->ApCfg.MBSSID[apidx].RSNIE_Len[0];
-                rsnie_ptr = &pAd->ApCfg.MBSSID[apidx].RSN_IE[0][0];
-            }
-        }
-	}
-#endif /* CONFIG_AP_SUPPORT */
 	
 
     /* pointer to 802.11 header*/
@@ -1362,9 +1028,6 @@ VOID PeerPairMsg3Action(
 	UINT            	MsgLen;				
 	PUINT8				pCurrentAddr = NULL;
 	UCHAR				group_cipher = Ndis802_11WEPDisabled;
-#ifdef P2P_SUPPORT
-	BOOLEAN				Cancelled;
-#endif /* P2P_SUPPORT */
 
 	DBGPRINT(RT_DEBUG_TRACE, ("===> PeerPairMsg3Action \n"));
 	
@@ -1374,43 +1037,9 @@ VOID PeerPairMsg3Action(
     if (Elem->MsgLen < (LENGTH_802_11 + LENGTH_802_1_H + LENGTH_EAPOL_H + MIN_LEN_OF_EAPOL_KEY_MSG))
 		return;
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-#ifdef APCLI_SUPPORT
-		if (IS_ENTRY_APCLI(pEntry))
-		{
-			UINT				IfIndex = 0;
-		
-			IfIndex = pEntry->MatchAPCLITabIdx;
-			if (IfIndex >= MAX_APCLI_NUM)
-				return;
-
-			pCurrentAddr = pAd->ApCfg.ApCliTab[IfIndex].CurrentAddress;
-			group_cipher = pAd->ApCfg.ApCliTab[IfIndex].GroupCipher;
-
-		}
-#endif /* APCLI_SUPPORT */			
-	}
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{				
-#ifdef P2P_SUPPORT
-		if (IS_ENTRY_APCLI(pEntry))
-		{
-			UINT				IfIndex = 0;
-		
-			IfIndex = pEntry->MatchAPCLITabIdx;
-			if (IfIndex >= MAX_APCLI_NUM)
-				return;
-
-			pCurrentAddr = pAd->ApCfg.ApCliTab[IfIndex].CurrentAddress;
-			group_cipher = pAd->ApCfg.ApCliTab[IfIndex].GroupCipher;
-
-		}
-		else
-#endif /* P2P_SUPPORT */
 		{
 		pCurrentAddr = pAd->CurrentAddress;
 		group_cipher = pAd->StaCfg.GroupCipher;
@@ -1465,42 +1094,10 @@ VOID PeerPairMsg3Action(
 
 	/* Update WpaState*/
 	pEntry->WpaState = AS_PTKINITDONE;	 	
-#ifdef P2P_SUPPORT
-	if (IS_P2P_CLI_ENTRY(pEntry) && (pEntry->bP2pClient))
-	{
-		if (pAd->P2pCfg.bP2pCliReConnectTimerRunning)
-		{
-			pAd->P2pCfg.bP2pCliReConnectTimerRunning = FALSE;
-			RTMPCancelTimer(&pAd->P2pCfg.P2pCliReConnectTimer, &Cancelled);
-		}
-		RTMPCancelTimer(&pAd->P2pCfg.P2pWscTimer, &Cancelled);
-#ifdef RT_P2P_SPECIFIC_WIRELESS_EVENT
-		P2pSendWirelessEvent(pAd, RT_P2P_AP_STA_CONNECTED, NULL, pEntry->Addr);
-#endif /* RT_P2P_SPECIFIC_WIRELESS_EVENT */
-	}
-#endif /* P2P_SUPPORT */
 	/* Update pairwise key		*/
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-#ifdef APCLI_SUPPORT	
-		if (IS_ENTRY_APCLI(pEntry))	
-		 	APCliInstallPairwiseKey(pAd, pEntry);
-#endif /* APCLI_SUPPORT */
-	}
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{
-#ifdef P2P_SUPPORT	
-		if (IS_ENTRY_APCLI(pEntry))
-		{
-
-		 	APCliInstallPairwiseKey(pAd, pEntry);
-
-		}
-		else
-#endif /* P2P_SUPPORT */
 		{
 		NdisMoveMemory(pAd->StaCfg.PTK, pEntry->PTK, LEN_PTK);
 		WPAInstallPairwiseKey(pAd, 
@@ -1536,20 +1133,6 @@ VOID PeerPairMsg3Action(
 	}
 	else
 	{	
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-#ifdef APCLI_SUPPORT	
-			/* Patch issue with gateway AP*/
-			/* In WPA mode, AP doesn't send out message 1 of group-key HS.*/
-			/* So, Supplicant shall maintain a timeout action to disconnect */
-			/* this link.*/
-			/* Todo - Does it need to apply to STA ?*/
-			if (IS_ENTRY_APCLI(pEntry))	
-			 	RTMPSetTimer(&pEntry->RetryTimer, PEER_GROUP_KEY_UPDATE_INIV);
-#endif /* APCLI_SUPPORT */
-		}
-#endif /* CONFIG_AP_SUPPORT */		
 	}
 
 	/* Init 802.3 header and send out*/
@@ -1597,23 +1180,6 @@ VOID PeerPairMsg4Action(
         if (pEntry->WpaState < AS_PTKINIT_NEGOTIATING)
             break;
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
-		if (P2P_GO_ON(pAd))
-#else
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-		{
-			UCHAR apidx = 0;
-		
-			if (pEntry->apidx >= pAd->ApCfg.BssidNum)
-				break;
-		    else
-				apidx = pEntry->apidx;	
-
-			group_cipher = pAd->ApCfg.MBSSID[apidx].GroupKeyWepStatus;			
-		}
-#endif /* CONFIG_AP_SUPPORT */
 
         /* pointer to 802.11 header*/
         pHeader = (PHEADER_802_11)Elem->Msg;
@@ -1634,10 +1200,6 @@ VOID PeerPairMsg4Action(
         pEntry->WpaState = AS_PTKINITDONE;
 		pEntry->PortSecured = WPA_802_1X_PORT_SECURED;
         
-#ifdef WSC_AP_SUPPORT
-        if (pAd->ApCfg.MBSSID[pEntry->apidx].WscControl.WscConfMode != WSC_DISABLE)
-            WscInformFromWPA(pEntry);
-#endif /* WSC_AP_SUPPORT */
 
 		if (pEntry->AuthMode == Ndis802_11AuthModeWPA2 || 
 			pEntry->AuthMode == Ndis802_11AuthModeWPA2PSK)
@@ -1645,56 +1207,11 @@ VOID PeerPairMsg4Action(
 			pEntry->GTKState = REKEY_ESTABLISHED;
 			RTMPCancelTimer(&pEntry->RetryTimer, &Cancelled);
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef DOT1X_SUPPORT
-			if (pEntry->AuthMode == Ndis802_11AuthModeWPA2)
-        	{
-        		UCHAR  PMK_key[20];
-				UCHAR  digest[80];
-			
-				/* Calculate PMKID, refer to IEEE 802.11i-2004 8.5.1.2*/
-				NdisMoveMemory(&PMK_key[0], "PMK Name", 8);
-				NdisMoveMemory(&PMK_key[8], pAd->ApCfg.MBSSID[pEntry->apidx].Bssid, MAC_ADDR_LEN);
-				NdisMoveMemory(&PMK_key[14], pEntry->Addr, MAC_ADDR_LEN);
-				RT_HMAC_SHA1(pAd->ApCfg.MBSSID[pEntry->apidx].PMK, PMK_LEN, PMK_key, 20, digest, SHA1_DIGEST_SIZE);
-				RTMPAddPMKIDCache(pAd, pEntry->apidx, pEntry->Addr, digest, pAd->ApCfg.MBSSID[pEntry->apidx].PMK);
-				DBGPRINT(RT_DEBUG_TRACE, ("Calc PMKID=%02x:%02x:%02x:%02x:%02x:%02x\n", digest[0],digest[1],digest[2],digest[3],digest[4],digest[5]));
-        	}
-#endif /* DOT1X_SUPPORT */			
-#endif /* CONFIG_AP_SUPPORT */
 
 			/* send wireless event - for set key done WPA2*/
 				RTMPSendWirelessEvent(pAd, IW_SET_KEY_DONE_WPA2_EVENT_FLAG, pEntry->Addr, pEntry->apidx, 0); 
-#ifdef P2P_SUPPORT
-		if (IS_P2P_GO_ENTRY(pEntry))
-		{
-			if (pEntry->bP2pClient)
-			{
-#if defined (RT_P2P_SPECIFIC_WIRELESS_EVENT)
-				UCHAR p2pIndex = P2P_NOT_FOUND;
-				PRT_P2P_CLIENT_ENTRY pP2pEntry = NULL;
 
-				p2pIndex = P2pGroupTabSearch(pAd, pEntry->Addr);
-				DBGPRINT(RT_DEBUG_TRACE, ("pEntry->bP2pClient: p2pIndex = %d, %02X-%02X-%02X-%02X-%02X-%02X\n", p2pIndex, PRINT_MAC(pEntry->Addr)));
-				if (p2pIndex != P2P_NOT_FOUND)
-				{
-					pP2pEntry = &pAd->P2pTable.Client[p2pIndex];
-				}
-#ifdef RT_P2P_SPECIFIC_WIRELESS_EVENT
-				P2pSendWirelessEvent(pAd, RT_P2P_AP_STA_CONNECTED, pP2pEntry, pEntry->Addr);
-#endif /* RT_P2P_SPECIFIC_WIRELESS_EVENT */
-#endif
-				pAd->P2pCfg.bPeriodicListen = TRUE;
-				RTMPCancelTimer(&pAd->P2pCfg.P2pWscTimer, &Cancelled);
-			}
-			else
-			{
-#ifdef RT_P2P_SPECIFIC_WIRELESS_EVENT
-				P2pSendWirelessEvent(pAd, RT_P2P_AP_STA_CONNECTED, NULL, pEntry->Addr);
-#endif /* RT_P2P_SPECIFIC_WIRELESS_EVENT */
-			}
-		}
-#endif /* P2P_SUPPORT */
+
 	 
 	        DBGPRINT(RT_DEBUG_OFF, ("AP SETKEYS DONE - WPA2, AuthMode(%d)=%s, WepStatus(%d)=%s, GroupWepStatus(%d)=%s\n\n", 
 									pEntry->AuthMode, GetAuthMode(pEntry->AuthMode), 
@@ -1741,30 +1258,6 @@ VOID WPAStart2WayGroupHS(
     if ((!pEntry) || !IS_ENTRY_CLIENT(pEntry))
         return;
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
-	if (P2P_GO_ON(pAd))
-#else
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-	{
-		UCHAR	apidx = 0;
-	
-		if (pEntry->apidx >= pAd->ApCfg.BssidNum)
-			return;
-	    else
-			apidx = pEntry->apidx;	
-
-		group_cipher = pAd->ApCfg.MBSSID[apidx].GroupKeyWepStatus;
-		default_key = pAd->ApCfg.MBSSID[apidx].DefaultKeyId;
-		gnonce_ptr = pAd->ApCfg.MBSSID[apidx].GNonce;
-		gtk_ptr = pAd->ApCfg.MBSSID[apidx].GTK;
-		pBssid = pAd->ApCfg.MBSSID[apidx].Bssid;
-
-		/* Get Group TxTsc form Asic*/
-		RTMPGetTxTscFromAsic(pAd, apidx, TxTsc);
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 	/* Allocate memory for output*/
 	os_alloc_mem(NULL, (PUCHAR *)&mpool, TX_EAPOL_BUFFER);
@@ -1851,26 +1344,6 @@ VOID	PeerGroupMsg1Action(
 	if ((!pEntry) || (!IS_ENTRY_CLIENT(pEntry) && !IS_ENTRY_APCLI(pEntry)))
         return;
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-#ifdef APCLI_SUPPORT
-		if (IS_ENTRY_APCLI(pEntry))
-		{
-			UINT				IfIndex = 0;
-		
-			IfIndex = pEntry->MatchAPCLITabIdx;
-			if (IfIndex >= MAX_APCLI_NUM)
-				return;
-
-			pCurrentAddr = pAd->ApCfg.ApCliTab[IfIndex].CurrentAddress;
-			group_cipher = pAd->ApCfg.ApCliTab[IfIndex].GroupCipher;
-			default_key = pAd->ApCfg.ApCliTab[IfIndex].DefaultKeyId;
-
-		}
-#endif /* APCLI_SUPPORT */			
-	}
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{				
@@ -1892,24 +1365,6 @@ VOID	PeerGroupMsg1Action(
 		return;
 
 	/* delete retry timer*/
-#ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
-	if (P2P_GO_ON(pAd))
-#else
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-	{
-#ifdef APCLI_SUPPORT	
-		/* Patch issue with gateway AP*/
-		/* In WPA mode, AP doesn't send out message 1 of group-key HS.*/
-		/* So, Supplicant shall maintain a timeout action to disconnect */
-		/* this link.*/
-		/* Todo - Does it need to apply to STA ?*/
-		if (IS_ENTRY_APCLI(pEntry))	
-			RTMPCancelTimer(&pEntry->RetryTimer, &Cancelled);
-#endif /* APCLI_SUPPORT */
-	}
-#endif /* CONFIG_AP_SUPPORT */	
 
 	/* Save Replay counter, it will use to construct message 2*/
 	NdisMoveMemory(pEntry->R_Counter, pGroup->KeyDesc.ReplayCounter, LEN_KEY_DESC_REPLAY);	
@@ -1943,9 +1398,6 @@ VOID	PeerGroupMsg1Action(
 	pEntry->PrivacyFilter = Ndis802_11PrivFilterAcceptAll;
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
-	if (IS_ENTRY_CLIENT(pEntry))
-#endif /* P2P_SUPPORT */
 	STA_PORT_SECURED(pAd);
 #endif /* CONFIG_STA_SUPPORT */
 	
@@ -1962,9 +1414,6 @@ VOID	PeerGroupMsg1Action(
 		OPSTATUS_TEST_FLAG(pAd, fOP_STATUS_MEDIA_STATE_CONNECTED) &&
 		RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_BSS_SCAN_IN_PROGRESS) &&
 		(pAd->MlmeAux.Channel == pAd->CommonCfg.Channel)
-#ifdef P2P_SUPPORT
-		&& IS_ENTRY_CLIENT(pEntry)
-#endif /* P2P_SUPPORT */
 		)
 	{
 		/* Now stop the scanning and need to send the rekey packet out */
@@ -2003,15 +1452,6 @@ VOID EnqueueStartForPSKExec(
 
 				MlmeEnqueue(pAd, WPA_STATE_MACHINE, MT2_EAPOLStart, 6, &pEntry->Addr, 0);
 				break;
-#ifdef CONFIG_AP_SUPPORT
-#ifdef DOT1X_SUPPORT
-			case EAPOL_START_1X:							
-				DBGPRINT(RT_DEBUG_TRACE, ("Enqueue EAPoL-Start-1X for sta(%02x:%02x:%02x:%02x:%02x:%02x) \n", PRINT_MAC(pEntry->Addr)));
-
-				DOT1X_EapTriggerAction(pAd, pEntry);
-				break;
-#endif /* DOT1X_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 			default:
 				break;
 			
@@ -2045,22 +1485,12 @@ VOID MlmeDeAuthAction(
 
         DBGPRINT(RT_DEBUG_TRACE, ("Send DEAUTH frame with ReasonCode(%d) to %02x:%02x:%02x:%02x:%02x:%02x \n",Reason, PRINT_MAC(pEntry->Addr)));
 
-#ifdef P2P_SUPPORT
-	MgtMacHeaderInit(pAd, &DeAuthHdr, SUBTYPE_DEAUTH, 0, pEntry->Addr, pEntry->HdrAddr2, pEntry->HdrAddr3);
-#else
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{
         MgtMacHeaderInit(pAd, &DeAuthHdr, SUBTYPE_DEAUTH, 0, pEntry->Addr, pAd->CommonCfg.Bssid);	
 	}
 #endif /* CONFIG_STA_SUPPORT */
-#ifdef CONFIG_AP_SUPPORT        
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{	
-        MgtMacHeaderInit(pAd, &DeAuthHdr, SUBTYPE_DEAUTH, 0, pEntry->Addr, pAd->ApCfg.MBSSID[pEntry->apidx].Bssid);
-	}
-#endif /* CONFIG_AP_SUPPORT */
-#endif /* P2P_SUPPORT */
         MakeOutgoingFrame(pOutBuffer,               &FrameLen, 
                           sizeof(HEADER_802_11),    &DeAuthHdr,
                           2,                        &Reason,
@@ -2114,23 +1544,6 @@ VOID PeerGroupMsg2Action(
     do
     {
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
-		if (P2P_GO_ON(pAd))
-#else
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-		{
-			UCHAR	apidx = 0;
-		
-			if (pEntry->apidx >= pAd->ApCfg.BssidNum)
-				return;
-		    else
-				apidx = pEntry->apidx;	
-
-			group_cipher = pAd->ApCfg.MBSSID[apidx].GroupKeyWepStatus;			
-		}
-#endif /* CONFIG_AP_SUPPORT */
         
         pData = (PUCHAR)Msg;
 		pMsg2 = (PEAPOL_PACKET) (pData + LENGTH_802_1_H);
@@ -2398,17 +1811,17 @@ int RtmpPasswordHash(PSTRING password, PUCHAR ssid, INT ssidlength, PUCHAR outpu
 	Return Value:
 
 	Note:
-		Output ¡ö KDF-Length (K, label, Context) where
+		Output: KDF-Length (K, label, Context) where
 		Input:    K, a 256-bit key derivation key
 				  label, a string identifying the purpose of the keys derived using this KDF
 				  Context, a bit string that provides context to identify the derived key
 				  Length, the length of the derived key in bits
 		Output: a Length-bit derived key
 
-		result ¡ö ""
-		iterations ¡ö (Length+255)/256 
+		result : ""
+		iterations : (Length+255)/256 
 		do i = 1 to iterations
-			result ¡ö result || HMAC-SHA256(K, i || label || Context || Length)
+			result : result || HMAC-SHA256(K, i || label || Context || Length)
 		od
 		return first Length bits of result, and securely delete all unused bits
 
@@ -2797,9 +2210,6 @@ static VOID RTMPMakeRsnIeCipher(
 		if ((pAd->OpMode == OPMODE_STA) &&
 			(pAd->StaCfg.GroupCipher != Ndis802_11Encryption2Enabled) &&
 			(pAd->StaCfg.GroupCipher != Ndis802_11Encryption3Enabled)
-#ifdef P2P_SUPPORT
-			&& (apidx == BSS0)
-#endif /* P2P_SUPPORT */
 			)
 		{
 			UINT	GroupCipher = pAd->StaCfg.GroupCipher;
@@ -2879,9 +2289,6 @@ static VOID RTMPMakeRsnIeCipher(
 		if ((pAd->OpMode == OPMODE_STA) &&
 			(pAd->StaCfg.GroupCipher != Ndis802_11Encryption2Enabled) &&
 			(pAd->StaCfg.GroupCipher != Ndis802_11Encryption3Enabled)
-#ifdef P2P_SUPPORT
-			&& (apidx == BSS0)
-#endif /* P2P_SUPPORT */
 			)
 		{
 			UINT	GroupCipher = pAd->StaCfg.GroupCipher;
@@ -3022,32 +2429,9 @@ static VOID RTMPMakeRsnIeCap(
 	
 	pRSN_Cap = (RSN_CAPABILITIES*)(pRsnIe + (*rsn_len));
 	
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		if (apidx < pAd->ApCfg.BssidNum)		
-		{
-			PMULTISSID_STRUCT pMbss = &pAd->ApCfg.MBSSID[apidx];
-
-#ifdef DOT1X_SUPPORT
-        	pRSN_Cap->field.PreAuth = (pMbss->PreAuth == TRUE) ? 1 : 0;
-#endif /* DOT1X_SUPPORT */
-		}
-	}
-#endif /* CONFIG_AP_SUPPORT */			        
 
 #ifdef CONFIG_STA_SUPPORT
 
-#ifdef P2P_SUPPORT
-	if (apidx >= MIN_NET_DEVICE_FOR_P2P_GO)
-	{
-		PMULTISSID_STRUCT pMbss = &pAd->ApCfg.MBSSID[MAIN_MBSSID];
-
-#ifdef DOT1X_SUPPORT
-        pRSN_Cap->field.PreAuth = (pMbss->PreAuth == TRUE) ? 1 : 0;
-#endif /* DOT1X_SUPPORT */
-	}
-#endif /* P2P_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */			      
 					 
 	pRSN_Cap->word = cpu2le16(pRSN_Cap->word);
@@ -3101,11 +2485,6 @@ VOID RTMPMakeRSNIE(
 {
 	PUCHAR		pRsnIe = NULL;			/* primary RSNIE*/
 	UCHAR 		*rsnielen_cur_p = 0;	/* the length of the primary RSNIE 		*/
-#ifdef CONFIG_AP_SUPPORT
-	PUCHAR		pRsnIe_ex = NULL;		/* secondary RSNIE, it's ONLY used in WPA-mix mode */
-	BOOLEAN               bMixRsnIe = FALSE;      /* indicate WPA-mix mode is on or off*/
-	UCHAR		s_offset;
-#endif /* CONFIG_AP_SUPPORT */
 	UCHAR		*rsnielen_ex_cur_p = 0;	/* the length of the secondary RSNIE	  	*/
 	UCHAR		PrimaryRsnie;			
 	BOOLEAN		bMixCipher = FALSE;	/* indicate the pairwise and group cipher are different*/
@@ -3117,56 +2496,6 @@ VOID RTMPMakeRSNIE(
 
 	do
 	{
-#ifdef P2P_SUPPORT
-		if (apidx >= MIN_NET_DEVICE_FOR_P2P_GO)
-		{
-			if ((AuthMode != Ndis802_11AuthModeWPA) && 
-				(AuthMode != Ndis802_11AuthModeWPAPSK) && 
-				(AuthMode != Ndis802_11AuthModeWPA2) && 
-				(AuthMode != Ndis802_11AuthModeWPA2PSK) && 
-				(AuthMode != Ndis802_11AuthModeWPA1WPA2) && 
-				(AuthMode != Ndis802_11AuthModeWPA1PSKWPA2PSK)
-#ifdef WAPI_SUPPORT
-				&& (AuthMode != Ndis802_11AuthModeWAICERT)
-				&& (AuthMode != Ndis802_11AuthModeWAIPSK)
-#endif /* WAPI_SUPPORT */
-				)
-				return;
-
-			DBGPRINT(RT_DEBUG_TRACE,("==> RTMPMakeRSNIE(p2p%d)\n", MAIN_MBSSID));
-
-			/* decide the group key encryption type */
-			if (WepStatus == Ndis802_11Encryption4Enabled)
-			{
-				pAd->ApCfg.MBSSID[MAIN_MBSSID].GroupKeyWepStatus = Ndis802_11Encryption2Enabled;
-				FlexibleCipher = pAd->ApCfg.MBSSID[MAIN_MBSSID].WpaMixPairCipher;
-			}
-			else
-				pAd->ApCfg.MBSSID[MAIN_MBSSID].GroupKeyWepStatus = WepStatus;
-
-			/* Initiate some related information */
-			pAd->ApCfg.MBSSID[MAIN_MBSSID].RSNIE_Len[0] = 0;
-			pAd->ApCfg.MBSSID[MAIN_MBSSID].RSNIE_Len[1] = 0;
-			NdisZeroMemory(pAd->ApCfg.MBSSID[MAIN_MBSSID].RSN_IE[0], MAX_LEN_OF_RSNIE);
-			NdisZeroMemory(pAd->ApCfg.MBSSID[MAIN_MBSSID].RSN_IE[1], MAX_LEN_OF_RSNIE);
-
-			/* Pointer to the first RSNIE context */
-			rsnielen_cur_p = &pAd->ApCfg.MBSSID[MAIN_MBSSID].RSNIE_Len[0];
-			pRsnIe = pAd->ApCfg.MBSSID[MAIN_MBSSID].RSN_IE[0];
-
-			/* Pointer to the secondary RSNIE context */
-			rsnielen_ex_cur_p = &pAd->ApCfg.MBSSID[MAIN_MBSSID].RSNIE_Len[1];
-			pRsnIe_ex = pAd->ApCfg.MBSSID[MAIN_MBSSID].RSN_IE[1];
-
-			/* Decide whether the authentication mode is WPA1-WPA2 mixed mode */
-			if ((AuthMode == Ndis802_11AuthModeWPA1WPA2) || 
-				(AuthMode == Ndis802_11AuthModeWPA1PSKWPA2PSK))
-			{
-				bMixRsnIe = TRUE;
-			}
-			break;
-		}
-#endif /* P2P_SUPPORT */
 
 #ifdef APCLI_SUPPORT	
 		if (apidx >= MIN_NET_DEVICE_FOR_APCLI)
@@ -3213,62 +2542,6 @@ VOID RTMPMakeRSNIE(
 	}
 #endif /* APCLI_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-			/* Sanity check for apidx */
-			MBSS_MR_APIDX_SANITY_CHECK(pAd, apidx);
-#ifdef HOSTAPD_SUPPORT
-			if(pAd->ApCfg.MBSSID[apidx].Hostapd)
-				return;
-#endif /* HOSTAPD_SUPPORT */
-			if ((AuthMode != Ndis802_11AuthModeWPA) && 
-				(AuthMode != Ndis802_11AuthModeWPAPSK) && 
-				(AuthMode != Ndis802_11AuthModeWPA2) && 
-				(AuthMode != Ndis802_11AuthModeWPA2PSK) && 
-				(AuthMode != Ndis802_11AuthModeWPA1WPA2) && 
-				(AuthMode != Ndis802_11AuthModeWPA1PSKWPA2PSK)
-#ifdef WAPI_SUPPORT
-				&& (AuthMode != Ndis802_11AuthModeWAICERT)
-				&& (AuthMode != Ndis802_11AuthModeWAIPSK)
-#endif /* WAPI_SUPPORT */
-				)
-				return;
-
-			DBGPRINT(RT_DEBUG_TRACE,("==> RTMPMakeRSNIE(AP-ra%d)\n", apidx));
-
-			/* decide the group key encryption type */
-			if (WepStatus == Ndis802_11Encryption4Enabled)
-			{
-				pAd->ApCfg.MBSSID[apidx].GroupKeyWepStatus = Ndis802_11Encryption2Enabled;
-				FlexibleCipher = pAd->ApCfg.MBSSID[apidx].WpaMixPairCipher;
-			}
-			else
-				pAd->ApCfg.MBSSID[apidx].GroupKeyWepStatus = WepStatus;
-
-			/* Initiate some related information */
-			pAd->ApCfg.MBSSID[apidx].RSNIE_Len[0] = 0;
-			pAd->ApCfg.MBSSID[apidx].RSNIE_Len[1] = 0;
-			NdisZeroMemory(pAd->ApCfg.MBSSID[apidx].RSN_IE[0], MAX_LEN_OF_RSNIE);
-			NdisZeroMemory(pAd->ApCfg.MBSSID[apidx].RSN_IE[1], MAX_LEN_OF_RSNIE);
-
-			/* Pointer to the first RSNIE context */
-			rsnielen_cur_p = &pAd->ApCfg.MBSSID[apidx].RSNIE_Len[0];
-			pRsnIe = pAd->ApCfg.MBSSID[apidx].RSN_IE[0];
-
-			/* Pointer to the secondary RSNIE context */
-			rsnielen_ex_cur_p = &pAd->ApCfg.MBSSID[apidx].RSNIE_Len[1];
-			pRsnIe_ex = pAd->ApCfg.MBSSID[apidx].RSN_IE[1];
-
-			/* Decide whether the authentication mode is WPA1-WPA2 mixed mode */
-			if ((AuthMode == Ndis802_11AuthModeWPA1WPA2) || 
-				(AuthMode == Ndis802_11AuthModeWPA1PSKWPA2PSK))
-			{
-				bMixRsnIe = TRUE;
-			}
-			break;
-		}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -3287,10 +2560,6 @@ VOID RTMPMakeRSNIE(
 				if ((AuthMode != Ndis802_11AuthModeWPAPSK) && 
 					(AuthMode != Ndis802_11AuthModeWPA2PSK) && 
 					(AuthMode != Ndis802_11AuthModeWPANone)
-#ifdef WAPI_SUPPORT
-					&& (AuthMode != Ndis802_11AuthModeWAICERT)
-					&& (AuthMode != Ndis802_11AuthModeWAIPSK)
-#endif /* WAPI_SUPPORT */
 					)
 					return;
 			}	
@@ -3318,21 +2587,9 @@ VOID RTMPMakeRSNIE(
 		(AuthMode == Ndis802_11AuthModeWPA1WPA2) || 
 		(AuthMode == Ndis802_11AuthModeWPA1PSKWPA2PSK))
 		PrimaryRsnie = WpaIe;
-#ifdef WAPI_SUPPORT
-	else if ((AuthMode == Ndis802_11AuthModeWAICERT) || 
-			 (AuthMode == Ndis802_11AuthModeWAIPSK))
-		PrimaryRsnie = WapiIe;
-#endif /* WAPI_SUPPORT */
 	else
 		PrimaryRsnie = Wpa2Ie;
 
-#ifdef WAPI_SUPPORT
-	if (PrimaryRsnie == WapiIe)
-	{
-		RTMPInsertWapiIe(AuthMode, WepStatus, pRsnIe, &p_offset);
-	}
-	else
-#endif /* WAPI_SUPPORT */		
 	{
 		/* Build the primary RSNIE*/
 		/* 1. insert cipher suite*/
@@ -3357,33 +2614,6 @@ VOID RTMPMakeRSNIE(
 
 	hex_dump("The primary RSNIE", pRsnIe, (*rsnielen_cur_p));
 
-#ifdef CONFIG_AP_SUPPORT
-	if ((pAd->OpMode == OPMODE_AP)
-#ifdef P2P_SUPPORT
-		|| (apidx >= MIN_NET_DEVICE_FOR_P2P_GO)
-#endif /* P2P_SUPPORT */
-		)
-	{
-		/* if necessary, build the secondary RSNIE*/
-		if (bMixRsnIe)
-		{
-			/* 1. insert cipher suite*/
-			RTMPMakeRsnIeCipher(pAd, Wpa2Ie, WepStatus, apidx, bMixCipher, FlexibleCipher, pRsnIe_ex, &s_offset);
-
-			/* 2. insert AKM*/
-			RTMPMakeRsnIeAKM(pAd, Wpa2Ie, AuthMode, apidx, pRsnIe_ex, &s_offset);
-
-			/* 3. insert capability*/
-			RTMPMakeRsnIeCap(pAd, Wpa2Ie, apidx, pRsnIe_ex, &s_offset);
-
-
-			/* Update the RSNIE length*/
-			*rsnielen_ex_cur_p = s_offset; 
-
-			hex_dump("The secondary RSNIE", pRsnIe_ex, (*rsnielen_ex_cur_p));
-		}
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 }
 
@@ -3416,10 +2646,6 @@ BOOLEAN RTMPCheckWPAframe(
 
 	do
 	{
-#ifdef P2P_SUPPORT
-		if (FromWhichBSSID >= MIN_NET_DEVICE_FOR_P2P_GO)
-			break;
-#endif /* P2P_SUPPORT */
 	} while (FALSE);
 
     if(DataByteCount < (LENGTH_802_1_H + LENGTH_EAPOL_H))
@@ -3446,15 +2672,6 @@ BOOLEAN RTMPCheckWPAframe(
     {   
         case EAPPacket:
 			Body_len = (*(pData+2)<<8) | (*(pData+3));
-#ifdef CONFIG_AP_SUPPORT
-			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-			{
-#ifdef IDS_SUPPORT
-				if((*(pData+4)) == EAP_CODE_REQUEST)
-					pAd->ApCfg.RcvdEapReqCount ++;
-#endif /* IDS_SUPPORT */
-			}
-#endif /* CONFIG_AP_SUPPORT */
             DBGPRINT(RT_DEBUG_TRACE, ("Receive EAP-Packet frame, TYPE = 0, Length = %ld\n", Body_len));
             break;
         case EAPOLStart:
@@ -3497,10 +2714,6 @@ BOOLEAN RTMPCheckWPAframe_Hdr_Trns(
 
 	do
 	{
-#ifdef P2P_SUPPORT
-		if (FromWhichBSSID >= MIN_NET_DEVICE_FOR_P2P_GO)
-			break;
-#endif /* P2P_SUPPORT */
 	} while (FALSE);
 
     if(DataByteCount < (LENGTH_802_3 + LENGTH_EAPOL_H))
@@ -3524,15 +2737,6 @@ BOOLEAN RTMPCheckWPAframe_Hdr_Trns(
     {   
         case EAPPacket:
 			Body_len = (*(pData+2)<<8) | (*(pData+3));
-#ifdef CONFIG_AP_SUPPORT
-			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-			{
-#ifdef IDS_SUPPORT
-				if((*(pData+4)) == EAP_CODE_REQUEST)
-					pAd->ApCfg.RcvdEapReqCount ++;
-#endif /* IDS_SUPPORT */
-			}
-#endif /* CONFIG_AP_SUPPORT */
             DBGPRINT(RT_DEBUG_TRACE, ("Receive EAP-Packet frame, TYPE = 0, Length = %ld\n", Body_len));
             break;
         case EAPOLStart:
@@ -3792,36 +2996,11 @@ BOOLEAN RTMPParseEapolKeyData(
         return FALSE;
     } 
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef APCLI_SUPPORT		
-		if (IS_ENTRY_APCLI(pEntry))
-		{
-			/* Set Group key material, TxMic and RxMic for AP-Client*/
-			if (!APCliInstallSharedKey(pAd, GTK, GTKLEN, DefaultIdx, pEntry))
-			{		
-				return FALSE;
-			}
-		}
-#endif /* APCLI_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{			
-#ifdef ADHOC_WPA2PSK_SUPPORT	
-        if (ADHOC_ON(pAd)) {
-            if (pAd->StaCfg.GroupCipher == Ndis802_11Encryption3Enabled) {
-                NdisZeroMemory(&pEntry->RxGTK, sizeof(CIPHER_KEY));                                
-      			NdisMoveMemory(pEntry->RxGTK.Key, GTK, LEN_TK);
-                pEntry->RxGTK.CipherAlg = CIPHER_AES;
-                pEntry->RxGTK.KeyLen= LEN_TK;
-            }                
-        } else 
-#endif /* ADHOC_WPA2PSK_SUPPORT */
        {                        
-#ifdef P2P_SUPPORT
-			if (IS_ENTRY_CLIENT(pEntry))
-#endif /* P2P_SUPPORT */
         {                        
     		/* set key material, TxMic and RxMic		*/
     		NdisMoveMemory(pAd->StaCfg.GTK, GTK, GTKLEN);
@@ -4347,14 +3526,11 @@ UCHAR	RTMPExtractKeyIdxFromIVHdr(
 		case Ndis802_11Encryption1Enabled:
 		case Ndis802_11Encryption2Enabled:
 		case Ndis802_11Encryption3Enabled:
+		case Ndis802_11GroupWEP40Enabled:
+		case Ndis802_11GroupWEP104Enabled:
 			keyIdx = (*(pIV + 3) & 0xc0) >> 6;
 			break;
 
-#ifdef WAPI_SUPPORT
-		case Ndis802_11EncryptionSMS4Enabled:
-			keyIdx = *(pIV) & 0xFF;
-			break;
-#endif /* WAPI_SUPPORT */			
 	}
 
 	return keyIdx;
@@ -4391,6 +3567,15 @@ PCIPHER_KEY RTMPSwCipherKeySelection(
 #endif /* CONFIG_STA_SUPPORT */		
 	}
 
+#ifdef CONFIG_STA_SUPPORT
+	if ((CipherAlg == Ndis802_11GroupWEP40Enabled) ||
+		(CipherAlg == Ndis802_11GroupWEP104Enabled))				
+	{										
+		pKey = &pAd->SharedKey[BSS0][pAd->StaCfg.DefaultKeyId];
+		return pKey;
+	}
+#endif /* CONFIG_STA_SUPPORT */		
+
 	if ((keyIdx = RTMPExtractKeyIdxFromIVHdr(pIV, CipherAlg)) > 3)
 	{
 		DBGPRINT(RT_DEBUG_ERROR, ("%s : Invalid key index(%d) !!!\n", 
@@ -4409,24 +3594,10 @@ PCIPHER_KEY RTMPSwCipherKeySelection(
 			pKey = &pEntry->PairwiseKey;
 		else {
 #ifdef CONFIG_STA_SUPPORT
-#ifdef ADHOC_WPA2PSK_SUPPORT
-            if (ADHOC_ON(pAd))
-    			pKey = &pEntry->RxGTK;
-            else
-#endif /* ADHOC_WPA2PSK_SUPPORT */                
 #endif /* CONFIG_STA_SUPPORT */	    	                
 		    	pKey = &pAd->SharedKey[pEntry->apidx][keyIdx];
         }
 	}
-#ifdef WAPI_SUPPORT
-	else if (CipherAlg == Ndis802_11EncryptionSMS4Enabled)
-	{
-		if (pRxBlk->pRxInfo->U2M)
-			pKey = &pEntry->PairwiseKey;
-		else
-			pKey = &pAd->SharedKey[pEntry->apidx][keyIdx];
-	}
-#endif /* WAPI_SUPPORT */
 
 	return pKey;
 	
@@ -4489,27 +3660,6 @@ NDIS_STATUS	RTMPSoftDecryptionAction(
 				return NDIS_STATUS_FAILURE; 
         	}
 			break;
-#ifdef WAPI_SUPPORT
-#ifdef SOFT_ENCRYPT
-		case CIPHER_SMS4:
-			{
-				INT	ret;
-#ifdef RT_BIG_ENDIAN
-				RTMPFrameEndianChange(pAd, pHdr, DIR_READ, FALSE);
-#endif				
-				if ((ret = RTMPSoftDecryptSMS4(pHdr, FALSE, pKey, pData, &(*DataByteCnt))) != STATUS_SUCCESS)
-				{
-					DBGPRINT(RT_DEBUG_ERROR, ("ERROR : SW decrypt SMS4 data fails(%d).\n", ret));
-					/* give up this frame*/
-					return NDIS_STATUS_FAILURE;  
-				}
-#ifdef RT_BIG_ENDIAN
-				RTMPFrameEndianChange(pAd, pHdr, DIR_READ, FALSE);
-#endif				
-			}
-			break;
-#endif /* SOFT_ENCRYPT */			
-#endif /* WAPI_SUPPORT */			
 		default:
 			/* give up this frame*/
 			return NDIS_STATUS_FAILURE;  
@@ -4529,15 +3679,6 @@ VOID RTMPSoftConstructIVHdr(
 {
 	*hdr_iv_len = 0;
 
-#ifdef WAPI_SUPPORT
-	if (CipherAlg == CIPHER_SMS4)
-	{
-		/* Construct and insert WPI-SMS4 IV header to MPDU header */
-		RTMPConstructWPIIVHdr(key_id, pTxIv, pHdrIv);		
-		*hdr_iv_len = LEN_WPI_IV_HDR;
-	}
-	else
-#endif /* WAPI_SUPPORT */
 	if ((CipherAlg == CIPHER_WEP64) || (CipherAlg == CIPHER_WEP128))
 	{
 		/* Construct and insert 4-bytes WEP IV header to MPDU header */
@@ -4567,28 +3708,6 @@ VOID RTMPSoftEncryptionAction(
 {
 	*ext_len = 0;
 
-#ifdef WAPI_SUPPORT
-#ifdef SOFT_ENCRYPT
-	if (CipherAlg == CIPHER_SMS4)
-	{
-#ifdef RT_BIG_ENDIAN
-		RTMPFrameEndianChange(pAd, pHdr, DIR_READ, FALSE);
-#endif
-		/* Encrypt the MPDU data by software*/
-		RTMPSoftEncryptSMS4(pHdr, 
-							pSrcBufData, 
-							SrcBufLen, 
-							KeyIdx,
-							pKey->Key, 
-							pKey->TxTsc);
-#ifdef RT_BIG_ENDIAN
-		RTMPFrameEndianChange(pAd, pHdr, DIR_READ, FALSE);
-#endif
-		*ext_len = LEN_WPI_MIC;
-	}
-	else
-#endif /* SOFT_ENCRYPT */		
-#endif /* WAPI_SUPPORT */
 	if ((CipherAlg == CIPHER_WEP64) || (CipherAlg == CIPHER_WEP128))
 	{
 		/* Encrypt the MPDU data by software*/

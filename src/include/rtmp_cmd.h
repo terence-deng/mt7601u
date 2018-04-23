@@ -1,3 +1,30 @@
+/*
+ *************************************************************************
+ * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
+ *
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
+
+
 #ifndef __RTMP_CMD_H__
 #define __RTMP_CMD_H__
 
@@ -48,11 +75,6 @@ typedef struct _CmdQ {
 #define RTMP_IO_ENOTCONN						30007
 
 enum {
-#ifdef MAT_SUPPORT
-	SHOW_IPV4_MAT_INFO = 1,
-	SHOW_IPV6_MAT_INFO = 2,
-	SHOW_ETH_CLONE_MAC = 3,
-#endif /* MAT_SUPPORT */
 	SHOW_CONN_STATUS = 4,
 	SHOW_DRVIER_VERION = 5,
 	SHOW_BA_INFO = 6,
@@ -68,36 +90,11 @@ enum {
 #endif /* QOS_DLS_SUPPORT */
 	SHOW_CFG_VALUE = 21,
 	SHOW_ADHOC_ENTRY_INFO = 22,
-#ifdef DOT11Z_TDLS_SUPPORT
-	SHOW_TDLS_ENTRY_INFO = 25,
-#endif /* DOT11Z_TDLS_SUPPORT */
 	SHOW_DEV_INFO = 26,
 	SHOW_STA_INFO = 27,
 };
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef WSC_STA_SUPPORT
-enum {
-	WSC_CREDENTIAL_COUNT = 1,
-	WSC_CREDENTIAL_SSID = 2,
-	WSC_CREDENTIAL_AUTH_MODE = 3,
-	WSC_CREDENTIAL_ENCR_TYPE = 4,
-	WSC_CREDENTIAL_KEY_INDEX = 5,
-	WSC_CREDENTIAL_KEY = 6,
-	WSC_CREDENTIAL_MAC = 7,
-	WSC_SET_DRIVER_CONNECT_BY_CREDENTIAL_IDX = 8,
-	WSC_SET_DRIVER_AUTO_CONNECT = 9,
-	WSC_SET_CONF_MODE = 10,	/* Enrollee or Registrar */
-	WSC_SET_MODE = 11,	/* PIN or PBC */
-	WSC_SET_PIN = 12,
-	WSC_SET_SSID = 13,
-	WSC_START = 14,
-	WSC_STOP = 15,
-	WSC_GEN_PIN_CODE = 16,
-	WSC_AP_BAND = 17,
-	WSC_SET_BSSID = 18,
-};
-#endif /* WSC_STA_SUPPORT */
 
 #ifdef WPA_SUPPLICANT_SUPPORT
 #ifndef NATIVE_WPA_SUPPLICANT_SUPPORT

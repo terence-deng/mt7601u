@@ -1,29 +1,30 @@
-/****************************************************************************
+/*
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
- * (c) Copyright 2002, Ralink Technology, Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ****************************************************************************
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-    Module Name:
-	multi_channel.c
- 
-    Abstract:
- 
-    Revision History:
-    Who          When          What
-    ---------    ----------    ----------------------------------------------
- */
 
- 
 #include "rt_config.h"
 
 #ifdef CONFIG_MULTI_CHANNEL
@@ -61,9 +62,6 @@ VOID RtmpPrepareHwNullFrame(
 	UINT i;
 	UINT32 longValue;
 	UCHAR MlmeRate;
-#ifdef P2P_SUPPORT
-	PAPCLI_STRUCT pApCliEntry = NULL;
-#endif /* P2P_SUPPORT */
 
 #ifdef RT_BIG_ENDIAN
 	NDIS_STATUS    NState;
@@ -84,15 +82,6 @@ VOID RtmpPrepareHwNullFrame(
 	pNullFr->FC.FrDs = 0;
 
 	COPY_MAC_ADDR(pNullFr->Addr1, pEntry->Addr);
-#ifdef P2P_SUPPORT
-	if (IS_ENTRY_APCLI(pEntry))
-	{
-		pApCliEntry = &pAd->ApCfg.ApCliTab[pEntry->MatchAPCLITabIdx];
-		COPY_MAC_ADDR(pNullFr->Addr2, pApCliEntry->CurrentAddress);
-		COPY_MAC_ADDR(pNullFr->Addr3, pApCliEntry->CfgApCliBssid);
-	}
-	else
-#endif /* P2P_SUPPORT */
 	{
 		COPY_MAC_ADDR(pNullFr->Addr2, pAd->CurrentAddress);
 		COPY_MAC_ADDR(pNullFr->Addr3, pAd->CommonCfg.Bssid);
@@ -287,15 +276,6 @@ VOID RtmpEnqueueLastNullFrame(
 	pHeader_802_11->FC.ToDs = 1;
 
 	COPY_MAC_ADDR(pHeader_802_11->Addr1, pEntry->Addr);
-#ifdef P2P_SUPPORT
-	if (IS_ENTRY_APCLI(pEntry))
-	{
-		pApCliEntry = &pAd->ApCfg.ApCliTab[pEntry->MatchAPCLITabIdx];
-		COPY_MAC_ADDR(pHeader_802_11->Addr2, pApCliEntry->CurrentAddress);
-		COPY_MAC_ADDR(pHeader_802_11->Addr3, pApCliEntry->CfgApCliBssid);
-	}
-	else
-#endif /* P2P_SUPPORT */
 	{
 		COPY_MAC_ADDR(pHeader_802_11->Addr2, pAd->CurrentAddress);
 		COPY_MAC_ADDR(pHeader_802_11->Addr3, pAd->CommonCfg.Bssid);

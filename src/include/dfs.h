@@ -1,32 +1,30 @@
-
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-    Module Name:
-    dfs.h
 
-    Abstract:
-    Support DFS function.
-
-    Revision History:
-    Who       When            What
-    --------  ----------      ----------------------------------------------
-    Fonchi    03-12-2007      created
-*/
 #ifndef __DFS_H__
 #define __DFS_H__
 
@@ -377,194 +375,6 @@ typedef struct _NewDFSProgParam
 	ULONG BHigh;		/* reg 0x23~0x26, Burst High[7:0] & Burst High[15:8] & Burst High[23:16] & Burst High[31:24]		*/
 }NewDFSProgParam, *pNewDFSProgParam;
 
-#ifdef CONFIG_AP_SUPPORT
-VOID NewRadarDetectionStart(
-	IN PRTMP_ADAPTER pAd);
-
-VOID NewRadarDetectionStop(
-	IN PRTMP_ADAPTER pAd);
-
-void modify_table1(
-	IN PRTMP_ADAPTER pAd, 
-	IN ULONG idx, 
-	IN ULONG value);
-
-void modify_table2(
-	IN PRTMP_ADAPTER pAd, 
-	IN ULONG idx, 
-	IN ULONG value);
-  
-void schedule_dfs_task(
-	 IN PRTMP_ADAPTER pAd);
- 
-int SWRadarCheck(
-	 IN PRTMP_ADAPTER pAd, USHORT id);
-
-VOID NewRadarDetectionProgram(
-	IN PRTMP_ADAPTER pAd,
-	IN pNewDFSTable pDFS2Table);
-
-BOOLEAN DfsSwCheckOnHwDetection(
-	 IN PRTMP_ADAPTER pAd,
-	 IN pNewDFSTable pDFS2Table,
-	 IN UINT8 DfsChannel,
-	 IN ULONG RadarPeriod,
-	 IN ULONG RadarWidth);
-
-INT Set_RfReg_Proc(
-    IN  PRTMP_ADAPTER   pAdapter, 
-    IN  PSTRING          arg);
-
-INT	Show_BlockCh_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_RadarDebug_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_ResetRadarHwDetect_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT Set_DfsSwDisable_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT Set_DfsEnvtDropAdjTime_Proc(
-	IN PRTMP_ADAPTER   pAd, 
-	IN PSTRING  arg);
-
-INT	Set_RadarStart_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_RadarStop_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_RadarSetTbl1_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_RadarSetTbl2_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_Fcc5Thrd_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_ChBusyThrd_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_RssiThrd_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_PollTime_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_PrintBusyIdle_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_RadarSim_Proc(
-	IN	PRTMP_ADAPTER	pAd,
-	IN	PSTRING			arg);
-
-INT	Set_BusyIdleRatio_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_DfsRssiHigh_Proc(
-	IN	PRTMP_ADAPTER	pAd,
-	IN	PSTRING			arg);
-
-INT	Set_DfsRssiLow_Proc(
-	IN	PRTMP_ADAPTER	pAd,
-	IN	PSTRING			arg);
-
-INT	Set_EventExpire_Proc(
-	IN	PRTMP_ADAPTER	pAd,
-	IN      PSTRING                 arg);
-
-INT	Set_CEPrint_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_Ch0LErr_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_MaxPeriod_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_PeriodErr_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_Ch0HErr_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_Ch1Shift_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_Ch2Shift_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_DeclareThres_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_CheckLoop_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-#ifdef DFS_DEBUG
-INT	Set_DfsLowerLimit_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_DfsUpperLimit_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_FixDfsLimit_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_AvgRssiReq_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-INT	Set_CEPrintDebug_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-#endif /* DFS_DEBUG */
-
-void dfs_tasklet(unsigned long data);
-
-VOID DFSInit(
-	IN PRTMP_ADAPTER pAd);
-
-VOID ApRadarDetectPeriodic(
-	IN PRTMP_ADAPTER pAd);
-
-
-
-#ifdef RTMP_MAC_USB
- VOID NewUsbTimerCB_Radar(
-	 IN PRTMP_ADAPTER pAd);
-#endif /* RTMP_MAC_USB */
-
-#endif /* CONFIG_AP_SUPPORT */
 #endif /* DFS_SUPPORT */
 
 #endif /*_DFS_H__*/

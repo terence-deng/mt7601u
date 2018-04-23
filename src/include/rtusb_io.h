@@ -1,30 +1,29 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology	5th	Rd.
- * Science-based Industrial	Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2009, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved.	Ralink's source	code is	an unpublished work	and	the
- * use of a	copyright notice does not imply	otherwise. This	source code
- * contains	confidential trade secret material of Ralink Tech. Any attemp
- * or participation	in deciphering,	decoding, reverse engineering or in	any
- * way altering	the	source code	is stricitly prohibited, unless	the	prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
- 	Module Name:
-	rtusb_io.h
-
-	Abstract:
-
-	Revision History:
-	Who			When	    What
-	--------	----------  ----------------------------------------------
-	Name		Date	    Modification logs
-*/
 
 #ifndef __RTUSB_IO_H__
 #define __RTUSB_IO_H__
@@ -49,21 +48,8 @@
 #define CMDTHREAD_QKERIODIC_EXECUT					0x0D73010A
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-#define CMDTHREAD_AP_UPDATE_CAPABILITY_AND_ERPIE	0x0D73010B
-#define CMDTHREAD_AP_ENABLE_TX_BURST				0x0D73010C
-#define CMDTHREAD_AP_DISABLE_TX_BURST				0x0D73010D
-#define CMDTHREAD_AP_ADJUST_EXP_ACK_TIME			0x0D73010E
-#define CMDTHREAD_AP_RECOVER_EXP_ACK_TIME			0x0D73010F
-#define CMDTHREAD_CHAN_RESCAN						0x0D730110
-#endif /* CONFIG_AP_SUPPORT */
 
 #define CMDTHREAD_SET_LED_STATUS				0x0D730111	/* Set WPS LED status (LED_WPS_XXX). */
-#ifdef WSC_INCLUDED
-#ifdef WSC_LED_SUPPORT
-#define CMDTHREAD_LED_WPS_MODE10					0x0D730112
-#endif /* WSC_LED_SUPPORT */
-#endif /* WSC_INCLUDED */
 
 /* Security related */
 #define CMDTHREAD_SET_WCID_SEC_INFO					0x0D730113
@@ -76,9 +62,6 @@
 #define CMDTHREAD_SET_PORT_SECURED					0x0D730119
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-#define CMDTHREAD_802_11_COUNTER_MEASURE			0x0D73011A
-#endif /* CONFIG_AP_SUPPORT */
 
 /* add by johnli, fix "in_interrupt" error when call "MacTableDeleteEntry" in Rx tasklet */
 #define CMDTHREAD_UPDATE_PROTECT					0x0D73011B
@@ -93,9 +76,6 @@
 #endif /* RT_CFG80211_SUPPORT */
 #endif /* LINUX */
 
-#ifdef P2P_SUPPORT
-#define CMDTHREAD_SET_P2P_LINK_DOWN				0x0D730120
-#endif /* P2P_SUPPORT */
 
 
 
@@ -169,10 +149,6 @@ typedef struct _RT_ASIC_PROTECT_INFO {
 				&SetAsicWcid, sizeof(RT_SET_ASIC_WCID));	}
 
 /* Set MAC register value according operation mode */
-#ifdef CONFIG_AP_SUPPORT
-#define RTMP_AP_UPDATE_CAPABILITY_AND_ERPIE(pAd)	\
- 	RTEnqueueInternalCmd(pAd, CMDTHREAD_AP_UPDATE_CAPABILITY_AND_ERPIE, NULL, 0);
-#endif /* CONFIG_AP_SUPPORT */
 
 /* Insert the BA bitmap to ASIC for the Wcid entry */
 #define RTMP_ADD_BA_SESSION_TO_ASIC(_pAd, _Aid, _TID)					\

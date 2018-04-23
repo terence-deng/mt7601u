@@ -1,32 +1,30 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2004, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-    Module Name:
-    rtmp_def.h
 
-    Abstract:
-    Miniport related definition header
-
-    Revision History:
-    Who         When          What
-    --------    ----------    ----------------------------------------------
-    Paul Lin    08-01-2002    created
-    John Chang  08-05-2003    add definition for 11g & other drafts
-*/
 #ifndef __RTMP_DEF_H__
 #define __RTMP_DEF_H__
 
@@ -36,16 +34,8 @@
 #undef STA_WSC_INCLUDED
 #undef WSC_INCLUDED
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef WSC_AP_SUPPORT
-#define AP_WSC_INCLUDED
-#endif /* WSC_AP_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef WSC_STA_SUPPORT
-#define STA_WSC_INCLUDED
-#endif /* WSC_STA_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 
 #if defined(AP_WSC_INCLUDED) || defined(STA_WSC_INCLUDED)
@@ -155,18 +145,6 @@
 #define MAX_PACKETS_IN_PS_QUEUE				128	/*32 */
 #define WMM_NUM_OF_AC                       4	/* AC0, AC1, AC2, and AC3 */
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef IGMP_SNOOP_SUPPORT
-#ifdef MEMORY_OPTIMIZATION
-#define MAX_LEN_OF_MULTICAST_FILTER_TABLE 16
-#else
-#define MAX_LEN_OF_MULTICAST_FILTER_TABLE 64
-#endif
-/* Size of hash tab must be power of 2. */
-#define MAX_LEN_OF_MULTICAST_FILTER_HASH_TABLE ((MAX_LEN_OF_MULTICAST_FILTER_TABLE) * 2)
-#define FREE_MEMBER_POOL_SIZE 64
-#endif /* IGMP_SNOOP_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 #define MAX_AGG_3SS_BALIMIT		31
 
@@ -293,10 +271,6 @@ enum WIFI_MODE{
 #define fOP_STATUS_WAKEUP_NOW               0x00008000
 #define fOP_STATUS_ADVANCE_POWER_SAVE_PCIE_DEVICE       0x00020000
 
-#ifdef P2P_SUPPORT
-#define fOP_STATUS_P2P_GO					0x00080000
-#define fOP_STATUS_P2P_CLI					0x00100000
-#endif /* P2P_SUPPORT */
 #define fOP_AP_STATUS_MEDIA_STATE_CONNECTED	0x00200000
 
 
@@ -366,9 +340,6 @@ enum WIFI_MODE{
 #define fCLIENT_STATUS_CLI_WDS					0x00200000
 #endif /* CLIENT_WDS */
 
-#ifdef P2P_SUPPORT
-#define fCLIENT_STATUS_P2P_CLI					0x00400000
-#endif /* P2P_SUPPORT */
 
 /*
 	STA configuration flags
@@ -450,10 +421,6 @@ enum WIFI_MODE{
 #endif /* APCLI_SUPPORT */
 
 #define MAX_P2P_NUM				0
-#ifdef P2P_SUPPORT
-#undef	MAX_P2P_NUM
-#define MAX_P2P_NUM				1
-#endif /* P2P_SUPPORT */
 
 #define MAX_MBSSID_NUM(__pAd)		1
 
@@ -792,14 +759,6 @@ enum WIFI_MODE{
 #define WSC_STATE_MACHINE            17
 #define WSC_UPNP_STATE_MACHINE		    18
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef APCLI_SUPPORT
-#define APCLI_AUTH_STATE_MACHINE			19
-#define APCLI_ASSOC_STATE_MACHINE			20
-#define APCLI_SYNC_STATE_MACHINE			21
-#define APCLI_CTRL_STATE_MACHINE			22
-#endif /* APCLI_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 #define WPA_STATE_MACHINE            		23
 
@@ -809,22 +768,10 @@ enum WIFI_MODE{
 #endif /* QOS_DLS_SUPPORT */
 
 
-#ifdef DOT11Z_TDLS_SUPPORT
-#define TDLS_STATE_MACHINE               29
-#endif /* DOT11Z_TDLS_SUPPORT */
 
 
-#ifdef P2P_SUPPORT
-#define	P2P_CTRL_STATE_MACHINE			31
-#define	P2P_DISC_STATE_MACHINE			32
-#define	P2P_GO_FORM_STATE_MACHINE		33
-#define	P2P_ACTION_STATE_MACHINE			34
-#endif /* P2P_SUPPORT */
 
 
-#ifdef IWSC_SUPPORT
-#define IWSC_STATE_MACHINE				38
-#endif /* IWSC_SUPPORT */
 
 /*
 	STA's CONTROL/CONNECT state machine: states, events, total function #
@@ -943,12 +890,6 @@ enum WIFI_MODE{
 #define CATEGORY_RM			5
 #define CATEGORY_FT				6
 #define CATEGORY_HT			7
-#ifdef DOT11Z_TDLS_SUPPORT
-#define CATEGORY_TDLS		12
-#ifdef WFD_SUPPORT
-#define CATEGORY_VENDOR_SPECIFIC_WFD	0x7F
-#endif /* WFD_SUPPORT */
-#endif /* DOT11Z_TDLS_SUPPORT */
 
 
 /* DLS Action frame definition */
@@ -1069,70 +1010,10 @@ enum WIFI_MODE{
 
 #define DLS_FUNC_SIZE					(MAX_DLS_STATE * MAX_DLS_MSG)
 
-#ifdef DOT11Z_TDLS_SUPPORT
-/*Messages for the TDLS state machine */
-#define TDLS_IDLE						0
-#define MAX_TDLS_STATE					1
-
-#define TDLS_MACHINE_BASE		        0
-#define MT2_MLME_TDLS_SETUP_REQ			0
-#define MT2_PEER_TDLS_SETUP_REQ			1
-#define MT2_PEER_TDLS_SETUP_RSP			2
-#define MT2_PEER_TDLS_SETUP_CONF		3
-#define MT2_MLME_TDLS_TEAR_DOWN			4
-#define MT2_PEER_TDLS_TEAR_DOWN		    5
-#define MT2_PEER_TDLS_TRAFFIC_IND			6 /* for TDLS UAPSD */
-#define MT2_MLME_TDLS_CH_SWITCH_REQ		7
-#define MT2_MLME_TDLS_CH_SWITCH_RSP		8
-#define MT2_PEER_TDLS_CH_SWITCH_REQ		9
-#define MT2_PEER_TDLS_CH_SWITCH_RSP		10
-#define MT2_MLME_TDLS_PEER_PSM_REQ		11
-#define MT2_PEER_TDLS_PEER_PSM_REQ			12
-#define MT2_PEER_TDLS_PEER_PSM_RESP		13
-#define MT2_PEER_TDLS_TRAFFIC_RSP			14 /* for TDLS UAPSD */
-#define MT2_MLME_TDLS_DISCOVER_REQ		15
-#define MT2_PEER_TDLS_DISCOVER_REQ			16
-#define MT2_PEER_TDLS_DISCOVER_RSP			17
-#define MT2_MLME_TDLS_CH_SWITCH_REQ_DISABLE	18
-#define MT2_MLME_TDLS_TUNNELED_REQ			19
-#define	MT2_PEER_TDLS_TUNNELED_REQ			20
-
-#define MAX_TDLS_MSG							21
-
-#define	TDLS_FUNC_SIZE					(MAX_TDLS_STATE * MAX_TDLS_MSG)
-#endif /* DOT11Z_TDLS_SUPPORT */
 
 /*
 	WSC State machine: states, events, total function #
 */
-#ifdef WSC_INCLUDED
-/*Messages for the WSC State machine */
-#define	WSC_IDLE						0
-#define	MAX_WSC_STATE					1
-#define	WSC_FUNC_SIZE					(MAX_WSC_STATE * MAX_WSC_MSG)
-
-#ifdef IWSC_SUPPORT
-#define IWSC_IDLE					0
-#define IWSC_START					1
-#define IWSC_SCAN					2
-#define IWSC_WAIT_PIN				3
-#define IWSC_WAIT_JOIN				4
-#define MAX_IWSC_STATE				5
-
-#define IWSC_MACHINE_BASE			0
-#define IWSC_MT2_MLME_START			0
-#define IWSC_MT2_MLME_STOP			1
-#define IWSC_MT2_MLME_SCAN_DONE		2
-#define IWSC_MT2_MLME_RECONNECT		3
-#define IWSC_MT2_PEER_ACTION_FRAME	4
-#define IWSC_MT2_PEER_PROBE_REQ		5
-#define IWSC_MT2_PEER_PROBE_RSP		6
-#define IWSC_MT2_PEER_PIN			7
-#define MAX_IWSC_MSG				8
-
-#define	IWSC_FUNC_SIZE			(MAX_IWSC_STATE * MAX_IWSC_MSG)
-#endif /* IWSC_SUPPORT */
-#endif /* WSC_INCLUDED */
 
 /*
 	AP's CONTROL/CONNECT state machine: states, events, total function #
@@ -1555,6 +1436,8 @@ enum WIFI_MODE{
 #define REGION_19_A_BAND                  19
 #define REGION_20_A_BAND                  20
 #define REGION_21_A_BAND                  21
+// only for HE Pana Box, disable dfs channel on US, Gary modify
+#define REGION_22_A_BAND                  22 /* 36, 40, 44, 48, 52, 56, 60, 64 */
 #define REGION_MAXIMUM_A_BAND             37
 
 /* The security mode definition in MAC register */
@@ -1602,9 +1485,6 @@ enum WIFI_MODE{
 #define MAX_RX_REORDERBUF   64
 #define DEFAULT_TX_TIMEOUT   30
 #define DEFAULT_RX_TIMEOUT   30
-#ifdef CONFIG_AP_SUPPORT
-#define MAX_BARECI_SESSION   16
-#endif /* CONFIG_AP_SUPPORT */
 
 /* definition of Recipient or Originator */
 #define I_RECIPIENT                  TRUE
@@ -1686,11 +1566,6 @@ enum WIFI_MODE{
 #define ENTRY_DLS			5
 #define ENTRY_TDLS			6
 
-#ifdef P2P_SUPPORT
-#define P2P_ENTRY_NONE		0
-#define P2P_GO_ENTRY		1
-#define P2P_CLI_ENTRY		2
-#endif /* P2P_SUPPORT */
 
 #define IS_ENTRY_NONE(_x)		((_x)->EntryType == ENTRY_NONE)
 #define IS_ENTRY_CLIENT(_x)		((_x)->EntryType == ENTRY_CLIENT)
@@ -1702,12 +1577,6 @@ enum WIFI_MODE{
 #ifdef CLIENT_WDS
 #define IS_ENTRY_CLIWDS(_x)		CLIENT_STATUS_TEST_FLAG((_x), fCLIENT_STATUS_CLI_WDS)
 #endif /* CLIENT_WDS */
-#ifdef P2P_SUPPORT
-#define IS_ENTRY_P2PCLI(_x)		CLIENT_STATUS_TEST_FLAG((_x), fCLIENT_STATUS_P2P_CLI)
-#define IS_P2P_ENTRY_NONE(_x)	((_x)->P2PEntryType == P2P_ENTRY_NONE)
-#define IS_P2P_GO_ENTRY(_x)		((_x)->P2PEntryType == P2P_GO_ENTRY)
-#define IS_P2P_CLI_ENTRY(_x)	((_x)->P2PEntryType == P2P_CLI_ENTRY)
-#endif /* P2P_SUPPORT */
 
 #define SET_ENTRY_NONE(_x)		((_x)->EntryType = ENTRY_NONE)
 #define SET_ENTRY_CLIENT(_x)	((_x)->EntryType = ENTRY_CLIENT)
@@ -1719,12 +1588,6 @@ enum WIFI_MODE{
 #ifdef CLIENT_WDS
 #define SET_ENTRY_CLIWDS(_x)	CLIENT_STATUS_SET_FLAG((_x), fCLIENT_STATUS_CLI_WDS)
 #endif /* CLIENT_WDS */
-#ifdef P2P_SUPPORT
-#define SET_ENTRY_P2PCLI(_x)	CLIENT_STATUS_SET_FLAG((_x), fCLIENT_STATUS_P2P_CLI)
-#define SET_P2P_GO_ENTRY(_x)	((_x)->P2PEntryType = P2P_GO_ENTRY)
-#define SET_P2P_CLI_ENTRY(_x)	((_x)->P2PEntryType = P2P_CLI_ENTRY)
-#define SET_P2P_ENTRY_NONE(_x)	((_x)->P2PEntryType = P2P_ENTRY_NONE)
-#endif /* P2P_SUPPORT */
 #define SET_PKT_OPMODE_AP(_x)		((_x)->OpMode = OPMODE_AP)
 #define SET_PKT_OPMODE_STA(_x)		((_x)->OpMode = OPMODE_STA)
 #define IS_PKT_OPMODE_AP(_x)		((_x)->OpMode == OPMODE_AP)
@@ -1822,63 +1685,9 @@ enum WIFI_MODE{
 /* For flooding attack - end */
 #endif /* IDS_SUPPORT */
 
-#ifdef WSC_INCLUDED
-/* For WSC wireless event - start */
-#define	IW_WSC_EVENT_FLAG_START                   	0x0500
-#define IW_WSC_PBC_SESSION_OVERLAP					0x0500
-#define IW_WSC_REGISTRAR_SUPPORT_PBC				0x0501
-#define IW_WSC_REGISTRAR_SUPPORT_PIN				0x0502
-#define	IW_WSC_STATUS_SUCCESS              			0x0503
-#define	IW_WSC_STATUS_FAIL             				0x0504
-#define	IW_WSC_2MINS_TIMEOUT           				0x0505
-#define	IW_WSC_SEND_EAPOL_START    					0x0506
-#define	IW_WSC_SEND_WSC_START      					0x0507
-#define	IW_WSC_SEND_M1           					0x0508
-#define	IW_WSC_SEND_M2           					0x0509
-#define	IW_WSC_SEND_M3           					0x050a
-#define	IW_WSC_SEND_M4           					0x050b
-#define	IW_WSC_SEND_M5           					0x050c
-#define	IW_WSC_SEND_M6           					0x050d
-#define	IW_WSC_SEND_M7           					0x050e
-#define	IW_WSC_SEND_M8           					0x050f
-#define	IW_WSC_SEND_DONE           					0x0510
-#define	IW_WSC_SEND_ACK           					0x0511
-#define	IW_WSC_SEND_NACK           					0x0512
-#define	IW_WSC_RECEIVE_WSC_START   					0x0513
-#define	IW_WSC_RECEIVE_M1          					0x0514
-#define	IW_WSC_RECEIVE_M2          					0x0515
-#define	IW_WSC_RECEIVE_M3          					0x0516
-#define	IW_WSC_RECEIVE_M4          					0x0517
-#define	IW_WSC_RECEIVE_M5          					0x0518
-#define	IW_WSC_RECEIVE_M6          					0x0519
-#define	IW_WSC_RECEIVE_M7          					0x051a
-#define	IW_WSC_RECEIVE_M8          					0x051b
-#define	IW_WSC_RECEIVE_DONE        					0x051c
-#define	IW_WSC_RECEIVE_ACK         					0x051d
-#define	IW_WSC_RECEIVE_NACK        					0x051e
-#define	IW_WSC_MANY_CANDIDATE 						0x051f
-#define IW_WSC_NEXT_CANDIDATE						0x0520
-#define	IW_WSC_T1_TIMER_TIMEOUT        				0x0521
-#define	IW_WSC_T2_TIMER_TIMEOUT        				0x0522
-#define	IW_WSC_EVENT_FLAG_END                   	0x0522
-#define	IW_WSC_EVENT_TYPE_NUM						(IW_WSC_EVENT_FLAG_END - IW_WSC_EVENT_FLAG_START + 1)
-/* For WSC wireless event - end */
-#endif /* WSC_INCLUDED */
 /* End - WIRELESS EVENTS definition */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef IWSC_SUPPORT
-// For WSC wireless event - start
-#define	IW_IWSC_EVENT_FLAG_START                  	0x0600
-#define	IW_IWSC_T1_TIMER_TIMEOUT       				0x0600
-#define	IW_IWSC_T2_TIMER_TIMEOUT       				0x0601
-#define IW_IWSC_BECOME_REGISTRAR					0x0602
-#define IW_IWSC_BECOME_ENROLLEE						0x0603
-#define IW_IWSC_ENTRY_TIMER_TIMEOUT					0x0604
-#define	IW_IWSC_EVENT_FLAG_END                   	0x0604
-#define	IW_IWSC_EVENT_TYPE_NUM						(IW_IWSC_EVENT_FLAG_END - IW_IWSC_EVENT_FLAG_START + 1)
-/* For WSC wireless event - end */
-#endif /* IWSC_SUPPORT */
 
 /* definition for DLS */
 #define	MAX_NUM_OF_INIT_DLS_ENTRY   1
@@ -1889,9 +1698,7 @@ enum WIFI_MODE{
 #define MAX_RX_REORDERBUF		64
 #define DEFAULT_TX_TIMEOUT		30
 #define DEFAULT_RX_TIMEOUT		30
-#ifndef CONFIG_AP_SUPPORT
 #define MAX_BARECI_SESSION		8
-#endif
 
 #ifndef IW_ESSID_MAX_SIZE
 /* Maximum size of the ESSID and pAd->nickname strings */

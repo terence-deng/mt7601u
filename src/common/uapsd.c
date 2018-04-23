@@ -1,55 +1,29 @@
-/****************************************************************************
+/*
+ *************************************************************************
  * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
  * Taiwan, R.O.C.
  *
- * (c) Copyright 2002, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************/
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-/****************************************************************************
-
-    Abstract:
-
-	All related WMM UAPSD function body.
-
-	Two EOSP sent mechanism:
-	1. Use DMA Done to do the check.
-		a. safe but not accuracy, because maybe all packets are still in hardware
-			DMA, not yet be sent to air, but DMA Done are all 1
-		b. in USB chip, the data completion does not mean a packet is sent, it
-			means a block of data is sent, so we need to use another method to
-			know how many packets are sent in the data completion function
-
-	2. Use TX Statistics to do the check.
-		a. unsafe but accuracy, because too many traffic are sent before TX Done
-			Interrupt occurs and the statistics count will be overwrited.
-		b. management frames will not be counted
-		c. frames using 1Mbps (CCK) will no be counted
-		d. legacy ps frame sent after a PS-Poll frame is also be counted, we
-			need to handle the mix mode case: some AC are legacy PS and some AC
-			are UAPSD
-		e. in USB chip, only one statistics counter for all station entries;
-			so only use DMA Done mechanism in USB device; but in PCI chip,
-			one statistics counter for each station entries.
-
-	All ACs have two UAPSD modes:
-	1. Delivery-enabled
-		meaningful mode for AC in AP
-
-	2. Trigger-enabled
-		meaningful mode for AC in STA
-
-	Only WMM ACM is used, we need to discriminate between Delivery-enabled and
-	Trigger-enabled AC, or all AC are Delivery/Trigger-enabled or not
-	Delivery/Trigger-enabled.
-
-***************************************************************************/
 
 #define MODULE_WMM_UAPSD
 #include "rt_config.h"
@@ -186,10 +160,6 @@ VOID RtmpAsicSleepHandle(
 	BOOLEAN FlgCanAsicSleep = TRUE;
 
 
-#ifdef DOT11Z_TDLS_SUPPORT
-	/* check TDLS condition */
-		FlgCanAsicSleep = TDLS_UAPSDP_AsicCanSleep(pAd);
-#endif /* DOT11Z_TDLS_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	/* finally, check if we can sleep */
@@ -671,13 +641,6 @@ VOID UAPSD_QueueMaintenance(
             /* clear idle counter */
 			pEntry->UAPSDQIdleCount = 0;
 
-#ifdef CONFIG_AP_SUPPORT
-			/* check TIM bit */
-			if (pEntry->PsQueue.Number == 0)
-			{
-				WLAN_MR_TIM_BIT_CLEAR(pAd, pEntry->apidx, pEntry->Aid);
-			} /* End of if */
-#endif /* CONFIG_AP_SUPPORT */
         } /* End of if */
 
 #ifdef RTMP_MAC_USB
@@ -921,9 +884,6 @@ VOID UAPSD_SP_CloseInRVDone(
 		return; /* no any station is in power save mode */
 	/* End of if */
 
-#ifdef P2P_SUPPORT
-	FirstWcid = 2;
-#endif /* P2P_SUPPORT */
 
     /* check for all CLIENT's UAPSD Service Period */
 	for(IdEntry = FirstWcid; IdEntry < MAX_LEN_OF_MAC_TABLE; IdEntry++)
@@ -1275,13 +1235,6 @@ BOOLEAN UAPSD_PsPollHandle(
 	{
 		/* all AC are U-APSD and no any U-APSD packet is queued, set TIM */
 
-#ifdef CONFIG_AP_SUPPORT
-		/* clear TIM bit */
-		if ((Aid > 0) && (Aid < MAX_LEN_OF_MAC_TABLE))
-		{
-			WLAN_MR_TIM_BIT_CLEAR(pAd, pEntry->apidx, Aid);
-		} /* End of if */
-#endif /* CONFIG_AP_SUPPORT */
 	} /* End of if */
 
 	/* reset idle timeout here whenever a trigger frame is received */
@@ -1802,13 +1755,6 @@ VOID UAPSD_TriggerFrameHandle(
 	{
 		/* all AC are U-APSD and no any U-APSD packet is queued, set TIM */
 
-#ifdef CONFIG_AP_SUPPORT
-		/* clear TIM bit */
-		if ((Aid > 0) && (Aid < MAX_LEN_OF_MAC_TABLE))
-		{
-			WLAN_MR_TIM_BIT_CLEAR(pAd, pEntry->apidx, Aid);
-		}
-#endif /* CONFIG_AP_SUPPORT */
 	}
 
 	/* reset idle timeout here whenever a trigger frame is received */
@@ -1932,9 +1878,6 @@ VOID UAPSD_UnTagFrame(
 	int		FirstWcid = 1;
 
 
-#ifdef P2P_SUPPORT
-	FirstWcid = 2;
-#endif /* P2P_SUPPORT */
 	RTMP_SEM_LOCK(&pAd->UAPSDEOSPLock);
 
 	/* loop for all entries to check whether we need to close their SP */
@@ -1943,9 +1886,6 @@ VOID UAPSD_UnTagFrame(
 		pEntry = &pAd->MacTab.Content[IdEntry];
 
 		if ((IS_ENTRY_CLIENT(pEntry)
-#ifdef DOT11Z_TDLS_SUPPORT
-			|| IS_ENTRY_TDLS(pEntry)
-#endif /* DOT11Z_TDLS_SUPPORT */
 			)
 			 && (pEntry->bAPSDFlagSPStart == 1) &&
 			(pEntry->UAPSDTagOffset[AcQueId] != 0))

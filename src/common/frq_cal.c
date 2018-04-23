@@ -1,29 +1,29 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2004, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Module Name:
-	frq_cal.c
-
-	Abstract:
-	
-	Revision History:
-	Who         When          What
-	--------    ----------    ----------------------------------------------
-*/
 
 #ifdef RTMP_FREQ_CALIBRATION_SUPPORT
 
@@ -127,14 +127,16 @@ VOID FrequencyCalibrationMode(
 	UINT8 Mode)
 {
 	UCHAR RFValue = 0;
+	UINT32 PreRFValue = 0; 
 
 #ifdef MT7601
 	if (Mode == FREQ_CAL_MODE2)
 	{
 		rlt_rf_write(pAd, RF_BANK0, RF_R12, pAd->FreqCalibrationCtrl.AdaptiveFreqOffset);
 
-		rlt_rf_write(pAd, RF_BANK0, RF_R04, 0x0A);
-		rlt_rf_write(pAd, RF_BANK0, RF_R05, 0x20);
+		AndesRFRandomWrite(pAd, 2,
+			RF_BANK0, RF_R04, 0x0A,
+			RF_BANK0, RF_R05, 0x20);
 		rlt_rf_read(pAd, RF_BANK0, RF_R04, &RFValue);
 		RFValue = ((RFValue & ~0x80) | 0x80); 	/* vcocal_en (initiate VCO calibration (reset after completion)) - It should be at the end of RF configuration. */
 		rlt_rf_write(pAd, RF_BANK0, RF_R04, RFValue);

@@ -1,30 +1,30 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology	5th	Rd.
- * Science-based Industrial	Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2004, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved.	Ralink's source	code is	an unpublished work	and	the
- * use of a	copyright notice does not imply	otherwise. This	source code
- * contains	confidential trade secret material of Ralink Tech. Any attemp
- * or participation	in deciphering,	decoding, reverse engineering or in	any
- * way altering	the	source code	is stricitly prohibited, unless	the	prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Module Name:
-	oid.h
 
-	Abstract:
-
-	Revision History:
-	Who			When			What
-	--------	----------		----------------------------------------------
-	Name		Date			Modification logs
-*/
 #ifndef _OID_H_
 #define _OID_H_
 
@@ -353,23 +353,6 @@ struct hostapd_wpa_psk {
 #define RT_OID_802_11_SET_TDLS_PARAM			(OID_GET_SET_TOGGLE | RT_OID_802_11_QUERY_TDLS_PARAM)
 #define RT_OID_802_11_SET_TDLS				(OID_GET_SET_TOGGLE | RT_OID_802_11_QUERY_TDLS)
 
-#ifdef WAPI_SUPPORT
-#define OID_802_11_WAPI_PID					0x06A0
-#define OID_802_11_PORT_SECURE_STATE		0x06A1
-#define OID_802_11_UCAST_KEY_INFO			0x06A2
-#define OID_802_11_MCAST_TXIV				0x06A3
-#define OID_802_11_MCAST_KEY_INFO			0x06A4
-#define OID_802_11_WAPI_CONFIGURATION		0x06A5
-#define OID_802_11_WAPI_IE					0x06A6
-
-#define RT_OID_802_11_WAPI_PID				(OID_GET_SET_TOGGLE | OID_802_11_WAPI_PID)
-#define RT_OID_802_11_PORT_SECURE_STATE		(OID_GET_SET_TOGGLE | OID_802_11_PORT_SECURE_STATE)
-#define RT_OID_802_11_UCAST_KEY_INFO		(OID_GET_SET_TOGGLE | OID_802_11_UCAST_KEY_INFO)
-#define RT_OID_802_11_MCAST_TXIV			(OID_GET_SET_TOGGLE | OID_802_11_MCAST_TXIV)
-#define RT_OID_802_11_MCAST_KEY_INFO		(OID_GET_SET_TOGGLE | OID_802_11_MCAST_KEY_INFO)
-#define RT_OID_802_11_WAPI_CONFIGURATION	(OID_GET_SET_TOGGLE | OID_802_11_WAPI_CONFIGURATION)
-#define RT_OID_802_11_WAPI_IE				(OID_GET_SET_TOGGLE | OID_802_11_WAPI_IE)
-#endif /* WAPI_SUPPORT */
 
 typedef enum _NDIS_802_11_STATUS_TYPE {
 	Ndis802_11StatusType_Authentication,
@@ -550,15 +533,6 @@ typedef struct GNU_PACKED _DOT1X_IDLE_TIMEOUT {
 } DOT1X_IDLE_TIMEOUT, *PDOT1X_IDLE_TIMEOUT;
 #endif /* DOT1X_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-typedef struct _NDIS_AP_802_11_KEY {
-	UINT Length;		/* Length of this structure */
-	UCHAR addr[6];
-	UINT KeyIndex;
-	UINT KeyLength;		/* length of key in bytes */
-	UCHAR KeyMaterial[1];	/* variable length depending on above field */
-} NDIS_AP_802_11_KEY, *PNDIS_AP_802_11_KEY;
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef APCLI_SUPPORT
 #ifdef APCLI_WPA_SUPPLICANT_SUPPORT
@@ -619,10 +593,6 @@ typedef enum _NDIS_802_11_AUTHENTICATION_MODE {
 	Ndis802_11AuthModeWPA2PSK,
 	Ndis802_11AuthModeWPA1WPA2,
 	Ndis802_11AuthModeWPA1PSKWPA2PSK,
-#ifdef WAPI_SUPPORT
-	Ndis802_11AuthModeWAICERT,	/* WAI certificate authentication */
-	Ndis802_11AuthModeWAIPSK,	/* WAI pre-shared key */
-#endif				/* WAPI_SUPPORT */
 	Ndis802_11AuthModeMax	/* Not a real mode, defined as upper bound */
 } NDIS_802_11_AUTHENTICATION_MODE, *PNDIS_802_11_AUTHENTICATION_MODE;
 
@@ -726,9 +696,6 @@ typedef enum _NDIS_802_11_WEP_STATUS {
 	Ndis802_11Encryption4KeyAbsent,
 	Ndis802_11GroupWEP40Enabled,
 	Ndis802_11GroupWEP104Enabled,
-#ifdef WAPI_SUPPORT
-	Ndis802_11EncryptionSMS4Enabled,	/* WPI SMS4 support */
-#endif /* WAPI_SUPPORT */
 } NDIS_802_11_WEP_STATUS, *PNDIS_802_11_WEP_STATUS, NDIS_802_11_ENCRYPTION_STATUS, *PNDIS_802_11_ENCRYPTION_STATUS;
 
 typedef enum _NDIS_802_11_RELOAD_DEFAULTS {
@@ -807,29 +774,6 @@ typedef struct _NDIS_802_11_PMKID {
 } NDIS_802_11_PMKID, *PNDIS_802_11_PMKID;
 #endif /* defined(CONFIG_STA_SUPPORT) || defined(APCLI_WPA_SUPPLICANT_SUPPORT) */
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef APCLI_WPA_SUPPLICANT_SUPPORT
-typedef struct _NDIS_APCLI_802_11_PMKID
-{
-    UINT    Length;
-    UINT    BSSIDInfoCount;
-    BSSID_INFO BSSIDInfo[1];
-} NDIS_APCLI_802_11_PMKID, *PNDIS_APCLI_802_11_PMKID;
-#endif/*APCLI_WPA_SUPPLICANT_SUPPORT*/
-
-typedef struct _AP_BSSID_INFO {
-	NDIS_802_11_MAC_ADDRESS MAC;
-	NDIS_802_11_PMKID_VALUE PMKID;
-	UCHAR PMK[32];
-	ULONG RefreshTime;
-	BOOLEAN Valid;
-} AP_BSSID_INFO, *PAP_BSSID_INFO;
-
-#define MAX_PMKID_COUNT		8
-typedef struct _NDIS_AP_802_11_PMKID {
-	AP_BSSID_INFO BSSIDInfo[MAX_PMKID_COUNT];
-} NDIS_AP_802_11_PMKID, *PNDIS_AP_802_11_PMKID;
-#endif /* CONFIG_AP_SUPPORT */
 
 typedef struct _NDIS_802_11_AUTHENTICATION_ENCRYPTION {
 	NDIS_802_11_AUTHENTICATION_MODE AuthModeSupported;
@@ -891,15 +835,6 @@ typedef struct _NDIS_802_11_CAPABILITY {
 
 
 
-#ifdef WSC_INCLUDED
-#define RT_OID_WAC_REQ								0x0736
-#define	RT_OID_WSC_AUTO_PROVISION_WITH_BSSID		0x0737
-#define	RT_OID_WSC_AUTO_PROVISION					0x0738
-#ifdef WSC_LED_SUPPORT
-/*WPS LED MODE 10 for Dlink WPS LED */
-#define RT_OID_LED_WPS_MODE10						0x0739
-#endif /* WSC_LED_SUPPORT */
-#endif /* WSC_INCLUDED */
 #ifdef CONFIG_STA_SUPPORT
 #define RT_OID_WSC_SET_PASSPHRASE                   0x0740	/* passphrase for wpa(2)-psk */
 #define RT_OID_WSC_DRIVER_AUTO_CONNECT              0x0741
@@ -912,11 +847,6 @@ typedef struct _NDIS_802_11_CAPABILITY {
 #define RT_OID_WSC_SET_CONF_MODE                    0x0748	/* Enrollee or Registrar */
 #define RT_OID_WSC_SET_PROFILE                      0x0749
 #endif /* CONFIG_STA_SUPPORT */
-#ifdef CONFIG_AP_SUPPORT
-#ifdef APCLI_SUPPORT
-#define RT_OID_APCLI_WSC_PIN_CODE					0x074A
-#endif /* APCLI_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 #define	RT_OID_WSC_FRAGMENT_SIZE					0x074D
 #define	RT_OID_WSC_V2_SUPPORT						0x074E
 #define	RT_OID_WSC_CONFIG_STATUS					0x074F
@@ -939,14 +869,14 @@ typedef struct _NDIS_802_11_CAPABILITY {
 #ifdef LLTD_SUPPORT
 /* for consistency with RT61 */
 #define RT_OID_GET_PHY_MODE                         0x761
-#ifdef CONFIG_AP_SUPPORT
-#define RT_OID_GET_LLTD_ASSO_TABLE                  0x762
-#ifdef APCLI_SUPPORT
-#define RT_OID_GET_REPEATER_AP_LINEAGE				0x763
-#endif /* APCLI_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 #endif /* LLTD_SUPPORT */
 
+#ifdef NINTENDO_AP
+/*#define RT_OID_NINTENDO                             0x0D010770 */
+#define RT_OID_802_11_NINTENDO_GET_TABLE			0x0771	/*((RT_OID_NINTENDO + 0x01) & 0xffff) */
+#define RT_OID_802_11_NINTENDO_SET_TABLE			0x0772	/*((RT_OID_NINTENDO + 0x02) & 0xffff) */
+#define RT_OID_802_11_NINTENDO_CAPABLE				0x0773	/*((RT_OID_NINTENDO + 0x03) & 0xffff) */
+#endif /* NINTENDO_AP */
 
 
 
@@ -1239,6 +1169,47 @@ typedef struct {
 	UCHAR rsv;
 } OID_SET_HT_PHYMODE, *POID_SET_HT_PHYMODE;
 
+#ifdef NINTENDO_AP
+#define NINTENDO_MAX_ENTRY 16
+#define NINTENDO_SSID_NAME_LN 8
+#define NINTENDO_SSID_NAME "NWCUSBAP"
+#define NINTENDO_PROBE_REQ_FLAG_MASK 0x03
+#define NINTENDO_PROBE_REQ_ON 0x01
+#define NINTENDO_PROBE_REQ_SIGNAL 0x02
+#define NINTENDO_PROBE_RSP_ON 0x01
+#define NINTENDO_SSID_NICKNAME_LN 20
+
+#define NINTENDO_WEPKEY_LN 13
+
+typedef struct _NINTENDO_SSID {
+	UCHAR NINTENDOFixChar[NINTENDO_SSID_NAME_LN];
+	UCHAR zero1;
+	UCHAR registe;
+	UCHAR ID;
+	UCHAR zero2;
+	UCHAR NICKname[NINTENDO_SSID_NICKNAME_LN];
+} RT_NINTENDO_SSID, *PRT_NINTENDO_SSID;
+
+typedef struct _NINTENDO_ENTRY {
+	UCHAR NICKname[NINTENDO_SSID_NICKNAME_LN];
+	UCHAR DS_Addr[ETH_LENGTH_OF_ADDRESS];
+	UCHAR registe;
+	UCHAR UserSpaceAck;
+} RT_NINTENDO_ENTRY, *PRT_NINTENDO_ENTRY;
+
+/*RTPRIV_IOCTL_NINTENDO_GET_TABLE */
+/*RTPRIV_IOCTL_NINTENDO_SET_TABLE */
+typedef struct _NINTENDO_TABLE {
+	UINT number;
+	RT_NINTENDO_ENTRY entry[NINTENDO_MAX_ENTRY];
+} RT_NINTENDO_TABLE, *PRT_NINTENDO_TABLE;
+
+/*RTPRIV_IOCTL_NINTENDO_SEED_WEPKEY */
+typedef struct _NINTENDO_SEED_WEPKEY {
+	UCHAR seed[NINTENDO_SSID_NICKNAME_LN];
+	UCHAR wepkey[16];	/*use 13 for 104 bits wep key */
+} RT_NINTENDO_SEED_WEPKEY, *PRT_NINTENDO_SEED_WEPKEY;
+#endif /* NINTENDO_AP */
 
 #ifdef LLTD_SUPPORT
 typedef struct _RT_LLTD_ASSOICATION_ENTRY {
@@ -1277,21 +1248,9 @@ typedef enum _RT_802_11_DLS_MODE {
 } RT_802_11_DLS_MODE;
 #endif /* QOS_DLS_SUPPORT */
 
-#ifdef DOT11Z_TDLS_SUPPORT
-typedef struct _RT_802_11_TDLS_UI {
-	USHORT TimeOut;		/* unit: second , set by UI */
-	USHORT CountDownTimer;	/* unit: second , used by driver only */
-	NDIS_802_11_MAC_ADDRESS MacAddr;	/* set by UI */
-	UCHAR Status;		/* 0: none , 1: wait STAkey, 2: finish DLS setup , set by driver only */
-	BOOLEAN Valid;		/* 1: valid , 0: invalid , set by UI, use to setup or tear down DLS link */
-} RT_802_11_TDLS_UI, *PRT_802_11_TDLS_UI;
-#endif /* DOT11Z_TDLS_SUPPORT */
 
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef WSC_INCLUDED
-#define RT_WSC_UPNP_EVENT_FLAG		0x109
-#endif /* WSC_INCLUDED */
 
 
 
@@ -1310,9 +1269,6 @@ typedef struct _RT_CHANNEL_LIST_INFO {
 	UCHAR ChannelListNum;	/* number of channel in ChannelList[] */
 } RT_CHANNEL_LIST_INFO, *PRT_CHANNEL_LIST_INFO;
 
-#ifdef IWSC_SUPPORT
-#define IWSC_MAX_SUB_MASK_LIST_COUNT	3
-#endif /* IWSC_SUPPORT */
 
 /* WSC configured credential */
 typedef struct _WSC_CREDENTIAL {
@@ -1325,13 +1281,6 @@ typedef struct _WSC_CREDENTIAL {
 	UCHAR KeyIndex;		/* optional, default is 1 */
 	UCHAR bFromUPnP;	/* TRUE: This credential is from external UPnP registrar */
 	UCHAR Rsvd[2];		/* Make alignment */
-#ifdef IWSC_SUPPORT
-	USHORT				IpConfigMethod;
-	UINT32				RegIpv4Addr;
-	UINT32				Ipv4SubMask;
-	UINT32				EnrIpv4Addr;
-	UINT32				AvaIpv4SubmaskList[IWSC_MAX_SUB_MASK_LIST_COUNT];
-#endif /* IWSC_SUPPORT */
 } WSC_CREDENTIAL, *PWSC_CREDENTIAL;
 
 /* WSC configured profiles */
@@ -1341,37 +1290,6 @@ typedef struct _WSC_PROFILE {
 	WSC_CREDENTIAL Profile[8];	/* Support up to 8 profiles */
 } WSC_PROFILE, *PWSC_PROFILE;
 
-#ifdef WAPI_SUPPORT
-typedef enum _WAPI_PORT_SECURE_STATE {
-	WAPI_PORT_NOT_SECURED,
-	WAPI_PORT_SECURED,
-} WAPI_PORT_SECURE_STATE, *PWAPI_PORT_SECURE_STATE;
-
-typedef struct _WAPI_PORT_SECURE_STRUCT {
-	UCHAR Addr[MAC_ADDR_LENGTH];
-	USHORT state;
-} WAPI_PORT_SECURE_STRUCT, *PWAPI_PORT_SECURE_STRUCT;
-
-typedef struct _WAPI_UCAST_KEY_STRUCT {
-	UCHAR Addr[MAC_ADDR_LENGTH];
-	USHORT key_id;
-	UCHAR PTK[64];		/* unicast and additional key */
-} WAPI_UCAST_KEY_STRUCT, *PWAPI_UCAST_KEY_STRUCT;
-
-typedef struct _WAPI_MCAST_KEY_STRUCT {
-	UINT32 key_id;
-	UCHAR m_tx_iv[16];
-	UCHAR key_announce[16];
-	UCHAR NMK[16];		/* notify master key */
-} WAPI_MCAST_KEY_STRUCT, *PWAPI_MCAST_KEY_STRUCT;
-
-typedef struct _WAPI_WIE_STRUCT {
-	UCHAR addr[6];
-	UINT32 wie_len;
-	UCHAR wie[90];		/* wapi information element */
-} WAPI_WIE_STRUCT, *PWAPI_WIE_STRUCT;
-
-#endif /* WAPI_SUPPORT */
 
 
 
@@ -1389,130 +1307,17 @@ typedef struct _WAPI_WIE_STRUCT {
 #endif /* APCLI_SUPPORT */
 
 
-#ifdef P2P_SUPPORT
-/* RT_P2P_SPECIFIC_WIRELESS_EVENT */
-#define RT_P2P_DEVICE_FIND							0x010A
-#define RT_P2P_RECV_PROV_REQ							0x010B
-#define RT_P2P_RECV_PROV_RSP							0x010C
-#define RT_P2P_RECV_INVITE_REQ							0x010D
-#define RT_P2P_RECV_INVITE_RSP							0x010E
-#define RT_P2P_RECV_GO_NEGO_REQ							0x010F
-#define RT_P2P_RECV_GO_NEGO_RSP							0x0110
-#define RT_P2P_GO_NEG_COMPLETED						0x0111
-#define RT_P2P_GO_NEG_FAIL						0x0112
-#define RT_P2P_WPS_COMPLETED						0x0113
-#define RT_P2P_CONNECTED							0x0114
-#define RT_P2P_DISCONNECTED							0x0115
-#define RT_P2P_CONNECT_FAIL							0x0116
-#define RT_P2P_LEGACY_CONNECTED					0x0117
-#define RT_P2P_LEGACY_DISCONNECTED					0x0118
-#define RT_P2P_AP_STA_CONNECTED					0x0119
-#define RT_P2P_AP_STA_DISCONNECTED					0x011A
-#define RT_P2P_DEVICE_TABLE_ITEM_DELETE				0x011B
-#define RT_P2P_GO_NEGO_FAIL_INTENT					0x011C
-/* RT_P2P_SPECIFIC_WIRELESS_EVENT */
-
-#define OID_802_11_P2P_MODE	0x0801
-#define OID_802_11_P2P_DEVICE_NAME			0x0802
-#define OID_802_11_P2P_LISTEN_CHANNEL		0x0803
-#define OID_802_11_P2P_OPERATION_CHANNEL		0x0804
-#define OID_802_11_P2P_DEV_ADDR		0x0805
-#define OID_802_11_P2P_SCAN_LIST		0x0806
-#define OID_802_11_P2P_GO_INT		0x080c
-
-#define OID_802_11_P2P_CTRL_STATUS		0x0807
-#define OID_802_11_P2P_DISC_STATUS		0x0808
-#define OID_802_11_P2P_GOFORM_STATUS		0x0809
-#define OID_P2P_WSC_PIN_CODE		0x080a
-#define OID_802_11_P2P_CLEAN_TABLE		0x080b
-#define OID_802_11_P2P_SCAN		0x080d
-#define OID_802_11_P2P_WscMode		0x080e
-#define OID_802_11_P2P_WscConf		0x080f
-/* 0x0810 ~ 0x0814 Reserved for iNIC USERDEF_GPIO_SUPPORT */
-/* 0x0820 ~ 0x0822 Reserved for iNIC USERDEF_GPIO_SUPPORT */
-#define OID_802_11_P2P_Link								0x0830
-#define OID_802_11_P2P_Connected_MAC					0x0831
-#define OID_P2P_OFFSET						0x0000
-#define OID_802_11_P2P_RESET				(0x0832 + OID_P2P_OFFSET)
-#define OID_802_11_P2P_SIGMA_ENABLE			(0x0833 + OID_P2P_OFFSET)
-#define OID_802_11_P2P_SSID					(0x0834 + OID_P2P_OFFSET)
-#define OID_802_11_P2P_CONNECT_ADDR			(0x0835 + OID_P2P_OFFSET)
-#define OID_802_11_P2P_CONNECT_STATUS		(0x0836 + OID_P2P_OFFSET)
-#define OID_802_11_P2P_PEER_GROUP_ID		(0x0837 + OID_P2P_OFFSET)
-#define OID_802_11_P2P_ENTER_PIN					(0x0838 + OID_P2P_OFFSET)
-#define OID_802_11_P2P_PROVISION					(0x0839 + OID_P2P_OFFSET)
-#define OID_802_11_P2P_DEL_CLIENT					(0x083a + OID_P2P_OFFSET)
-#define OID_802_11_P2P_PASSPHRASE					(0x0840 + OID_P2P_OFFSET)
-#define OID_802_11_P2P_ASSOCIATE_TAB				(0x0841 + OID_P2P_OFFSET)
-#define OID_802_11_P2P_PROVISION_MAC				(0x0842 + OID_P2P_OFFSET)
-#define OID_802_11_P2P_LINK_DOWN						(0x0843 + OID_P2P_OFFSET)
-#define OID_802_11_P2P_PRI_DEVICE_TYPE				(0x0844 + OID_P2P_OFFSET)
-#define OID_802_11_P2P_INVITE							(0x0845 + OID_P2P_OFFSET)
-#define OID_802_11_P2P_PERSISTENT_TABLE				(0x0846 + OID_P2P_OFFSET)
-#define OID_DELETE_PERSISTENT_TABLE          				(0x0847 + OID_P2P_OFFSET)
-/* If p2p0 is Go, please use following OID to trigger WPS with None-P2P STA */
-#define OID_802_11_P2P_TRIGGER_WSC						(0x0848 + OID_P2P_OFFSET)
-#define OID_802_11_P2P_WSC_CONF_MODE						(0x0849 + OID_P2P_OFFSET)
-#define OID_802_11_P2P_PERSISTENT_ENABLE            (0x084a + OID_P2P_OFFSET)
-#define OID_802_11_P2P_WSC_MODE						(0x0850 + OID_P2P_OFFSET)
-#define OID_802_11_P2P_PIN_CODE						(0x0851 + OID_P2P_OFFSET)
-
-#ifdef WFD_SUPPORT
-#define OID_802_11_WFD_ENABLE						(0x0859 + OID_P2P_OFFSET)
-#define OID_802_11_WFD_DEVICE_TYPE				(0x0860 + OID_P2P_OFFSET)
-#define OID_802_11_WFD_SOURCE_COUPLED			(0x0861 + OID_P2P_OFFSET)
-#define OID_802_11_WFD_SINK_COUPLED				(0x0862 + OID_P2P_OFFSET)
-#define OID_802_11_WFD_SESSION_AVAILABLE 		(0x0863 + OID_P2P_OFFSET)
-#define OID_802_11_WFD_RTSP_PORT					(0x0864 + OID_P2P_OFFSET)
-#define OID_802_11_WFD_MAX_THROUGHPUT			(0x0865 + OID_P2P_OFFSET)
-#define OID_802_11_WFD_SESSION_ID				(0x0866 + OID_P2P_OFFSET)
-#define OID_802_11_WFD_PEER_RTSP_PORT			(0x0867 + OID_P2P_OFFSET)
-#define RT_OID_802_11_QUERY_WFD_TDLS_CONNECT_STATUS       (0x0868 + OID_P2P_OFFSET)
-#define RT_OID_802_11_QUERY_WFD_TDLS_PEER_IP_ADDR    (0x0869 + OID_P2P_OFFSET)
-#define OID_802_11_WFD_CONTENT_PROTECT			(0x086a + OID_P2P_OFFSET)
-
-#define OID_802_11_WFD_DEV_LIST						(0x0870 + OID_P2P_OFFSET)
-#ifdef RT_CFG80211_SUPPORT
-#define OID_802_11_WFD_IE_INSERT					(0x0871 + OID_P2P_OFFSET)
-#endif /* RT_CFG80211_SUPPORT */
-#endif /* WFD_SUPPORT */
-
-#define RT_OID_802_11_P2P_MODE	(OID_GET_SET_TOGGLE + OID_802_11_P2P_MODE)
-#define RT_OID_802_11_P2P_DEVICE_NAME		(OID_GET_SET_TOGGLE + OID_802_11_P2P_DEVICE_NAME)
-#define RT_OID_802_11_P2P_LISTEN_CHANNEL		(OID_GET_SET_TOGGLE + OID_802_11_P2P_LISTEN_CHANNEL)
-#define RT_OID_802_11_P2P_OPERATION_CHANNEL		(OID_GET_SET_TOGGLE + OID_802_11_P2P_OPERATION_CHANNEL)
-#define RT_OID_802_11_P2P_DEV_ADDR	(OID_GET_SET_TOGGLE + OID_802_11_P2P_DEV_ADDR)
-#define RT_OID_802_11_P2P_SCAN_LIST	(OID_GET_SET_TOGGLE + OID_802_11_P2P_SCAN_LIST)
-#define RT_OID_802_11_P2P_CTRL_STATUS	(OID_GET_SET_TOGGLE + OID_802_11_P2P_CTRL_STATUS)
-#define RT_OID_802_11_P2P_DISC_STATUS	(OID_GET_SET_TOGGLE + OID_802_11_P2P_DISC_STATUS)
-#define RT_OID_802_11_P2P_GOFORM_STATUS	(OID_GET_SET_TOGGLE + OID_802_11_P2P_GOFORM_STATUS)
-#define RT_OID_P2P_WSC_PIN_CODE	(OID_GET_SET_TOGGLE + OID_P2P_WSC_PIN_CODE)
-#define RT_OID_802_11_P2P_CLEAN_TABLE	(OID_GET_SET_TOGGLE + OID_802_11_P2P_CLEAN_TABLE)
-#define RT_OID_802_11_P2P_GO_INT	(OID_GET_SET_TOGGLE + OID_802_11_P2P_GO_INT)
-#define RT_OID_802_11_P2P_SCAN	(OID_GET_SET_TOGGLE + OID_802_11_P2P_SCAN)
-#define RT_OID_802_11_P2P_WscMode	(OID_GET_SET_TOGGLE + OID_802_11_P2P_WscMode)
-#define RT_OID_802_11_P2P_WscConf	(OID_GET_SET_TOGGLE + OID_802_11_P2P_WscConf)
-#define RT_OID_802_11_P2P_Link	(OID_GET_SET_TOGGLE + OID_802_11_P2P_Link)
-#define RT_OID_802_11_P2P_Connected_MAC	(OID_GET_SET_TOGGLE + OID_802_11_P2P_Connected_MAC)
-#define RT_OID_802_11_P2P_RESET	(OID_GET_SET_TOGGLE + OID_802_11_P2P_RESET)
-
-
-#define IWEVP2PSHOWPIN 	0x8C05
-#define IWEVP2PKEYPIN 	0x8C06
-
-#endif /* P2P_SUPPORT */
 
 
 
-#ifdef IWSC_SUPPORT
-#define RT_OID_IWSC_SELF_IPV4				0x0900
-#define RT_OID_IWSC_REGISTRAR_IPV4			0x0901
-#define RT_OID_IWSC_SMPBC_ENROLLEE_COUNT	0x0902
-#endif // IWSC_SUPPORT //
 
 #ifdef RTMP_MAC_USB
 #define RT_OID_USB_WOW_SUSPEND				0x0920
 #define RT_OID_USB_WOW_RESUME				0x0921
 #endif /* RTMP_MAC_USB */
+
+#ifdef CONFIG_MULTI_CHANNEL
+#define RT_OID_MULTI_CHANNEL_ENABLE			0x0930
+#endif /*CONFIG_MULTI_CHANNEL*/
 
 #endif /* _OID_H_ */

@@ -1,77 +1,35 @@
-/****************************************************************************
+/*
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
- * (c) Copyright 2002, Ralink Technology, Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ****************************************************************************
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-    Module Name:
-	action.c
- 
-    Abstract:
-    Handle association related requests either from WSTA or from local MLME
- 
-    Revision History:
-    Who         When          What
-    --------    ----------    ----------------------------------------------
-	Jan Lee		2006	  	created for rt2860
- */
 
 #include "rt_config.h"
 #include "action.h"
 
 extern UCHAR  ZeroSsid[32];
-#ifdef IWSC_SUPPORT
-extern UCHAR  IWSC_ACTION_OUI[];
-#endif // IWSC_SUPPORT //
 
-#ifdef P2P_SUPPORT
-/* Group Formation Action */
-
-extern VOID P2pPeerGoNegoReqAction(
-	IN PRTMP_ADAPTER pAd,
-	IN MLME_QUEUE_ELEM *Elem);
-
-extern VOID P2pPeerGoNegoRspAction(
-	IN PRTMP_ADAPTER pAd,
-	IN MLME_QUEUE_ELEM *Elem);
-
-extern VOID P2pPeerGoNegoConfirmAction(
-	IN PRTMP_ADAPTER pAd,
-	IN MLME_QUEUE_ELEM *Elem);
-
-extern VOID P2pPeerProvisionReqAction(
-	IN PRTMP_ADAPTER pAd,
-	IN MLME_QUEUE_ELEM *Elem);
-
-extern VOID P2pPeerProvisionRspAction(
-	IN PRTMP_ADAPTER pAd,
-	IN MLME_QUEUE_ELEM *Elem);
-
-extern VOID P2pPeerDeviceDiscRspAction(
-	IN PRTMP_ADAPTER pAd,
-	IN MLME_QUEUE_ELEM *Elem);
-
-extern VOID P2pPeerInvitesReqAction(
-	IN PRTMP_ADAPTER pAd,
-	IN MLME_QUEUE_ELEM *Elem);
-
-extern VOID P2pPeerInvitesRspAction(
-	IN PRTMP_ADAPTER pAd,
-	IN MLME_QUEUE_ELEM *Elem);
-
-extern VOID P2pPeerDevDiscoverReqAction(
-	IN PRTMP_ADAPTER pAd,
-	IN MLME_QUEUE_ELEM *Elem);
-#endif /* P2P_SUPPORT */
 
 static VOID ReservedAction(
 	IN PRTMP_ADAPTER pAd, 
@@ -126,8 +84,6 @@ VOID ActionStateMachineInit(
 	StateMachineSetAction(S, ACT_IDLE, MT2_ACT_INVALID, (STATE_MACHINE_FUNC)MlmeInvalidAction);
 
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 
 
 
@@ -147,12 +103,6 @@ VOID MlmeADDBAAction(
 	FRAME_ADDBA_REQ  Frame;
 	ULONG		FrameLen;
 	BA_ORI_ENTRY			*pBAEntry = NULL;
-#ifdef CONFIG_AP_SUPPORT
-	UCHAR			apidx;
-#endif /* CONFIG_AP_SUPPORT */
-#ifdef P2P_SUPPORT
-	MAC_TABLE_ENTRY *pEntry = NULL;
-#endif /* P2P_SUPPORT */
 
 	pInfo = (MLME_ADDBA_REQ_STRUCT *)Elem->Msg;
 	NdisZeroMemory(&Frame, sizeof(FRAME_ADDBA_REQ));
@@ -179,50 +129,6 @@ VOID MlmeADDBAAction(
 			pBAEntry =&pAd->BATable.BAOriEntry[Idx];
 		}
 		
-#ifdef P2P_SUPPORT
-		/*if (VALID_WCID(pInfo->Wcid))*/
-		{
-			pEntry = &pAd->MacTab.Content[pInfo->Wcid];
-
-			if (pEntry)
-			{
-#ifdef CONFIG_STA_SUPPORT
-				if (ADHOC_ON(pAd)
-#ifdef QOS_DLS_SUPPORT
-					|| (IS_ENTRY_DLS(&pAd->MacTab.Content[pInfo->Wcid]))
-#endif /* QOS_DLS_SUPPORT */
-#ifdef DOT11Z_TDLS_SUPPORT
-					|| (IS_ENTRY_TDLS(&pAd->MacTab.Content[pInfo->Wcid]))
-#endif /* DOT11Z_TDLS_SUPPORT */
-					)
-				{
-					ActHeaderInit(pAd, &Frame.Hdr, pInfo->pAddr, pAd->CurrentAddress, pAd->CommonCfg.Bssid);
-				}
-				else
-#endif /* CONFIG_STA_SUPPORT */
-				{
-					ActHeaderInit(pAd, &Frame.Hdr, pInfo->pAddr, pEntry->HdrAddr2, pEntry->HdrAddr3);
-				}
-			}
-		}
-#else
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-#ifdef APCLI_SUPPORT
-			if (IS_ENTRY_APCLI(&pAd->MacTab.Content[pInfo->Wcid]))
-			{
-				apidx = pAd->MacTab.Content[pInfo->Wcid].MatchAPCLITabIdx;
-				ActHeaderInit(pAd, &Frame.Hdr, pInfo->pAddr, pAd->ApCfg.ApCliTab[apidx].CurrentAddress, pInfo->pAddr);		
-			}
-			else
-#endif /* APCLI_SUPPORT */
-			{
-				apidx = pAd->MacTab.Content[pInfo->Wcid].apidx;
-				ActHeaderInit(pAd, &Frame.Hdr, pInfo->pAddr, pAd->ApCfg.MBSSID[apidx].Bssid, pAd->ApCfg.MBSSID[apidx].Bssid);
-			}
-		}
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		{
@@ -230,16 +136,12 @@ VOID MlmeADDBAAction(
 #ifdef QOS_DLS_SUPPORT
 				|| (IS_ENTRY_DLS(&pAd->MacTab.Content[pInfo->Wcid]))
 #endif /* QOS_DLS_SUPPORT */
-#ifdef DOT11Z_TDLS_SUPPORT
-				|| (IS_ENTRY_TDLS(&pAd->MacTab.Content[pInfo->Wcid]))
-#endif /* DOT11Z_TDLS_SUPPORT */
 				)
 				ActHeaderInit(pAd, &Frame.Hdr, pInfo->pAddr, pAd->CurrentAddress, pAd->CommonCfg.Bssid);
 			else
 				ActHeaderInit(pAd, &Frame.Hdr, pAd->CommonCfg.Bssid, pAd->CurrentAddress, pInfo->pAddr);
 		}
 #endif /* CONFIG_STA_SUPPORT */ 
-#endif /* P2P_SUPPORT */
 
 		Frame.Category = CATEGORY_BA;
 		Frame.Action = ADDBA_REQ;
@@ -302,12 +204,6 @@ VOID MlmeDELBAAction(
 	FRAME_DELBA_REQ  Frame;
 	ULONG		FrameLen;
 	FRAME_BAR	FrameBar;
-#ifdef CONFIG_AP_SUPPORT
-	UCHAR		apidx;
-#endif /* CONFIG_AP_SUPPORT */
-#ifdef P2P_SUPPORT
-	MAC_TABLE_ENTRY *pEntry = NULL;
-#endif /* P2P_SUPPORT */
 	
 	pInfo = (MLME_DELBA_REQ_STRUCT *)Elem->Msg;	
 	/* must send back DELBA */
@@ -334,38 +230,11 @@ VOID MlmeDELBAAction(
 
 		/* SEND BAR (Send BAR to refresh peer reordering buffer.) */
 		Idx = pAd->MacTab.Content[pInfo->Wcid].BAOriWcidArray[pInfo->TID];
-#ifdef P2P_SUPPORT
-		/*if (VALID_WCID(pInfo->Wcid)) */
-		{
-			pEntry = &pAd->MacTab.Content[pInfo->Wcid];
-
-			if (pEntry)
-				BarHeaderInit(pAd, &FrameBar, pAd->MacTab.Content[pInfo->Wcid].Addr, pEntry->HdrAddr2);
-		}
-#else
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-#ifdef APCLI_SUPPORT
-			if (IS_ENTRY_APCLI(&pAd->MacTab.Content[pInfo->Wcid]))
-			{
-				apidx = pAd->MacTab.Content[pInfo->Wcid].MatchAPCLITabIdx;
-				BarHeaderInit(pAd, &FrameBar, pAd->MacTab.Content[pInfo->Wcid].Addr, pAd->ApCfg.ApCliTab[apidx].CurrentAddress);
-			}	
-			else
-#endif /* APCLI_SUPPORT */
-			{
-				apidx = pAd->MacTab.Content[pInfo->Wcid].apidx;
-				BarHeaderInit(pAd, &FrameBar, pAd->MacTab.Content[pInfo->Wcid].Addr, pAd->ApCfg.MBSSID[apidx].Bssid);
-			}
-		}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 			BarHeaderInit(pAd, &FrameBar, pAd->MacTab.Content[pInfo->Wcid].Addr, pAd->CurrentAddress);
 #endif /* CONFIG_STA_SUPPORT */
-#endif /* P2P_SUPPORT */
 
 		FrameBar.StartingSeq.field.FragNum = 0; /* make sure sequence not clear in DEL funciton.*/
 		FrameBar.StartingSeq.field.StartSeq = pAd->MacTab.Content[pInfo->Wcid].TxSeq[pInfo->TID]; /* make sure sequence not clear in DEL funciton.*/
@@ -383,50 +252,6 @@ VOID MlmeDELBAAction(
 
 		/* SEND DELBA FRAME*/
 		FrameLen = 0;
-#ifdef P2P_SUPPORT
-		if (VALID_WCID(pInfo->Wcid))
-		{
-			pEntry = &pAd->MacTab.Content[pInfo->Wcid];
-
-			if (pEntry)
-			{
-#ifdef CONFIG_STA_SUPPORT
-				if (ADHOC_ON(pAd)
-#ifdef QOS_DLS_SUPPORT
-					|| (IS_ENTRY_DLS(&pAd->MacTab.Content[pInfo->Wcid]))
-#endif /* QOS_DLS_SUPPORT */
-#ifdef DOT11Z_TDLS_SUPPORT
-					|| (IS_ENTRY_TDLS(&pAd->MacTab.Content[pInfo->Wcid]))
-#endif /* DOT11Z_TDLS_SUPPORT */
-					)
-				{
-					ActHeaderInit(pAd, &Frame.Hdr, pAd->MacTab.Content[pInfo->Wcid].Addr, pAd->CurrentAddress, pAd->CommonCfg.Bssid);
-				}
-				else
-#endif /* CONFIG_STA_SUPPORT */
-				{
-					ActHeaderInit(pAd, &Frame.Hdr, pAd->MacTab.Content[pInfo->Wcid].Addr, pEntry->HdrAddr2, pEntry->HdrAddr3);
-				}
-			}
-		}
-#else
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-#ifdef APCLI_SUPPORT
-			if (IS_ENTRY_APCLI(&pAd->MacTab.Content[pInfo->Wcid]))
-			{
-				apidx = pAd->MacTab.Content[pInfo->Wcid].MatchAPCLITabIdx;
-				ActHeaderInit(pAd, &Frame.Hdr, pAd->MacTab.Content[pInfo->Wcid].Addr, pAd->ApCfg.ApCliTab[apidx].CurrentAddress, pAd->MacTab.Content[pInfo->Wcid].Addr);		
-			}
-			else
-#endif /* APCLI_SUPPORT */
-			{
-				apidx = pAd->MacTab.Content[pInfo->Wcid].apidx;
-				ActHeaderInit(pAd, &Frame.Hdr,  pAd->MacTab.Content[pInfo->Wcid].Addr, pAd->ApCfg.MBSSID[apidx].Bssid, pAd->ApCfg.MBSSID[apidx].Bssid);
-			}
-		}
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		{
@@ -434,16 +259,12 @@ VOID MlmeDELBAAction(
 #ifdef QOS_DLS_SUPPORT
 				|| (IS_ENTRY_DLS(&pAd->MacTab.Content[pInfo->Wcid]))
 #endif /* QOS_DLS_SUPPORT */
-#ifdef DOT11Z_TDLS_SUPPORT
-				|| (IS_ENTRY_TDLS(&pAd->MacTab.Content[pInfo->Wcid]))
-#endif /* DOT11Z_TDLS_SUPPORT */
 				)
 				ActHeaderInit(pAd, &Frame.Hdr, pAd->MacTab.Content[pInfo->Wcid].Addr, pAd->CurrentAddress, pAd->CommonCfg.Bssid);
 			else
 				ActHeaderInit(pAd, &Frame.Hdr,  pAd->CommonCfg.Bssid, pAd->CurrentAddress, pAd->MacTab.Content[pInfo->Wcid].Addr);
 		}
 #endif /* CONFIG_STA_SUPPORT */
-#endif /* P2P_SUPPORT */
 
 		Frame.Category = CATEGORY_BA;
 		Frame.Action = DELBA;
@@ -499,12 +320,6 @@ VOID PeerDLSAction(
 	switch(Action)
 	{
 		case ACTION_DLS_REQUEST:
-#ifdef CONFIG_AP_SUPPORT
-#ifndef P2P_SUPPORT
-			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-				APPeerDlsReqAction(pAd, Elem);
-#endif /* P2P_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 			IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 			PeerDlsReqAction(pAd, Elem);
@@ -512,12 +327,6 @@ VOID PeerDLSAction(
 			break;
 
 		case ACTION_DLS_RESPONSE:
-#ifdef CONFIG_AP_SUPPORT
-#ifndef P2P_SUPPORT
-			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-				APPeerDlsRspAction(pAd, Elem);
-#endif /* P2P_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 			IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 			PeerDlsRspAction(pAd, Elem);
@@ -525,12 +334,6 @@ VOID PeerDLSAction(
 			break;
 
 		case ACTION_DLS_TEARDOWN:
-#ifdef CONFIG_AP_SUPPORT
-#ifndef P2P_SUPPORT
-			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-				APPeerDlsTearDownAction(pAd, Elem);
-#endif /* P2P_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 			IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 			PeerDlsTearDownAction(pAd, Elem);
@@ -565,81 +368,6 @@ VOID PeerBAAction(
 
 
 #ifdef DOT11N_DRAFT3
-#ifdef CONFIG_AP_SUPPORT
-extern UCHAR get_regulatory_class(IN PRTMP_ADAPTER pAd);
-
-VOID ApPublicAction(
-	IN PRTMP_ADAPTER pAd, 
-	IN MLME_QUEUE_ELEM *Elem) 
-{
-	UCHAR	Action = Elem->Msg[LENGTH_802_11+1];
-	BSS_2040_COEXIST_IE		BssCoexist;
-	
-	/* Format as in IEEE 7.4.7.2*/
-	if (Action == ACTION_BSS_2040_COEXIST)
-	{
-		BssCoexist.word = Elem->Msg[LENGTH_802_11+2];
-	}
-}
-
-
-VOID SendBSS2040CoexistMgmtAction(
-	IN	PRTMP_ADAPTER	pAd,
-	IN	UCHAR	Wcid,
-	IN	UCHAR	apidx,
-	IN	UCHAR	InfoReq)
-{
-	PUCHAR			pOutBuffer = NULL;
-	NDIS_STATUS 	NStatus;
-	FRAME_ACTION_HDR	Frame;
-	ULONG			FrameLen;
-	BSS_2040_COEXIST_ELEMENT		BssCoexistInfo;
-	BSS_2040_INTOLERANT_CH_REPORT	BssIntolerantInfo;
-	PUCHAR		pAddr1;
-
-	DBGPRINT(RT_DEBUG_TRACE, ("SendBSS2040CoexistMgmtAction(): Wcid=%d, apidx=%d, InfoReq=%d!\n", Wcid, apidx, InfoReq));
-	
-	NdisZeroMemory((PUCHAR)&BssCoexistInfo, sizeof(BSS_2040_COEXIST_ELEMENT));
-	NdisZeroMemory((PUCHAR)&BssIntolerantInfo, sizeof(BSS_2040_INTOLERANT_CH_REPORT));
-	
-	BssCoexistInfo.ElementID = IE_2040_BSS_COEXIST;
-	BssCoexistInfo.Len = 1;
-	BssCoexistInfo.BssCoexistIe.word = pAd->CommonCfg.LastBSSCoexist2040.word;
-	BssCoexistInfo.BssCoexistIe.field.InfoReq = InfoReq;
-	BssIntolerantInfo.ElementID = IE_2040_BSS_INTOLERANT_REPORT;
-	BssIntolerantInfo.Len = 1;
-	BssIntolerantInfo.RegulatoryClass = get_regulatory_class(pAd);
-
-	NStatus = MlmeAllocateMemory(pAd, &pOutBuffer);  /*Get an unused nonpaged memory*/
-	if(NStatus != NDIS_STATUS_SUCCESS) 
-	{
-		DBGPRINT(RT_DEBUG_ERROR,("ACT - SendBSS2040CoexistMgmtAction() allocate memory failed \n"));
-		return;
-	}
-
-	if (Wcid == MCAST_WCID)
-		pAddr1 = &BROADCAST_ADDR[0];
-	else
-		pAddr1 = pAd->MacTab.Content[Wcid].Addr;
-	ActHeaderInit(pAd, &Frame.Hdr, pAddr1, pAd->ApCfg.MBSSID[apidx].Bssid, pAd->ApCfg.MBSSID[apidx].Bssid);
-	
-	Frame.Category = CATEGORY_PUBLIC;
-	Frame.Action = ACTION_BSS_2040_COEXIST;
-	
-	MakeOutgoingFrame(pOutBuffer,				&FrameLen,
-					sizeof(FRAME_ACTION_HDR),	  &Frame,
-					sizeof(BSS_2040_COEXIST_ELEMENT),		&BssCoexistInfo,
-					sizeof(BSS_2040_INTOLERANT_CH_REPORT), &BssIntolerantInfo,
-				  	END_OF_ARGS);
-	
-	MiniportMMRequest(pAd, QID_AC_BE, pOutBuffer, FrameLen);
-	MlmeFreeMemory(pAd, pOutBuffer);
-	
-	DBGPRINT(RT_DEBUG_ERROR,("ACT - SendBSS2040CoexistMgmtAction( BSSCoexist2040 = 0x%x )  \n", BssCoexistInfo.BssCoexistIe.word));
-	
-}
-
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 VOID StaPublicAction(
@@ -952,14 +680,6 @@ VOID ChannelSwitchAction(
 	)
 	{
 		rf_bw = BW_40;
-#ifdef GREENAP_SUPPORT
-		if (pAd->ApCfg.bGreenAPActive == 1)
-		{
-			rf_bw = BW_20;
-			pAd->CommonCfg.CentralChannel = pAd->CommonCfg.Channel;
-		}
-		else
-#endif /* GREENAP_SUPPORT */
 		if (Secondary == EXTCHA_ABOVE)
 			pAd->CommonCfg.CentralChannel = pAd->CommonCfg.Channel + 2;
 		else
@@ -986,13 +706,7 @@ VOID PeerPublicAction(
 	IN MLME_QUEUE_ELEM *Elem) 
 {
 	UCHAR	Action = Elem->Msg[LENGTH_802_11+1];
-#ifdef P2P_SUPPORT
-	if (!P2P_INF_ON(pAd))
-#endif /* P2P_SUPPORT */
 	if ((Elem->Wcid >= MAX_LEN_OF_MAC_TABLE)
-#ifdef DOT11Z_TDLS_SUPPORT
-		&& (Action != ACTION_TDLS_DISCOVERY_RSP)
-#endif // DOT11Z_TDLS_SUPPORT //
 		)
 		return;
 
@@ -1034,109 +748,9 @@ VOID PeerPublicAction(
 				}
 
 				pBssCoexistIe = (BSS_2040_COEXIST_IE *)(&pCoexistInfo->BssCoexistIe);
-#ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
-	if ((Elem->OpMode == OPMODE_AP) || (pAd->OpMode == OPMODE_AP))
-#else
-				IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-				{
-					BOOLEAN		bNeedFallBack = FALSE;
-									
-					/*ApPublicAction(pAd, Elem);*/
-					if ((pBssCoexistIe->field.BSS20WidthReq ==1) || (pBssCoexistIe->field.Intolerant40 == 1))
-					{	
-						bNeedFallBack = TRUE;
-
-						DBGPRINT(RT_DEBUG_TRACE, ("BSS_2040_COEXIST: BSS20WidthReq=%d, Intolerant40=%d!\n", pBssCoexistIe->field.BSS20WidthReq, pBssCoexistIe->field.Intolerant40));
-					}
-					else if ((pIntolerantReport) && (pIntolerantReport->Len > 1)
-							/*&& (pIntolerantReport->RegulatoryClass == get_regulatory_class(pAd))*/)
-					{
-						int i;
-						UCHAR *ptr;
-						INT retVal;
-						BSS_COEX_CH_RANGE coexChRange;
-
-						ptr = pIntolerantReport->ChList;
-						bNeedFallBack = TRUE;
-						
-						DBGPRINT(RT_DEBUG_TRACE, ("The pIntolerantReport len = %d, chlist=", pIntolerantReport->Len));
-						for(i =0 ; i < (pIntolerantReport->Len -1); i++, ptr++)
-						{
-							DBGPRINT(RT_DEBUG_TRACE, ("%d,", *ptr));
-						}
-						DBGPRINT(RT_DEBUG_TRACE, ("\n"));
-
-						retVal = GetBssCoexEffectedChRange(pAd, &coexChRange);
-						if (retVal == TRUE)
-						{
-							ptr = pIntolerantReport->ChList;
-							bNeedFallBack = FALSE;
-							DBGPRINT(RT_DEBUG_TRACE, ("Check IntolerantReport Channel List in our effectedChList(%d~%d)\n",
-													pAd->ChannelList[coexChRange.effectChStart].Channel,
-													pAd->ChannelList[coexChRange.effectChEnd].Channel));
-							for(i =0 ; i < (pIntolerantReport->Len -1); i++, ptr++)
-							{
-								UCHAR chEntry;
-
-								chEntry = *ptr;
-								if (chEntry >= pAd->ChannelList[coexChRange.effectChStart].Channel && 
-									chEntry <= pAd->ChannelList[coexChRange.effectChEnd].Channel)
-								{
-									DBGPRINT(RT_DEBUG_TRACE, ("Found Intolerant channel in effect range=%d!\n", *ptr));
-									bNeedFallBack = TRUE;
-									break;
-								}
-							}
-							DBGPRINT(RT_DEBUG_TRACE, ("After CoexChRange Check, bNeedFallBack=%d!\n", bNeedFallBack));
-						}
-						
-						if (bNeedFallBack)
-						{
-							pBssCoexistIe->field.Intolerant40 = 1;
-							pBssCoexistIe->field.BSS20WidthReq = 1;
-						}
-					}
-
-					if (bNeedFallBack)
-					{
-						int apidx;
-						
-						NdisMoveMemory((PUCHAR)&pAd->CommonCfg.LastBSSCoexist2040, (PUCHAR)pBssCoexistIe, sizeof(BSS_2040_COEXIST_IE));
-						pAd->CommonCfg.Bss2040CoexistFlag |= BSS_2040_COEXIST_INFO_SYNC;
-
-						if (!(pAd->CommonCfg.Bss2040CoexistFlag & BSS_2040_COEXIST_TIMER_FIRED))
-						{	
-							DBGPRINT(RT_DEBUG_TRACE, ("Fire the Bss2040CoexistTimer with timeout=%ld!\n", 
-									pAd->CommonCfg.Dot11BssWidthChanTranDelay));
-
-							pAd->CommonCfg.Bss2040CoexistFlag |= BSS_2040_COEXIST_TIMER_FIRED;
-							/* More 5 sec for the scan report of STAs.*/
-							RTMPSetTimer(&pAd->CommonCfg.Bss2040CoexistTimer,  (pAd->CommonCfg.Dot11BssWidthChanTranDelay + 5) * 1000);
-
-						}
-						else
-						{
-							DBGPRINT(RT_DEBUG_TRACE, ("Already fallback to 20MHz, Extend the timeout of Bss2040CoexistTimer!\n"));
-							/* More 5 sec for the scan report of STAs.*/
-							RTMPModTimer(&pAd->CommonCfg.Bss2040CoexistTimer, (pAd->CommonCfg.Dot11BssWidthChanTranDelay + 5) * 1000);
-						}
-
-						apidx = pAd->MacTab.Content[Elem->Wcid].apidx;
-						for (apidx = 0; apidx < pAd->ApCfg.BssidNum; apidx++)
-							SendBSS2040CoexistMgmtAction(pAd, MCAST_WCID, apidx, 0);
-					}
-						
-				}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
-	if ((Elem->OpMode == OPMODE_STA) || (pAd->OpMode == OPMODE_STA))
-#else
 				IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-#endif /* P2P_SUPPORT */
 				{
 					if (INFRA_ON(pAd))
 					{
@@ -1150,96 +764,9 @@ VOID PeerPublicAction(
 #endif /* DOT11_N_SUPPORT */
 
 		case ACTION_WIFI_DIRECT:
-#ifdef IWSC_SUPPORT
-			if ((pAd->StaCfg.BssType == BSS_ADHOC) &&
-				NdisEqualMemory(&(Elem->Msg[LENGTH_802_11+2]), IWSC_ACTION_OUI, 4)) 
-			{
-				MlmeEnqueue(pAd, IWSC_STATE_MACHINE, IWSC_MT2_PEER_ACTION_FRAME, Elem->MsgLen, Elem->Msg, 0);
-				RTMP_MLME_HANDLER(pAd);
-				break;
-			}
-#endif // IWSC_SUPPORT //
 
-#ifdef P2P_SUPPORT
-			DBGPRINT(RT_DEBUG_TRACE, ("<---- Public. Vendor OUI+type = %08x \n", *(PULONG)&Elem->Msg[LENGTH_802_11+2] ));
-#ifdef RT_BIG_ENDIAN
-			if (SWAP32(*(PUINT32)&Elem->Msg[LENGTH_802_11+2]) == P2P_OUI)
-#else
-			if (*(PUINT32)&Elem->Msg[LENGTH_802_11+2] == P2P_OUI)
-#endif /* RT_BIG_ENDIAN */
-			{
-				UCHAR	Subtype = Elem->Msg[LENGTH_802_11+6];
-				
-				
-				DBGPRINT(RT_DEBUG_TRACE, ("!!!! Public action frames with Vendor specific OUI = WFAP2P.Subtype = %d. \n", Subtype));
-				pAd->P2pCfg.bPeriodicListen = FALSE;
-				if (pAd->P2pCfg.P2pCounter.bStartScan)
-				{
-					pAd->P2pCfg.P2pCounter.bStartScan = FALSE;
-					pAd->P2pCfg.P2pCounter.bListen = FALSE;
-					pAd->P2pCfg.P2pCounter.bNextScan = FALSE;
-					/* update P2P Ctrl State Machine status. */
-					MlmeEnqueue(pAd, P2P_CTRL_STATE_MACHINE, P2P_CTRL_DISC_CANL_EVT, 0, NULL, 0);
-					RTMP_MLME_HANDLER(pAd);
-				}
-				switch(Subtype)
-				{
-					case GO_NEGOCIATION_REQ:
-						DBGPRINT(RT_DEBUG_ERROR, ("%s : recv Group Nego. Req\n", __FUNCTION__));
-						P2pPeerGoNegoReqAction(pAd,Elem);
-						break;
-					case GO_NEGOCIATION_RSP:
-						DBGPRINT(RT_DEBUG_ERROR, ("%s : recv Group Nego. Rsp\n", __FUNCTION__));
-						P2pPeerGoNegoRspAction(pAd,Elem);
-						break;
-					case GO_NEGOCIATION_CONFIRM:
-						DBGPRINT(RT_DEBUG_ERROR, ("%s : recv Group Nego. Confirm\n", __FUNCTION__));
-						P2pPeerGoNegoConfirmAction(pAd,Elem);
-						break;
-					case P2P_INVITE_REQ:
-						DBGPRINT(RT_DEBUG_ERROR, ("%s : recv Invite Req\n", __FUNCTION__));
-						P2pPeerInvitesReqAction(pAd,Elem);
-						break;
-					case P2P_INVITE_RSP:
-						DBGPRINT(RT_DEBUG_ERROR, ("%s : recv Invite Rsp\n", __FUNCTION__));
-						P2pPeerInvitesRspAction(pAd,Elem);
-						break;
-					case P2P_DEV_DIS_REQ:
-						DBGPRINT(RT_DEBUG_ERROR, ("%s : recv Device Discovery Req\n", __FUNCTION__));
-						P2pPeerDevDiscoverReqAction(pAd,Elem);
-						break;
-					case P2P_DEV_DIS_RSP:
-						DBGPRINT(RT_DEBUG_ERROR, ("%s : recv Device Discovery Rsp\n", __FUNCTION__));
-						P2pPeerDeviceDiscRspAction(pAd,Elem);
-						break;
-					case P2P_PROVISION_REQ:
-						DBGPRINT(RT_DEBUG_ERROR, ("%s : recv Provision Req\n", __FUNCTION__));
-						P2pPeerProvisionReqAction(pAd,Elem);
-						break;
-					case P2P_PROVISION_RSP:
-						DBGPRINT(RT_DEBUG_ERROR, ("%s : recv Provision Rsp\n", __FUNCTION__));
-						P2pPeerProvisionRspAction(pAd,Elem);
-						break;
-					default:
-						pAd->P2pCfg.bPeriodicListen = TRUE;
-						DBGPRINT(RT_DEBUG_ERROR,("Unknown Public action frames with Vendor specific OUI = WFAP2P.Subtype = %d \n", Subtype));
-						break;			
-				}
-			}
-#endif /* P2P_SUPPORT */
 			break;
 
-#ifdef DOT11Z_TDLS_SUPPORT
-		case ACTION_TDLS_DISCOVERY_RSP:
-			IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-			{
-				if (INFRA_ON(pAd))
-				{
-					TDLS_DiscoveryRspPublicAction(pAd, Elem, Elem->Msg, Elem->MsgLen);
-				}
-			}
-			break;
-#endif // DOT11Z_TDLS_SUPPORT //
 
 		default:
 			break;
@@ -1269,8 +796,6 @@ VOID PeerRMAction(
 	IN MLME_QUEUE_ELEM *Elem) 
 
 {
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 	return;
 }
 
@@ -1282,14 +807,8 @@ static VOID respond_ht_information_exchange_action(
 	PUCHAR			pOutBuffer = NULL;
 	NDIS_STATUS		NStatus;
 	ULONG			FrameLen;
-#ifdef CONFIG_AP_SUPPORT
-	INT         	apidx;
-#endif /* CONFIG_AP_SUPPORT */
 	FRAME_HT_INFO	HTINFOframe, *pFrame;
 	UCHAR   		*pAddr;
-#ifdef P2P_SUPPORT
-	MAC_TABLE_ENTRY *pEntry = NULL;
-#endif /* P2P_SUPPORT */
 
 
 	/* 2. Always send back ADDBA Response */
@@ -1307,31 +826,6 @@ static VOID respond_ht_information_exchange_action(
 
 	NdisZeroMemory(&HTINFOframe, sizeof(FRAME_HT_INFO));
 	/* 2-1. Prepare ADDBA Response frame.*/
-#ifdef P2P_SUPPORT
-	if (VALID_WCID(Elem->Wcid))
-	{
-		pEntry = &pAd->MacTab.Content[Elem->Wcid];
-
-		ActHeaderInit(pAd, &HTINFOframe.Hdr, pAddr, pEntry->HdrAddr2, pEntry->HdrAddr3);
-	}
-#else
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-#ifdef APCLI_SUPPORT
-		if (IS_ENTRY_APCLI(&pAd->MacTab.Content[Elem->Wcid]))
-		{
-			apidx = pAd->MacTab.Content[Elem->Wcid].MatchAPCLITabIdx;
-			ActHeaderInit(pAd, &HTINFOframe.Hdr, pAddr, pAd->ApCfg.ApCliTab[apidx].CurrentAddress, pAddr);		
-		}
-		else
-#endif /* APCLI_SUPPORT */
-		{
-			apidx = pAd->MacTab.Content[Elem->Wcid].apidx;
-			ActHeaderInit(pAd, &HTINFOframe.Hdr, pAddr, pAd->ApCfg.MBSSID[apidx].Bssid, pAd->ApCfg.MBSSID[apidx].Bssid);
-		}
-	}
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{
@@ -1341,7 +835,6 @@ static VOID respond_ht_information_exchange_action(
 		ActHeaderInit(pAd, &HTINFOframe.Hdr, pAd->CommonCfg.Bssid, pAd->CurrentAddress, pAddr);
 	}
 #endif /* CONFIG_STA_SUPPORT */
-#endif /* P2P_SUPPORT */
 
 	HTINFOframe.Category = CATEGORY_HT;
 	HTINFOframe.Action = HT_INFO_EXCHANGE;
@@ -1358,52 +851,6 @@ static VOID respond_ht_information_exchange_action(
 }
 
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef DOT11N_DRAFT3
-VOID SendNotifyBWActionFrame(
-	IN PRTMP_ADAPTER pAd,
-	IN UCHAR  Wcid,
-	IN UCHAR apidx)
-{
-	PUCHAR			pOutBuffer = NULL;
-	NDIS_STATUS 	NStatus;
-	FRAME_ACTION_HDR	Frame;
-	ULONG			FrameLen;
-	PUCHAR			pAddr1;
-
-	
-	NStatus = MlmeAllocateMemory(pAd, &pOutBuffer);  /*Get an unused nonpaged memory*/
-	if(NStatus != NDIS_STATUS_SUCCESS) 
-	{
-		DBGPRINT(RT_DEBUG_ERROR,("ACT - SendNotifyBWAction() allocate memory failed \n"));
-		return;
-	}
-
-	if (Wcid == MCAST_WCID)
-		pAddr1 = &BROADCAST_ADDR[0];
-	else
-		pAddr1 = pAd->MacTab.Content[Wcid].Addr;
-
-	ActHeaderInit(pAd, &Frame.Hdr, pAddr1, pAd->ApCfg.MBSSID[apidx].Bssid, pAd->ApCfg.MBSSID[apidx].Bssid);
-
-	Frame.Category = CATEGORY_HT;
-	Frame.Action = NOTIFY_BW_ACTION;
-	
-	MakeOutgoingFrame(pOutBuffer,				&FrameLen,
-				  sizeof(FRAME_ACTION_HDR),	  &Frame,
-				  END_OF_ARGS);
-
-	*(pOutBuffer + FrameLen) = pAd->CommonCfg.AddHTInfo.AddHtInfo.RecomWidth;
-	FrameLen++;
-	
-
-	MiniportMMRequest(pAd, QID_AC_BE, pOutBuffer, FrameLen);
-	MlmeFreeMemory(pAd, pOutBuffer);
-	DBGPRINT(RT_DEBUG_TRACE,("ACT - SendNotifyBWAction(NotifyBW= %d)!\n", pAd->CommonCfg.AddHTInfo.AddHtInfo.RecomWidth));
-
-}
-#endif /* DOT11N_DRAFT3 */
-#endif /* CONFIG_AP_SUPPORT */
 
 
 VOID PeerHTAction(
@@ -1475,15 +922,6 @@ VOID PeerHTAction(
     				{
     					respond_ht_information_exchange_action(pAd, Elem);
     				}
-#ifdef CONFIG_AP_SUPPORT
-				IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-				{
-	    				if (pHT_info->Forty_MHz_Intolerant)
-	    				{
-	    					Handle_BSS_Width_Trigger_Events(pAd);
-	    				}
-				}
-#endif /* CONFIG_AP_SUPPORT */
 			}
     		break;
 	}
@@ -1574,26 +1012,11 @@ VOID SendRefreshBAR(
 				
 			Sequence = pEntry->TxSeq[TID];
 
-#ifdef P2P_SUPPORT
-			BarHeaderInit(pAd, &FrameBar, pEntry->Addr, pEntry->HdrAddr2);
-#else
-#ifdef CONFIG_AP_SUPPORT
-			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-			{
-#ifdef APCLI_SUPPORT
-				if (IS_ENTRY_APCLI(pEntry))		
-					BarHeaderInit(pAd, &FrameBar, pEntry->Addr, pAd->ApCfg.ApCliTab[pEntry->MatchAPCLITabIdx].CurrentAddress);			
-				else
-#endif /* APCLI_SUPPORT */
-					BarHeaderInit(pAd, &FrameBar, pEntry->Addr, pAd->ApCfg.MBSSID[pEntry->apidx].Bssid);					
-			}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 			IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 				BarHeaderInit(pAd, &FrameBar, pEntry->Addr, pAd->CurrentAddress);
 #endif /* CONFIG_STA_SUPPORT */
-#endif /* P2P_SUPPORT */
 
 			FrameBar.StartingSeq.field.FragNum = 0; /* make sure sequence not clear in DEL function.*/
 			FrameBar.StartingSeq.field.StartSeq = Sequence; /* make sure sequence not clear in DEL funciton.*/

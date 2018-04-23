@@ -1,30 +1,30 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2004, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Module Name:
-	rtmp_init.c
 
-	Abstract:
-	Miniport generic portion header file
-
-	Revision History:
-	Who         When          What
-	--------    ----------    ----------------------------------------------
-*/
 #include	"rt_config.h"
 
 #ifdef OS_ABL_FUNC_SUPPORT
@@ -132,20 +132,6 @@ RTMP_REG_PAIR MACRegTable[] = {
 #endif /* defined(RT65xx) || defined(MT7601) */
 };
 
-#ifdef CONFIG_AP_SUPPORT
-RTMP_REG_PAIR	APMACRegTable[] =	{
-	{WMM_AIFSN_CFG,		0x00001173},
-	{WMM_CWMIN_CFG,	0x00002344},
-	{WMM_CWMAX_CFG,	0x000034a6},
-	{WMM_TXOP0_CFG,		0x00100020},
-	{WMM_TXOP1_CFG,		0x002F0038},
-	{TBTT_SYNC_CFG,		0x00012000},
-#ifdef STREAM_MODE_SUPPORT
-	{TX_CHAIN_ADDR0_L,	0xFFFFFFFF},	/* Broadcast frames are in stream mode*/
-	{TX_CHAIN_ADDR0_H,	0x3FFFF},
-#endif /* STREAM_MODE_SUPPORT */
-};
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 RTMP_REG_PAIR	STAMACRegTable[] =	{
@@ -157,9 +143,6 @@ RTMP_REG_PAIR	STAMACRegTable[] =	{
 
 
 #define	NUM_MAC_REG_PARMS		(sizeof(MACRegTable) / sizeof(RTMP_REG_PAIR))
-#ifdef CONFIG_AP_SUPPORT
-#define	NUM_AP_MAC_REG_PARMS	(sizeof(APMACRegTable) / sizeof(RTMP_REG_PAIR))
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 #define	NUM_STA_MAC_REG_PARMS	(sizeof(STAMACRegTable) / sizeof(RTMP_REG_PAIR))
 #endif /* CONFIG_STA_SUPPORT */
@@ -301,17 +284,8 @@ NDIS_STATUS	RTMPAllocAdapterBlock(
 #endif /* RTMP_MAC_USB */
 #endif /* RALINK_ATE */
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef UAPSD_SUPPORT
-/*        UAPSD_Init(pAd);  move to rt28xx_init*/
-#endif /* UAPSD_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 		/* assign function pointers*/
-#ifdef MAT_SUPPORT
-		/* init function pointers, used in OS_ABL */
-/*		RTMP_MATOpsInit(pAd);  move to rt28xx_init*/
-#endif /* MAT_SUPPORT */
 	} while (FALSE);
 
 	if ((Status != NDIS_STATUS_SUCCESS) && (pBeaconBuf))
@@ -454,26 +428,6 @@ VOID NICReadEEPROMParameters(RTMP_ADAPTER *pAd, PSTRING mac_addr)
 	RTMP_IO_WRITE32(pAd, MAC_ADDR_DW0, csr2.word);
 	csr3.word = 0;
 	csr3.field.Byte4 = pAd->CurrentAddress[4];
-#ifdef P2P_SUPPORT
-#ifdef P2P_ODD_MAC_ADJUST
-	if ((pAd->CurrentAddress[5] & 0x01) == 0x01)
-	{
-		csr3.field.Byte5 = pAd->CurrentAddress[5] - 1;
-		/* p2p supporting need to use 2 mac addresses. And regarding the p2p odd mac adjust rule.
-		** sta's mac should be E2P mac and p2p's mac should be "E2P mac -1" if original mac is odd value.
-		** so in order to let MAC chip be able to recv pakcet from 2 those mac address,
-		** MAC_ADDR should be original mac - 1.
-		**
-		** ex. E2P mac is 00:0c:43:00:00:03.
-		** in the case, STA MAC will be 00:0c:43:00:03 and p2p MAC will be 00:0c:43:00:00:02
-		** then the MAC_ADDR of MAC should be 00:0c:43:00:00:02
-		** so need to set 2 MAC support for the case.
-		*/
-		RTMP_IO_WRITE32(pAd, MAC_BSSID_DW1, (1<<16));
-	}
-	else
-#endif /* P2P_ODD_MAC_ADJUST */
-#endif /* P2P_SUPPORT */
 	{
 		csr3.field.Byte5 = pAd->CurrentAddress[5];
 		csr3.field.U2MeMask = 0xff;
@@ -623,19 +577,7 @@ VOID NICReadEEPROMParameters(RTMP_ADAPTER *pAd, PSTRING mac_addr)
 	/* EEPROM offset 0x36 - NIC Configuration 1 */
 	NicConfig2.word = pAd->EEPROMDefaultValue[EEPROM_NIC_CFG2_OFFSET];
 
-#ifdef WSC_INCLUDED
-	/* WSC hardware push button function 0811 */
-	//if ((pAd->MACVersion == 0x28600100) || (pAd->MACVersion == 0x28700100))
-		WSC_HDR_BTN_MR_HDR_SUPPORT_SET(pAd, NicConfig2.field.EnableWPSPBC);
-#endif /* WSC_INCLUDED */
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		if (NicConfig2.word == 0xffff)
-			NicConfig2.word = 0;
-	}
-#endif /* CONFIG_AP_SUPPORT */	
 
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -812,7 +754,7 @@ VOID NICReadEEPROMParameters(RTMP_ADAPTER *pAd, PSTRING mac_addr)
 		pAd->RfFreqOffset = (ULONG) (value & 0x00FF);
 	else
 		pAd->RfFreqOffset = 0;
-
+	
 #ifdef MT7601
 	if ( IS_MT7601(pAd) )
 	{
@@ -1036,6 +978,7 @@ VOID	NICInitAsicFromEEPROM(
 #ifdef CONFIG_STA_SUPPORT
 	UINT32 data = 0;
 #endif /* CONFIG_STA_SUPPORT */
+	USHORT i;
 #ifdef RALINK_ATE
 	USHORT value;
 #endif /* RALINK_ATE */
@@ -1346,6 +1289,7 @@ NDIS_STATUS	NICInitializeAdapter(
 	IN   BOOLEAN    bHardReset)
 {
 	NDIS_STATUS     Status = NDIS_STATUS_SUCCESS;
+	WPDMA_GLO_CFG_STRUC	GloCfg;
 	ULONG j=0;
 
 
@@ -1380,6 +1324,14 @@ retry:
 
 
 
+#ifdef MT7601
+#ifdef ED_MONITOR
+	// TODO: for certification only!
+	if (IS_MT7601(pAd)) {
+		MT7601_set_ed_cca(pAd, TRUE);
+	}
+#endif /* ED_MONITOR */
+#endif /* MT7601 */
 	DBGPRINT(RT_DEBUG_TRACE, ("<-- NICInitializeAdapter\n"));
 	return Status;
 }
@@ -1412,6 +1364,7 @@ NDIS_STATUS	NICInitializeAsic(
 	UINT32			Counter = 0;
 	USB_DMA_CFG_STRUC UsbCfg;
 #endif /* RTMP_MAC_USB */
+	USHORT			KeyIdx;
 
 #ifdef RLT_MAC
 	RTMP_CHIP_CAP *pChipCap = &pAd->chipCap;
@@ -1663,24 +1616,6 @@ NDIS_STATUS	NICInitializeAsic(
 	if (bHardReset == TRUE)
 	{
 		/* clear all on-chip BEACON frame space */
-#ifdef CONFIG_AP_SUPPORT
-		INT	i, apidx;
-		for (apidx = 0; apidx < HW_BEACON_MAX_COUNT(pAd); apidx++)
-		{
-			if (pAd->BeaconOffset[apidx] > 0) {
-				// TODO: shiang-6590, if we didn't define MBSS_SUPPORT, the pAd->BeaconOffset[x] may set as 0 when chipCap.BcnMaxHwNum != HW_BEACON_MAX_COUNT
-				for (i = 0; i < HW_BEACON_OFFSET; i+=4)
-					RTMP_CHIP_UPDATE_BEACON(pAd, pAd->BeaconOffset[apidx] + i, 0x00, 4); 
-			}
-#ifdef RTMP_MAC_USB
-			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-			{
-				if (pAd->CommonCfg.pBeaconSync)
-					pAd->CommonCfg.pBeaconSync->BeaconBitMap &= (~(BEACON_BITMAP_MASK & (1 << apidx)));
-			}
-#endif /* RTMP_MAC_USB */
-		}
-#endif /* CONFIG_AP_SUPPORT */
 	}
 	
 #ifdef RTMP_MAC_USB
@@ -1723,8 +1658,6 @@ NDIS_STATUS	NICInitializeAsic(
 
 
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 
 VOID NICUpdateFifoStaCounters(
 	IN PRTMP_ADAPTER pAd)
@@ -1864,20 +1797,6 @@ VOID NICUpdateFifoStaCounters(
 #endif /* DOT11_N_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef DOT11Z_TDLS_SUPPORT
-					IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-					{
-						if(IS_ENTRY_TDLS(pEntry))
-						{
-							pEntry->TdlsTxFailCount++;
-							if (pEntry->TdlsTxFailCount >= 15)
-							{
-								DBGPRINT(RT_DEBUG_OFF, ("TDLS: TxFail >= 15 LinkTearDown !!!\n"));
-								TDLS_TearDownPeerLink(pAd, pEntry->Addr, FALSE);
-							}
-						}
-					}
-#endif /* DOT11Z_TDLS_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 
 					/* Update the continuous transmission counter.*/
@@ -1891,10 +1810,20 @@ VOID NICUpdateFifoStaCounters(
 							BAOriSessionTearDown(pAd, pEntry->Aid,  tid, FALSE, FALSE);
 #endif /* DOT11_N_SUPPORT */
 
+#ifdef WDS_SUPPORT
+						/* fix WDS Jam issue*/
+						if(IS_ENTRY_WDS(pEntry)
+							&& (pEntry->LockEntryTx == FALSE)
+							&& (pEntry->ContinueTxFailCnt >= pAd->ApCfg.EntryLifeCheck))
+						{ 
+							DBGPRINT(RT_DEBUG_TRACE, ("Entry %02x:%02x:%02x:%02x:%02x:%02x Blocked!! (Fail Cnt = %d)\n",
+								PRINT_MAC(pEntry->Addr), pEntry->ContinueTxFailCnt ));
+
+							pEntry->LockEntryTx = TRUE;
+						}
+#endif /* WDS_SUPPORT */
 					}
 				}
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 			}
 			else
 			{
@@ -1915,15 +1844,11 @@ VOID NICUpdateFifoStaCounters(
 				/* update NoDataIdleCount when sucessful send packet to STA.*/
 				pEntry->NoDataIdleCount = 0;
 				pEntry->ContinueTxFailCnt = 0;
+#ifdef WDS_SUPPORT
+				pEntry->LockEntryTx = FALSE;
+#endif /* WDS_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef DOT11Z_TDLS_SUPPORT
-				IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-				{
-					if(IS_ENTRY_TDLS(pEntry))
-						pEntry->TdlsTxFailCount = 0;
-				}
-#endif /* DOT11Z_TDLS_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 			}
 
@@ -2056,6 +1981,12 @@ VOID NicGetTxRawCounters(
 	pAd->RalinkCounters.OneSecTxNoRetryOkCount += pStaTxCnt1->field.TxSuccess;
 	pAd->RalinkCounters.OneSecTxFailCount += pStaTxCnt0->field.TxFailCount;
 
+#ifdef ED_MONITOR
+	if (pAd->ed_chk) {
+		pAd->tx_cnt[pAd->ed_stat_lidx] += pStaTxCnt1->field.TxSuccess;
+	}
+#endif /* ED_MONITOR */
+
 #ifdef STATS_COUNT_SUPPORT
 	pAd->WlanCounters.TransmittedFragmentCount.u.LowPart += pStaTxCnt1->field.TxSuccess;
 	pAd->WlanCounters.RetryCount.u.LowPart += pStaTxCnt1->field.TxRetransmit;
@@ -2151,11 +2082,6 @@ VOID NICUpdateRawCounters(
 	RTMP_IO_READ32(pAd, RX_STA_CNT0, &RxStaCnt0.word);
 	RTMP_IO_READ32(pAd, RX_STA_CNT2, &RxStaCnt2.word);
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef CARRIER_DETECTION_SUPPORT
-	if ((pAd->CommonCfg.CarrierDetect.Enable == FALSE) || (pAd->OpMode == OPMODE_STA))
-#endif /* CARRIER_DETECTION_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 	{
 #ifdef MICROWAVE_OVEN_SUPPORT
 	    /* Update RX PLCP error counter*/
@@ -2172,6 +2098,11 @@ VOID NICUpdateRawCounters(
 		pAd->RalinkCounters.FalseCCACnt += RxStaCnt1.field.FalseCca;
 		
 #endif /* MICROWAVE_OVEN_SUPPORT */
+
+#ifdef ED_MONITOR
+		if (pAd->ed_chk && pAd->ed_timer_inited == TRUE)
+			pAd->false_cca_stat[pAd->ed_stat_lidx] += RxStaCnt1.field.FalseCca;
+#endif /* ED_MONITOR */
 	}
 
 #ifdef STATS_COUNT_SUPPORT
@@ -2545,9 +2476,6 @@ VOID UserCfgExit(
 VOID UserCfgInit(RTMP_ADAPTER *pAd)
 {
 	UINT i;
-#ifdef CONFIG_AP_SUPPORT
-	UINT j;
-#endif /* CONFIG_AP_SUPPORT */
 /*	EDCA_PARM DefaultEdcaParm;*/
     UINT key_index, bss_index;
 	UINT8 TXWISize = pAd->chipCap.TXWISize;
@@ -2648,8 +2576,6 @@ VOID UserCfgInit(RTMP_ADAPTER *pAd)
 	pAd->CommonCfg.SavedPhyMode = pAd->CommonCfg.PhyMode;
 	
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CARRIER_DETECTION_SUPPORT
 	pAd->CommonCfg.CarrierDetect.delta = CARRIER_DETECT_DELTA;
@@ -2670,14 +2596,6 @@ VOID UserCfgInit(RTMP_ADAPTER *pAd)
 	pAd->Dot11_H.ChMovingTime = 65;
 
 #ifdef UAPSD_SUPPORT
-#ifdef CONFIG_AP_SUPPORT
-{
-	UINT32 IdMbss;
-
-	for(IdMbss=0; IdMbss<HW_BEACON_MAX_NUM; IdMbss++)
-		UAPSD_INFO_INIT(&pAd->ApCfg.MBSSID[IdMbss].UapsdInfo);
-}
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 	pAd->StaCfg.UapsdInfo.bAPSDCapable = FALSE;
 #endif /* CONFIG_STA_SUPPORT */
@@ -2726,11 +2644,6 @@ VOID UserCfgInit(RTMP_ADAPTER *pAd)
 	pAd->CommonCfg.bExtChannelSwitchAnnouncement = 1;
 	pAd->CommonCfg.bHTProtect = 1;
 	pAd->CommonCfg.bMIMOPSEnable = TRUE;
-#ifdef GREENAP_SUPPORT
-	pAd->ApCfg.bGreenAPEnable=FALSE;
-	pAd->ApCfg.bGreenAPActive = FALSE;
-	pAd->ApCfg.GreenAPLevel= GREENAP_WITHOUT_ANY_STAS_CONNECT;
-#endif /* GREENAP_SUPPORT */
 	pAd->CommonCfg.bBADecline = FALSE;
 	pAd->CommonCfg.bDisableReordering = FALSE;
 
@@ -2784,11 +2697,6 @@ VOID UserCfgInit(RTMP_ADAPTER *pAd)
 	pAd->CommonCfg.DebugFlags = 0;
 #endif /* DBG_CTRL_SUPPORT */
 
-#ifdef WAPI_SUPPORT
-	pAd->CommonCfg.wapi_usk_rekey_method = REKEY_METHOD_DISABLE;
-	pAd->CommonCfg.wapi_msk_rekey_method = REKEY_METHOD_DISABLE;
-	pAd->CommonCfg.wapi_msk_rekey_cnt = 0;
-#endif /* WAPI_SUPPORT */
 
 #ifdef MCAST_RATE_SPECIFIC
 	pAd->CommonCfg.MCastPhyMode.word
@@ -2843,9 +2751,6 @@ VOID UserCfgInit(RTMP_ADAPTER *pAd)
 		pAd->StaCfg.RssiTriggerMode = RSSI_TRIGGERED_UPON_BELOW_THRESHOLD;
 		pAd->StaCfg.AtimWin = 0;
 		pAd->StaCfg.DefaultListenCount = 3;/*default listen count;*/
-#ifdef DOT11Z_TDLS_SUPPORT
-		pAd->StaCfg.DefaultListenCount = 1;
-#endif /* DOT11Z_TDLS_SUPPORT */
 		pAd->StaCfg.BssType = BSS_INFRA;  /* BSS_INFRA or BSS_ADHOC or BSS_MONITOR*/
 		pAd->StaCfg.bSkipAutoScanConn = FALSE;
 		OPSTATUS_CLEAR_FLAG(pAd, fOP_STATUS_DOZE);
@@ -2920,89 +2825,6 @@ VOID UserCfgInit(RTMP_ADAPTER *pAd)
 		pAd->StaCfg.WpaSupplicantScanCount = 0;
 #endif /* WPA_SUPPLICANT_SUPPORT */
 
-#ifdef WSC_STA_SUPPORT
-		{
-			INT					idx;
-			PWSC_CTRL 			pWscControl;
-#ifdef WSC_V2_SUPPORT
-			PWSC_V2_INFO	pWscV2Info;
-#endif /* WSC_V2_SUPPORT */
-
-			/*
-				WscControl cannot be zero here, because WscControl timers are initial in MLME Initialize 
-				and MLME Initialize is called before UserCfgInit.
-
-			*/
-			pWscControl = &pAd->StaCfg.WscControl;
-			pWscControl->WscConfMode = WSC_DISABLE;
-			pWscControl->WscMode = WSC_PIN_MODE;
-			pWscControl->WscConfStatus = WSC_SCSTATE_UNCONFIGURED;
-#ifdef WSC_V2_SUPPORT
-			pWscControl->WscConfigMethods= 0x238C;
-#else
-			pWscControl->WscConfigMethods= 0x008C;
-#endif /* WSC_V2_SUPPORT */
-#ifdef P2P_SUPPORT
-			pWscControl->WscConfigMethods |= 0x0100;
-#endif /* P2P_SUPPORT */
-			pWscControl->WscState = WSC_STATE_OFF;
-			pWscControl->WscStatus = STATUS_WSC_NOTUSED;
-			pWscControl->WscPinCode = 0;
-			pWscControl->WscLastPinFromEnrollee = 0;
-			pWscControl->WscEnrollee4digitPinCode = FALSE;
-			pWscControl->WscEnrolleePinCode = 0;
-			pWscControl->WscSelReg = 0;
-			NdisZeroMemory(&pAd->StaCfg.WscControl.RegData, sizeof(WSC_REG_DATA));
-			NdisZeroMemory(&pWscControl->WscProfile, sizeof(WSC_PROFILE));
-			pWscControl->WscUseUPnP = 0;
-			pWscControl->WscEnAssociateIE = TRUE;
-			pWscControl->WscEnProbeReqIE = TRUE;
-			pWscControl->RegData.ReComputePke = 1;
-			pWscControl->lastId = 1;
-			pWscControl->EntryIfIdx = BSS0;
-			pWscControl->pAd = pAd;
-			pWscControl->WscDriverAutoConnect = 0x02;
-			pAd->WriteWscCfgToDatFile = 0xFF;
-			pWscControl->WscRejectSamePinFromEnrollee = FALSE;
-			pWscControl->WpsApBand = PREFERRED_WPS_AP_PHY_TYPE_AUTO_SELECTION;
-			pWscControl->bCheckMultiByte = FALSE;
-			pWscControl->bWscAutoTigeer = FALSE;
-			/* Enrollee Nonce, first generate and save to Wsc Control Block*/
-			for (idx = 0; idx < 16; idx++)
-			{
-				pWscControl->RegData.SelfNonce[idx] = RandomByte(pAd);
-			}
-			pWscControl->WscRxBufLen = 0;
-			pWscControl->pWscRxBuf = NULL;
-			os_alloc_mem(pAd, &pWscControl->pWscRxBuf, MGMT_DMA_BUFFER_SIZE);
-			if (pWscControl->pWscRxBuf)
-				NdisZeroMemory(pWscControl->pWscRxBuf, MGMT_DMA_BUFFER_SIZE);
-			pWscControl->WscTxBufLen = 0;
-			pWscControl->pWscTxBuf = NULL;
-			os_alloc_mem(pAd, &pWscControl->pWscTxBuf, MGMT_DMA_BUFFER_SIZE);
-			if (pWscControl->pWscTxBuf)
-				NdisZeroMemory(pWscControl->pWscTxBuf, MGMT_DMA_BUFFER_SIZE);
-			pWscControl->bWscFragment = FALSE;
-			pWscControl->WscFragSize = 128;
-			initList(&pWscControl->WscPeerList);
-			NdisAllocateSpinLock(pAd, &pWscControl->WscPeerListSemLock);
-
-#ifdef WSC_V2_SUPPORT
-			pWscV2Info = &pWscControl->WscV2Info;
-			pWscV2Info->bWpsEnable = TRUE;
-			pWscV2Info->ExtraTlv.TlvLen = 0;
-			pWscV2Info->ExtraTlv.TlvTag = 0;
-			pWscV2Info->ExtraTlv.pTlvData = NULL;
-			pWscV2Info->ExtraTlv.TlvType = TLV_ASCII;
-			pWscV2Info->bEnableWpsV2 = TRUE;
-			pWscV2Info->bForceSetAP = FALSE;
-#endif /* WSC_V2_SUPPORT */
-
-		}
-#ifdef IWSC_SUPPORT
-		IWSC_Init(pAd);
-#endif /* IWSC_SUPPORT */
-#endif /* WSC_STA_SUPPORT */
 		NdisZeroMemory(pAd->StaCfg.ReplayCounter, 8);
 
 
@@ -3031,211 +2853,6 @@ VOID UserCfgInit(RTMP_ADAPTER *pAd)
 	/* */
 	/* part III. AP configurations*/
 	
-#ifdef CONFIG_AP_SUPPORT
-#ifndef P2P_APCLI_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_APCLI_SUPPORT */
-	{
-		/* Set MBSS Default Configurations*/
-		pAd->ApCfg.BssidNum = MAX_MBSSID_NUM(pAd);
-		for(j = BSS0; j < pAd->ApCfg.BssidNum; j++)
-		{
-			pAd->ApCfg.MBSSID[j].AuthMode = Ndis802_11AuthModeOpen;
-			pAd->ApCfg.MBSSID[j].WepStatus = Ndis802_11EncryptionDisabled;
-			pAd->ApCfg.MBSSID[j].GroupKeyWepStatus = Ndis802_11EncryptionDisabled;
-			pAd->ApCfg.MBSSID[j].DefaultKeyId = 0;
-			pAd->ApCfg.MBSSID[j].WpaMixPairCipher = MIX_CIPHER_NOTUSE;
-			pAd->ApCfg.MBSSID[j].RekeyCountDown = 0;	/* it's used for WPA rekey */
-
-#ifdef DOT1X_SUPPORT
-			pAd->ApCfg.MBSSID[j].IEEE8021X = FALSE;
-			pAd->ApCfg.MBSSID[j].PreAuth = FALSE;
-
-			/* PMK cache setting*/
-			pAd->ApCfg.MBSSID[j].PMKCachePeriod = (10 * 60 * OS_HZ); /* unit : tick(default: 10 minute)*/
-			NdisZeroMemory(&pAd->ApCfg.MBSSID[j].PMKIDCache, sizeof(NDIS_AP_802_11_PMKID));
-
-			/* dot1x related per BSS */
-			pAd->ApCfg.MBSSID[j].radius_srv_num = 0;
-			pAd->ApCfg.MBSSID[j].NasIdLen = 0;
-#endif /* DOT1X_SUPPORT */
-
-			/* VLAN related */
-        		pAd->ApCfg.MBSSID[j].VLAN_VID = 0;
-
-			/* Default MCS as AUTO*/
-			pAd->ApCfg.MBSSID[j].bAutoTxRateSwitch = TRUE;
-			pAd->ApCfg.MBSSID[j].DesiredTransmitSetting.field.MCS = MCS_AUTO;
-
-			/* Default is zero. It means no limit.*/
-			pAd->ApCfg.MBSSID[j].MaxStaNum = 0;
-			pAd->ApCfg.MBSSID[j].StaCount = 0;
-			
-#ifdef WSC_AP_SUPPORT
-			pAd->ApCfg.MBSSID[j].WscSecurityMode = 0xff;
-			{
-				PWSC_CTRL pWscControl;
-				INT idx;
-#ifdef WSC_V2_SUPPORT
-				PWSC_V2_INFO	pWscV2Info;
-#endif /* WSC_V2_SUPPORT */
-				/*
-					WscControl cannot be zero here, because WscControl timers are initial in MLME Initialize 
-					and MLME Initialize is called before UserCfgInit.
-
-				*/
-				pWscControl = &pAd->ApCfg.MBSSID[j].WscControl;
-				NdisZeroMemory(&pWscControl->RegData, sizeof(WSC_REG_DATA));
-				NdisZeroMemory(&pAd->CommonCfg.WscStaPbcProbeInfo, sizeof(WSC_STA_PBC_PROBE_INFO));
-				pWscControl->WscMode = 1;
-				pWscControl->WscConfStatus = 1;
-#ifdef WSC_V2_SUPPORT
-				pWscControl->WscConfigMethods= 0x238C;
-#else
-				pWscControl->WscConfigMethods= 0x0084;
-#endif /* WSC_V2_SUPPORT */
-#ifdef P2P_SUPPORT
-				pWscControl->WscConfigMethods |= 0x0108;
-#endif /* P2P_SUPPORT */
-				pWscControl->RegData.ReComputePke = 1;
-				pWscControl->lastId = 1;
-				/* pWscControl->EntryIfIdx = (MIN_NET_DEVICE_FOR_MBSSID | j); */
-				pWscControl->pAd = pAd;
-				pWscControl->WscRejectSamePinFromEnrollee = FALSE;
-				pAd->CommonCfg.WscPBCOverlap = FALSE;
-#ifdef P2P_SUPPORT
-				/*
-					Set defaule value of WscConfMode to be (WSC_REGISTRAR | WSC_ENROLLEE) for WiFi P2P.
-				*/
-				pWscControl->WscConfMode = (WSC_REGISTRAR | WSC_ENROLLEE);
-#else /* P2P_SUPPORT */
-				pWscControl->WscConfMode = 0;
-#endif /* !P2P_SUPPORT */
-				pWscControl->WscStatus = 0;
-				pWscControl->WscState = 0;
-				pWscControl->WscPinCode = 0;
-				pWscControl->WscLastPinFromEnrollee = 0;
-				pWscControl->WscEnrollee4digitPinCode = FALSE;
-				pWscControl->WscEnrolleePinCode = 0;
-				pWscControl->WscSelReg = 0;
-				pWscControl->WscUseUPnP = 0;
-				pWscControl->bWCNTest = FALSE;
-				pWscControl->WscKeyASCII = 0; /* default, 0 (64 Hex) */
-				
-				/*
-					Enrollee 192 random bytes for DH key generation
-				*/
-				for (idx = 0; idx < 192; idx++)
-					pWscControl->RegData.EnrolleeRandom[idx] = RandomByte(pAd);
-
-				/* Enrollee Nonce, first generate and save to Wsc Control Block*/
-				for (idx = 0; idx < 16; idx++)
-				{
-					pWscControl->RegData.SelfNonce[idx] = RandomByte(pAd);
-				}
-				NdisZeroMemory(&pWscControl->WscDefaultSsid, sizeof(NDIS_802_11_SSID));
-				NdisZeroMemory(&pWscControl->Wsc_Uuid_Str[0], UUID_LEN_STR);
-				NdisZeroMemory(&pWscControl->Wsc_Uuid_E[0], UUID_LEN_HEX);
-				pWscControl->bCheckMultiByte = FALSE;
-				pWscControl->bWscAutoTigeer = FALSE;
-				pWscControl->bWscFragment = FALSE;
-				pWscControl->WscFragSize = 128;
-				pWscControl->WscRxBufLen = 0;
-				pWscControl->pWscRxBuf = NULL;
-				os_alloc_mem(pAd, &pWscControl->pWscRxBuf, MGMT_DMA_BUFFER_SIZE);
-				if (pWscControl->pWscRxBuf)
-					NdisZeroMemory(pWscControl->pWscRxBuf, MGMT_DMA_BUFFER_SIZE);
-				pWscControl->WscTxBufLen = 0;
-				pWscControl->pWscTxBuf = NULL;
-				os_alloc_mem(pAd, &pWscControl->pWscTxBuf, MGMT_DMA_BUFFER_SIZE);
-				if (pWscControl->pWscTxBuf)
-					NdisZeroMemory(pWscControl->pWscTxBuf, MGMT_DMA_BUFFER_SIZE);
-				initList(&pWscControl->WscPeerList);
-				NdisAllocateSpinLock(pAd, &pWscControl->WscPeerListSemLock);
-				pWscControl->PinAttackCount = 0;
-				pWscControl->bSetupLock = FALSE;
-#ifdef WSC_V2_SUPPORT
-				pWscV2Info = &pWscControl->WscV2Info;
-				pWscV2Info->bWpsEnable = TRUE;
-				pWscV2Info->ExtraTlv.TlvLen = 0;
-				pWscV2Info->ExtraTlv.TlvTag = 0;
-				pWscV2Info->ExtraTlv.pTlvData = NULL;
-				pWscV2Info->ExtraTlv.TlvType = TLV_ASCII;
-				pWscV2Info->bEnableWpsV2 = TRUE;
-				pWscControl->SetupLockTime = WSC_WPS_AP_SETUP_LOCK_TIME;
-				pWscControl->MaxPinAttack = WSC_WPS_AP_MAX_PIN_ATTACK;
-#endif /* WSC_V2_SUPPORT */
-
-			}
-#endif /* WSC_AP_SUPPORT */
-
-
-			for(i = 0; i < WLAN_MAX_NUM_OF_TIM; i++)
-	        		pAd->ApCfg.MBSSID[j].TimBitmaps[i] = 0;
-		}
-		pAd->ApCfg.DtimCount  = 0;
-		pAd->ApCfg.DtimPeriod = DEFAULT_DTIM_PERIOD;
-
-		pAd->ApCfg.ErpIeContent = 0;
-
-		pAd->ApCfg.StaIdleTimeout = MAC_TABLE_AGEOUT_TIME;
-
-#ifdef IDS_SUPPORT
-		/* Default disable IDS threshold and reset all IDS counters*/
-		pAd->ApCfg.IdsEnable = FALSE;
-		pAd->ApCfg.AuthFloodThreshold = 0;
-		pAd->ApCfg.AssocReqFloodThreshold = 0;
-		pAd->ApCfg.ReassocReqFloodThreshold = 0;
-		pAd->ApCfg.ProbeReqFloodThreshold = 0;
-		pAd->ApCfg.DisassocFloodThreshold = 0;
-		pAd->ApCfg.DeauthFloodThreshold = 0;
-		pAd->ApCfg.EapReqFloodThreshold = 0;
-		RTMPClearAllIdsCounter(pAd);
-#endif /* IDS_SUPPORT */
-
-
-#ifdef WSC_INCLUDED
-		pAd->WriteWscCfgToDatFile = 0xFF;
-		pAd->WriteWscCfgToAr9DatFile = FALSE;
-#ifdef CONFIG_AP_SUPPORT
-		pAd->bWscDriverAutoUpdateCfg = TRUE;
-#endif /* CONFIG_AP_SUPPORT */
-#endif /* WSC_INCLUDED */
-
-#ifdef APCLI_SUPPORT
-		pAd->ApCfg.FlgApCliIsUapsdInfoUpdated = FALSE;
-
-		for(j = 0; j < MAX_APCLI_NUM; j++) 
-		{
-			pAd->ApCfg.ApCliTab[j].AuthMode = Ndis802_11AuthModeOpen;
-			pAd->ApCfg.ApCliTab[j].WepStatus = Ndis802_11WEPDisabled;
-			pAd->ApCfg.ApCliTab[j].bAutoTxRateSwitch = TRUE;
-			pAd->ApCfg.ApCliTab[j].DesiredTransmitSetting.field.MCS = MCS_AUTO;
-			pAd->ApCfg.ApCliTab[j].UapsdInfo.bAPSDCapable = FALSE;
-
-#ifdef APCLI_WPA_SUPPLICANT_SUPPORT
-			pAd->ApCfg.ApCliTab[j].IEEE8021X=FALSE;
-			pAd->ApCfg.ApCliTab[j].IEEE8021x_required_keys=FALSE;
-			pAd->ApCfg.ApCliTab[j].bRSN_IE_FromWpaSupplicant=FALSE;
-			pAd->ApCfg.ApCliTab[j].bLostAp=FALSE;
-			pAd->ApCfg.ApCliTab[j].bScanReqIsFromWebUI=FALSE;
-			pAd->ApCfg.ApCliTab[j].bConfigChanged=FALSE;
-			pAd->ApCfg.ApCliTab[j].DesireSharedKeyId=0;
-			pAd->ApCfg.ApCliTab[j].WpaSupplicantUP=WPA_SUPPLICANT_DISABLE;
-			pAd->ApCfg.ApCliTab[j].WpaSupplicantScanCount=0;
-			pAd->ApCfg.ApCliTab[j].pWpsProbeReqIe=NULL;
-			pAd->ApCfg.ApCliTab[j].WpsProbeReqIeLen=0;
-			pAd->ApCfg.ApCliTab[j].pWpaAssocIe=NULL;
-			pAd->ApCfg.ApCliTab[j].WpaAssocIeLen=0;
-			pAd->ApCfg.ApCliTab[j].SavedPMKNum=0;
-			RTMPZeroMemory(pAd->ApCfg.ApCliTab[j].SavedPMK, (PMKID_NO * sizeof(BSSID_INFO)));
-#endif/*APCLI_WPA_SUPPLICANT_SUPPORT*/
-
-		}
-#endif /* APCLI_SUPPORT */
-		pAd->ApCfg.EntryClientCount = 0;
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 
 #ifdef IP_ASSEMBLY
@@ -3244,7 +2861,7 @@ VOID UserCfgInit(RTMP_ADAPTER *pAd)
 		pAd->StaCfg.bFragFlag = TRUE;
 	}
 #endif /* IP_ASSEMBLY */
-
+	
 	/* part IV. others*/
 	
 	/* dynamic BBP R66:sensibity tuning to overcome background noise*/
@@ -3277,33 +2894,11 @@ VOID UserCfgInit(RTMP_ADAPTER *pAd)
 
 	pAd->CommonCfg.bWiFiTest = FALSE;
 
-#ifdef CONFIG_AP_SUPPORT
-	pAd->ApCfg.EntryLifeCheck = MAC_ENTRY_LIFE_CHECK_CNT;
-
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 #ifdef PCIE_PS_SUPPORT
 	RTMP_SET_PSFLAG(pAd, fRTMP_PS_CAN_GO_SLEEP);
 #endif /* PCIE_PS_SUPPORT */
-#ifdef DOT11Z_TDLS_SUPPORT
-		pAd->StaCfg.TdlsInfo.bTDLSCapable = FALSE;
-		pAd->StaCfg.TdlsInfo.TdlsChSwitchSupp = TRUE;
-		pAd->StaCfg.TdlsInfo.TdlsPsmSupp = FALSE;
-		pAd->StaCfg.TdlsInfo.TdlsKeyLifeTime = TDLS_LEY_LIFETIME;
-#ifdef TDLS_AUTOLINK_SUPPORT
-		initList(&pAd->StaCfg.TdlsInfo.TdlsDiscovPeerList);
-		NdisAllocateSpinLock(&pAd->StaCfg.TdlsInfo.TdlsDiscovPeerListSemLock);
-		initList(&pAd->StaCfg.TdlsInfo.TdlsBlackList);
-		NdisAllocateSpinLock(&pAd->StaCfg.TdlsInfo.TdlsBlackListSemLock);
-
-		pAd->StaCfg.TdlsInfo.TdlsAutoSetupRssiThreshold = TDLS_AUTO_SETUP_RSSI_THRESHOLD;
-		pAd->StaCfg.TdlsInfo.TdlsAutoTeardownRssiThreshold = TDLS_AUTO_TEARDOWN_RSSI_THRESHOLD;
-		pAd->StaCfg.TdlsInfo.TdlsRssiMeasurementPeriod = TDLS_RSSI_MEASUREMENT_PERIOD;
-		pAd->StaCfg.TdlsInfo.TdlsDisabledPeriodByTeardown = TDLS_DISABLE_PERIOD_BY_TEARDOWN;
-		pAd->StaCfg.TdlsInfo.TdlsAutoDiscoveryPeriod = TDLS_AUTO_DISCOVERY_PERIOD;
-#endif /* TDLS_AUTOLINK_SUPPORT */
-#endif /* DOT11Z_TDLS_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 
 	pAd->RxAnt.Pair1PrimaryRxAnt = 0;
@@ -3314,10 +2909,6 @@ VOID UserCfgInit(RTMP_ADAPTER *pAd)
 #ifdef CONFIG_STA_SUPPORT
 		pAd->RxAnt.Pair1AvgRssi[0] = pAd->RxAnt.Pair1AvgRssi[1] = 0;
 #endif /* CONFIG_STA_SUPPORT */
-#ifdef CONFIG_AP_SUPPORT
-		pAd->RxAnt.Pair1AvgRssiGroup1[0] = pAd->RxAnt.Pair1AvgRssiGroup1[1] = 0;
-		pAd->RxAnt.Pair1AvgRssiGroup2[0] = pAd->RxAnt.Pair1AvgRssiGroup2[1] = 0;
-#endif /* CONFIG_AP_SUPPORT */
 
 
 #ifdef TXRX_SW_ANTDIV_SUPPORT
@@ -3338,15 +2929,8 @@ VOID UserCfgInit(RTMP_ADAPTER *pAd)
 #endif /* defined(AP_SCAN_SUPPORT) || defined(CONFIG_STA_SUPPORT) */
 
 
-#ifdef WSC_INCLUDED
-	NdisZeroMemory(&pAd->CommonCfg.WscStaPbcProbeInfo, sizeof(WSC_STA_PBC_PROBE_INFO));
-	pAd->CommonCfg.WscPBCOverlap = FALSE;
-#endif /* WSC_INCLUDED */
 
 
-#ifdef P2P_SUPPORT
-	P2pCfgInit(pAd);
-#endif /* P2P_SUPPORT */
 
 #ifdef WFD_SUPPORT
 	WfdCfgInit(pAd);
@@ -3386,6 +2970,14 @@ VOID UserCfgInit(RTMP_ADAPTER *pAd)
 		pAd->CommonCfg.MO_Cfg.bEnable = FALSE;
 	pAd->CommonCfg.MO_Cfg.nFalseCCATh = MO_FALSE_CCA_TH;
 #endif /* MICROWAVE_OVEN_SUPPORT */
+
+#ifdef ED_MONITOR
+	pAd->ed_chk = FALSE;
+	pAd->ed_chk_period = 100;
+	pAd->ed_threshold = 90;
+	pAd->false_cca_threshold = 0;
+	pAd->ed_block_tx_threshold = 2;
+#endif /* ED_MONITOR */
 
 	DBGPRINT(RT_DEBUG_TRACE, ("<-- UserCfgInit\n"));
 }
@@ -3831,15 +3423,6 @@ VOID RTMPEnableRxTx(
 	{
 		rx_filter_flag = APNORMAL;
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef IDS_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-			if (pAd->ApCfg.IdsEnable)
-				rx_filter_flag &= (~0x4);	/* Don't drop those not-U2M frames*/
-		}
-#endif /* IDS_SUPPORT */			
-#endif /* CONFIG_AP_SUPPORT */
 
 		RTMP_IO_WRITE32(pAd, RX_FILTR_CFG, rx_filter_flag);     /* enable RX of DMA block*/
 	}
@@ -3957,14 +3540,7 @@ INT RtmpRaDevCtrlInit(VOID *pAdSrc, RTMP_INF_TYPE infType)
 	DBGPRINT(RT_DEBUG_TRACE, ("STA Driver version-%s\n", STA_DRIVER_VERSION));
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-	pAd->OpMode = OPMODE_AP;
-	DBGPRINT(RT_DEBUG_TRACE, ("AP Driver version-%s\n", AP_DRIVER_VERSION));
-#endif /* CONFIG_AP_SUPPORT */
 
-#ifdef P2P_SUPPORT
-	pAd->OpMode = OPMODE_STA;
-#endif /* P2P_SUPPORT */
 
 #ifdef RTMP_MAC_USB
 	RTMP_SEM_EVENT_INIT(&(pAd->UsbVendorReq_semaphore), &pAd->RscSemMemList);
@@ -4006,9 +3582,6 @@ INT RtmpRaDevCtrlInit(VOID *pAdSrc, RTMP_INF_TYPE infType)
 	RTMP_CardInfoRead(pAd);
 
 	if (pAd->MC_RowID == -1)
-#ifdef CONFIG_AP_SUPPORT
-		strcpy(pAd->MC_FileName, AP_PROFILE_PATH);
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 		strcpy(pAd->MC_FileName, STA_PROFILE_PATH);
 #endif /* CONFIG_STA_SUPPORT */
@@ -4088,17 +3661,6 @@ extern UINT8  MC_CardUsed[MAX_NUM_OF_MULTIPLE_CARD];
 }
 
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef DOT11_N_SUPPORT
-#ifdef DOT11N_DRAFT3
-VOID RTMP_11N_D3_TimerInit(
-	IN PRTMP_ADAPTER pAd)
-{
-	RTMPInitTimer(pAd, &pAd->CommonCfg.Bss2040CoexistTimer, GET_TIMER_FUNCTION(Bss2040CoexistTimeOut), pAd, FALSE);
-}
-#endif /* DOT11N_DRAFT3 */
-#endif /* DOT11_N_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 
 #ifdef VENDOR_FEATURE3_SUPPORT

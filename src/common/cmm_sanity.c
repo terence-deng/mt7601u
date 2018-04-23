@@ -1,30 +1,30 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2004, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Module Name:
-	sanity.c
 
-	Abstract:
-
-	Revision History:
-	Who			When			What
-	--------	----------		----------------------------------------------
-	John Chang  2004-09-01      add WMM support
-*/
 #include "rt_config.h"
 
 extern UCHAR	CISCO_OUI[];
@@ -38,9 +38,6 @@ extern UCHAR	BROADCOM_OUI[];
 extern UCHAR    WPS_OUI[];
 
 
-#ifdef IWSC_SUPPORT
-extern UCHAR    IWSC_OUI[];
-#endif // IWSC_SUPPORT //
 
 typedef struct wsc_ie_probreq_data
 {
@@ -295,10 +292,6 @@ BOOLEAN PeerBeaconAndProbeRspSanity_Old(
     UCHAR				*Ptr;
 #ifdef CONFIG_STA_SUPPORT
 	UCHAR 				TimLen;
-#ifdef IWSC_SUPPORT
-	BOOLEAN				bFoundIWscIe = FALSE;
-	USHORT 				PeerConfigMethod = 0;
-#endif /* IWSC_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
     PFRAME_802_11		pFrame;
     PEID_STRUCT         pEid;
@@ -582,12 +575,6 @@ BOOLEAN PeerBeaconAndProbeRspSanity_Old(
             case IE_TIM:
                 if(SubType == SUBTYPE_BEACON)
                 {
-#ifdef P2P_SUPPORT
-                    if (P2P_CLI_ON(pAd) && NdisEqualMemory(pBssid, pAd->ApCliMlmeAux.Bssid, MAC_ADDR_LEN))
-                    {
-                        GetTimBit((PCHAR)pEid, pAd->ApCliMlmeAux.Aid, &TimLen, pBcastFlag, pDtimCount, pDtimPeriod, pMessageToMe);
-                    }
-#endif /* P2P_SUPPORT */
 					if (INFRA_ON(pAd) && NdisEqualMemory(pBssid, pAd->CommonCfg.Bssid, MAC_ADDR_LEN))
                     {
                         GetTimBit((PCHAR)pEid, pAd->StaActive.Aid, &TimLen, pBcastFlag, pDtimCount, pDtimPeriod, pMessageToMe);
@@ -706,10 +693,7 @@ BOOLEAN PeerBeaconAndProbeRspSanity_Old(
                     pEdcaParm->Txop[QID_AC_VO]  = 48;   /* AC_VO: 48*32us ~= 1.5ms*/
                 }
 				else if (NdisEqualMemory(pEid->Octet, WPS_OUI, 4)
- #ifdef IWSC_SUPPORT
-						 || NdisEqualMemory(pEid->Octet, IWSC_OUI, 4)
-#endif // IWSC_SUPPORT //
-						 )
+ 						 )
                 {
 					if (PeerWscIeLen >= 512)
 						DBGPRINT(RT_DEBUG_ERROR, ("%s: PeerWscIeLen = %d (>= 512)\n", __FUNCTION__, PeerWscIeLen));
@@ -718,10 +702,6 @@ BOOLEAN PeerBeaconAndProbeRspSanity_Old(
 						NdisMoveMemory(pPeerWscIe+PeerWscIeLen, pEid->Octet+4, pEid->Len-4);
 						PeerWscIeLen += (pEid->Len - 4);
 					}
-#ifdef IWSC_SUPPORT
-					if (NdisEqualMemory(pEid->Octet, IWSC_OUI, 4))
-						bFoundIWscIe = TRUE;
-#endif /* IWSC_SUPPORT */
 					
 
 					
@@ -788,18 +768,6 @@ BOOLEAN PeerBeaconAndProbeRspSanity_Old(
                     *LengthVIE += (pEid->Len + 2);
                 }
                 break;
-#ifdef WAPI_SUPPORT
-			/* WAPI information element*/
-            case IE_WAPI:                
-                if (RTMPEqualMemory(pEid->Octet + 4, WAPI_OUI, 3))
-                {
-                    /* Copy to pVIE*/
-                    Ptr = (PUCHAR) pVIE;
-                    NdisMoveMemory(Ptr + *LengthVIE, &pEid->Eid, pEid->Len + 2);
-                    *LengthVIE += (pEid->Len + 2);
-                }
-                break;
-#endif /* WAPI_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 #if defined (EXT_BUILD_CHANNEL_LIST) || defined (RT_CFG80211_SUPPORT)
@@ -866,42 +834,6 @@ BOOLEAN PeerBeaconAndProbeRspSanity_Old(
 			NdisMoveMemory(Ptr + *LengthVIE, WscIe, 6);
 			NdisMoveMemory(Ptr + *LengthVIE + 6, pPeerWscIe, PeerWscIeLen);
 			*LengthVIE += (PeerWscIeLen + 6);
-#ifdef IWSC_SUPPORT
-			if ((pAd->StaCfg.BssType == BSS_ADHOC) &&
-				(SubType == SUBTYPE_PROBE_RSP) &&
-				(bFoundIWscIe == TRUE))
-			{
-				BOOLEAN bSelReg = FALSE;
-				
-				/* re-use this boolean variable */
-				bFoundIWscIe = FALSE;
-				WscGetDataFromPeerByTag(pAd, pPeerWscIe, PeerWscIeLen, WSC_ID_SEL_REGISTRAR, &bSelReg, NULL);				
-				if (bSelReg)
-				{
-					bFoundIWscIe = TRUE;
-					if (WscGetDataFromPeerByTag(pAd, 
-												pPeerWscIe, 
-												PeerWscIeLen,
-												WSC_ID_MAC_ADDR, 
-												&pAd->StaCfg.WscControl.WscPeerMAC[0], 
-												NULL) == FALSE)
-					{
-						NdisMoveMemory(&pAd->StaCfg.WscControl.WscPeerMAC[0], pAddr2, MAC_ADDR_LEN);
-					}
-					NdisMoveMemory(&pAd->StaCfg.WscControl.EntryAddr[0], 
-							&pAd->StaCfg.WscControl.WscPeerMAC[0], 
-							MAC_ADDR_LEN);
-					hex_dump("PeerBeaconAndProbeRspSanity - WscPeerMAC", &pAd->StaCfg.WscControl.WscPeerMAC[0], MAC_ADDR_LEN);
-					
-					WscGetDataFromPeerByTag(pAd, 
-											pPeerWscIe, 
-											PeerWscIeLen,
-											WSC_ID_SEL_REG_CFG_METHODS, 
-											&PeerConfigMethod, 
-											NULL);
-				}
-			}
-#endif /* IWSC_SUPPORT */
 		}
 		
 
@@ -916,25 +848,6 @@ SanityCheck:
 	}
 	else
 	{
-#ifdef IWSC_SUPPORT
-		if (bFoundIWscIe && (pAd->StaCfg.BssType == BSS_ADHOC))
-		{
-			PWSC_CTRL pWscCtrl = &pAd->StaCfg.WscControl;
-			if ((pWscCtrl->WscConfMode == WSC_ENROLLEE) &&
-				(pWscCtrl->WscMode == WSC_PIN_MODE) &&
-				(pWscCtrl->bWscTrigger == TRUE))
-			{
-				NdisZeroMemory(&pWscCtrl->WscSsid, sizeof(NDIS_802_11_SSID));
-				if ((*pSsidLen) <= 32 && (*pSsidLen) != 0)
-				{
-					pWscCtrl->WscSsid.SsidLength = *pSsidLen;
-					NdisMoveMemory(pWscCtrl->WscSsid.Ssid, Ssid, pWscCtrl->WscSsid.SsidLength);
-					PeerConfigMethod = be2cpu16(PeerConfigMethod);
-					MlmeEnqueue(pAd, IWSC_STATE_MACHINE, IWSC_MT2_PEER_PROBE_RSP, sizeof(USHORT), &PeerConfigMethod, 0);
-				}
-			}
-		}
-#endif /* IWSC_SUPPORT */
 		return TRUE;
 	}
 
@@ -964,10 +877,6 @@ BOOLEAN PeerBeaconAndProbeRspSanity(
 	UCHAR *Ptr;
 #ifdef CONFIG_STA_SUPPORT
 	UCHAR TimLen;
-#ifdef IWSC_SUPPORT
-	BOOLEAN bFoundIWscIe = FALSE;
-	USHORT PeerConfigMethod = 0;
-#endif /* IWSC_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 	PFRAME_802_11 pFrame;
 	PEID_STRUCT pEid;
@@ -1223,14 +1132,6 @@ BOOLEAN PeerBeaconAndProbeRspSanity(
 		case IE_TIM:
 			if(SubType == SUBTYPE_BEACON)
 			{
-#ifdef P2P_SUPPORT
-				if (P2P_CLI_ON(pAd) && NdisEqualMemory(&ie_list->Bssid[0], pAd->ApCliMlmeAux.Bssid, MAC_ADDR_LEN))
-				{
-					GetTimBit((PCHAR)pEid, pAd->ApCliMlmeAux.Aid, &TimLen,
-					&ie_list->BcastFlag, &ie_list->DtimCount,
-					&ie_list->DtimPeriod, &ie_list->MessageToMe);
-				}
-#endif /* P2P_SUPPORT */
 				if (INFRA_ON(pAd) && NdisEqualMemory(&ie_list->Bssid[0], pAd->CommonCfg.Bssid, MAC_ADDR_LEN))
 				{
 					GetTimBit((PCHAR)pEid, pAd->StaActive.Aid, &TimLen, &ie_list->BcastFlag,
@@ -1348,9 +1249,6 @@ BOOLEAN PeerBeaconAndProbeRspSanity(
 				ie_list->EdcaParm.Txop[QID_AC_VO]  = 48;   /* AC_VO: 48*32us ~= 1.5ms*/
 			}
 			else if (NdisEqualMemory(pEid->Octet, WPS_OUI, 4)
-#ifdef IWSC_SUPPORT
-					|| NdisEqualMemory(pEid->Octet, IWSC_OUI, 4)
-#endif // IWSC_SUPPORT //
 			)
 			{
 				if (PeerWscIeLen >= 512)
@@ -1360,10 +1258,6 @@ BOOLEAN PeerBeaconAndProbeRspSanity(
 				NdisMoveMemory(pPeerWscIe+PeerWscIeLen, pEid->Octet+4, pEid->Len-4);
 				PeerWscIeLen += (pEid->Len - 4);
 				}
-#ifdef IWSC_SUPPORT
-				if (NdisEqualMemory(pEid->Octet, IWSC_OUI, 4))
-				bFoundIWscIe = TRUE;
-#endif /* IWSC_SUPPORT */
 
 			}
 
@@ -1427,18 +1321,6 @@ BOOLEAN PeerBeaconAndProbeRspSanity(
 			}
 			break;
 
-#ifdef WAPI_SUPPORT
-		/* WAPI information element*/
-		case IE_WAPI:                
-			if (RTMPEqualMemory(pEid->Octet + 4, WAPI_OUI, 3))
-			{
-				/* Copy to pVIE*/
-				Ptr = (PUCHAR) pVIE;
-				NdisMoveMemory(Ptr + *LengthVIE, &pEid->Eid, pEid->Len + 2);
-				*LengthVIE += (pEid->Len + 2);
-			}
-			break;
-#endif /* WAPI_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 #if defined (EXT_BUILD_CHANNEL_LIST) || defined (RT_CFG80211_SUPPORT)
@@ -1516,42 +1398,6 @@ BOOLEAN PeerBeaconAndProbeRspSanity(
 		NdisMoveMemory(Ptr + *LengthVIE, WscIe, 6);
 		NdisMoveMemory(Ptr + *LengthVIE + 6, pPeerWscIe, PeerWscIeLen);
 		*LengthVIE += (PeerWscIeLen + 6);
-#ifdef IWSC_SUPPORT
-		if ((pAd->StaCfg.BssType == BSS_ADHOC) &&
-			(SubType == SUBTYPE_PROBE_RSP) &&
-			(bFoundIWscIe == TRUE))
-		{
-			BOOLEAN bSelReg = FALSE;
-			
-			/* re-use this boolean variable */
-			bFoundIWscIe = FALSE;
-			WscGetDataFromPeerByTag(pAd, pPeerWscIe, PeerWscIeLen, WSC_ID_SEL_REGISTRAR, &bSelReg, NULL);				
-			if (bSelReg)
-			{
-				bFoundIWscIe = TRUE;
-				if (WscGetDataFromPeerByTag(pAd, 
-											pPeerWscIe, 
-											PeerWscIeLen,
-											WSC_ID_MAC_ADDR, 
-											&pAd->StaCfg.WscControl.WscPeerMAC[0], 
-											NULL) == FALSE)
-				{
-					NdisMoveMemory(&pAd->StaCfg.WscControl.WscPeerMAC[0], ie_list->Addr2, MAC_ADDR_LEN);
-				}
-				NdisMoveMemory(&pAd->StaCfg.WscControl.EntryAddr[0], 
-						&pAd->StaCfg.WscControl.WscPeerMAC[0], 
-						MAC_ADDR_LEN);
-				hex_dump("PeerBeaconAndProbeRspSanity - WscPeerMAC", &pAd->StaCfg.WscControl.WscPeerMAC[0], MAC_ADDR_LEN);
-				
-				WscGetDataFromPeerByTag(pAd, 
-										pPeerWscIe, 
-										PeerWscIeLen,
-										WSC_ID_SEL_REG_CFG_METHODS, 
-										&PeerConfigMethod, 
-										NULL);
-			}
-		}
-#endif /* IWSC_SUPPORT */
 	}
 		
 
@@ -1566,25 +1412,6 @@ SanityCheck:
 	}
 	else
 	{
-#ifdef IWSC_SUPPORT
-		if (bFoundIWscIe && (pAd->StaCfg.BssType == BSS_ADHOC))
-		{
-			PWSC_CTRL pWscCtrl = &pAd->StaCfg.WscControl;
-			if ((pWscCtrl->WscConfMode == WSC_ENROLLEE) &&
-				(pWscCtrl->WscMode == WSC_PIN_MODE) &&
-				(pWscCtrl->bWscTrigger == TRUE))
-			{
-				NdisZeroMemory(&pWscCtrl->WscSsid, sizeof(NDIS_802_11_SSID));
-				if ((ie_list->SsidLen) <= 32 && (ie_list->SsidLen) != 0)
-				{
-					pWscCtrl->WscSsid.SsidLength = ie_list->SsidLen;
-					NdisMoveMemory(pWscCtrl->WscSsid.Ssid, &ie_list->Ssid[0], pWscCtrl->WscSsid.SsidLength);
-					PeerConfigMethod = be2cpu16(PeerConfigMethod);
-					MlmeEnqueue(pAd, IWSC_STATE_MACHINE, IWSC_MT2_PEER_PROBE_RSP, sizeof(USHORT), &PeerConfigMethod, 0);
-				}
-			}
-		}
-#endif /* IWSC_SUPPORT */
 		return TRUE;
 	}
 }
@@ -1856,10 +1683,6 @@ BOOLEAN MlmeAuthReqSanity(
         ((*pAddr & 0x01) == 0)) 
     {
 #ifdef CONFIG_STA_SUPPORT
-#ifdef WSC_INCLUDED
-		if (pAd->StaCfg.WscControl.bWscTrigger && (pAd->StaCfg.WscControl.WscConfMode != WSC_DISABLE))
-			*pAlg = AUTH_MODE_OPEN;
-#endif /* WSC_INCLUDED */
 #endif /* CONFIG_STA_SUPPORT */
         return TRUE;
     } 
@@ -2337,20 +2160,9 @@ BOOLEAN PeerProbeReqSanity(
     PFRAME_802_11 Fr = (PFRAME_802_11)Msg;
     UCHAR		*Ptr;
     UCHAR		eid =0, eid_len = 0, *eid_data;
-#ifdef CONFIG_AP_SUPPORT
-    UCHAR       apidx = MAIN_MBSSID;
-	UCHAR       Addr1[MAC_ADDR_LEN];
-#ifdef WSC_INCLUDED
-	UCHAR		*pPeerWscIe = NULL;
-	UINT		PeerWscIeLen = 0;
-#endif /* WSC_INCLUDED */
-#endif /* CONFIG_AP_SUPPORT */
 	UINT		total_ie_len = 0;	
 
     /* to prevent caller from using garbage output value*/
-#ifdef CONFIG_AP_SUPPORT
-	apidx = apidx; /* avoid compile warning */
-#endif /* CONFIG_AP_SUPPORT */
     *SsidLen = 0;
 
     COPY_MAC_ADDR(pAddr2, &Fr->Hdr.Addr2);
@@ -2364,12 +2176,6 @@ BOOLEAN PeerProbeReqSanity(
     *SsidLen = Fr->Octet[1];
     NdisMoveMemory(Ssid, &Fr->Octet[2], *SsidLen);
 	
-#ifdef CONFIG_AP_SUPPORT
-	COPY_MAC_ADDR(Addr1, &Fr->Hdr.Addr1);
-#ifdef WSC_AP_SUPPORT
-	os_alloc_mem(NULL, &pPeerWscIe, 512);
-#endif /* WSC_AP_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
     Ptr = Fr->Octet;
     eid = Ptr[0];
@@ -2395,39 +2201,9 @@ BOOLEAN PeerProbeReqSanity(
 #endif /* RSSI_FEEDBACK */
 
                 if (NdisEqualMemory(eid_data, WPS_OUI, 4)
- #ifdef IWSC_SUPPORT
-					|| NdisEqualMemory(eid_data, IWSC_OUI, 4) 
-#endif // IWSC_SUPPORT //
-					)
+ 					)
                 {
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 
-#ifdef WSC_INCLUDED
-
-
-#ifdef IWSC_SUPPORT
-#ifdef CONFIG_STA_SUPPORT
-					if (pAd->StaCfg.BssType == BSS_ADHOC)
-					{
-						if (NdisEqualMemory(eid_data, IWSC_OUI, 4))
-							WscCheckPeerDPID(pAd, Fr, eid_data, eid_len);
-					}
-					else if (NdisEqualMemory(eid_data, WPS_OUI, 4))
-#endif /* CONFIG_STA_SUPPORT */
-#endif /* IWSC_SUPPORT */
-					WscCheckPeerDPID(pAd, Fr, eid_data, eid_len);
-
-#ifdef CONFIG_AP_SUPPORT
-					if (PeerWscIeLen >= 512)
-						DBGPRINT(RT_DEBUG_ERROR, ("APPeerProbeReqSanity : PeerWscIeLen = %d (>= 512)\n", PeerWscIeLen));
-					if (pPeerWscIe && (PeerWscIeLen < 512))
-					{
-						NdisMoveMemory(pPeerWscIe+PeerWscIeLen, eid_data+4, eid_len-4);
-						PeerWscIeLen += (eid_len - 4);
-					}
-#endif /* CONFIG_AP_SUPPORT */
-#endif /* WSC_INCLUDED */
                     break;
                 }
 
@@ -2440,61 +2216,6 @@ BOOLEAN PeerProbeReqSanity(
 		total_ie_len += (eid_len + 2);
 	}
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef WSC_INCLUDED
-	if (pPeerWscIe && (PeerWscIeLen > 0))
-	{
-		for (apidx = 0; apidx < pAd->ApCfg.BssidNum; apidx++)
-		{
-			if (NdisEqualMemory(Addr1, pAd->ApCfg.MBSSID[apidx].Bssid, MAC_ADDR_LEN))
-				break;
-		}
-
-		/*
-			Due to Addr1 in Probe Request may be FF:FF:FF:FF:FF:FF 
-			and we need to send out this information to external registrar.
-			Therefore we choose ra0 to send this probe req when we couldn't find apidx by Addr1.
-		*/
-		if (apidx >= pAd->ApCfg.BssidNum)
-		{
-			apidx = MAIN_MBSSID;
-		}
-		
-		if ((pAd->ApCfg.MBSSID[apidx].WscControl.WscConfMode & WSC_PROXY) != WSC_DISABLE)
-		{
-	    	int bufLen = 0;
-	    	PUCHAR pBuf = NULL;
-	    	WSC_IE_PROBREQ_DATA	*pprobreq = NULL;
-
-			/*
-				PeerWscIeLen: Len of WSC IE without WSC OUI
-			*/
-			bufLen = sizeof(WSC_IE_PROBREQ_DATA) + PeerWscIeLen;
-			os_alloc_mem(NULL, &pBuf, bufLen);
-			if(pBuf)
-			{
-				/*Send WSC probe req to UPnP*/
-				NdisZeroMemory(pBuf, bufLen);
-				pprobreq = (WSC_IE_PROBREQ_DATA*)pBuf;
-				if (32 >= *SsidLen)	/*Well, I think that it must be TRUE!*/
-				{
-					NdisMoveMemory(pprobreq->ssid, Ssid, *SsidLen);			/* SSID*/
-					NdisMoveMemory(pprobreq->macAddr, Fr->Hdr.Addr2, 6);	/* Mac address*/
-					pprobreq->data[0] = PeerWscIeLen>>8; 									/* element ID*/
-					pprobreq->data[1] = PeerWscIeLen & 0xff;							/* element Length					*/
-					NdisMoveMemory((pBuf+sizeof(WSC_IE_PROBREQ_DATA)), pPeerWscIe, PeerWscIeLen);	/* (WscProbeReqData)*/
-					WscSendUPnPMessage(pAd, apidx, 
-											WSC_OPCODE_UPNP_MGMT, WSC_UPNP_MGMT_SUB_PROBE_REQ, 
-											pBuf, bufLen, 0, 0, &Fr->Hdr.Addr2[0], AP_MODE);
-				}
-				os_free_mem(NULL, pBuf);
-			}
-		}		
-	}
-	if (pPeerWscIe)
-		os_free_mem(NULL, pPeerWscIe);
-#endif /* WSC_INCLUDED */
-#endif /* CONFIG_AP_SUPPORT */
 
     return TRUE;
 }

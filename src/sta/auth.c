@@ -1,30 +1,30 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2004, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Module Name:
-	auth.c
 
-	Abstract:
-
-	Revision History:
-	Who			When			What
-	--------	----------		----------------------------------------------
-	John		2004-9-3		porting from RT2500
-*/
 #include "rt_config.h"
 
 /*
@@ -224,9 +224,6 @@ VOID PeerAuthRspAtSeq2Action(
 						 ("AUTH - Send AUTH request seq#3...\n"));
 					MgtMacHeaderInit(pAd, &AuthHdr,
 							 SUBTYPE_AUTH, 0, Addr2,
-#ifdef P2P_SUPPORT
-							pAd->CurrentAddress,
-#endif /* P2P_SUPPORT */
 							 pAd->MlmeAux.Bssid);
 					AuthHdr.FC.Wep = 1;
 
@@ -393,19 +390,11 @@ VOID MlmeDeauthReqAction(
 			    &Status, 0);
 		return;
 	}
-#ifdef WAPI_SUPPORT
-	WAPI_InternalCmdAction(pAd,
-			       pAd->StaCfg.AuthMode,
-			       BSS0, pAd->MlmeAux.Bssid, WAI_MLME_DISCONNECT);
-#endif /* WAPI_SUPPORT */
 
 	DBGPRINT(RT_DEBUG_TRACE,
 		 ("AUTH - Send DE-AUTH request (Reason=%d)...\n",
 		  pInfo->Reason));
 	MgtMacHeaderInit(pAd, &DeauthHdr, SUBTYPE_DEAUTH, 0, pInfo->Addr,
-#ifdef P2P_SUPPORT
-						pAd->CurrentAddress,
-#endif /* P2P_SUPPORT */
 						pAd->MlmeAux.Bssid);
 	MakeOutgoingFrame(pOutBuffer, &FrameLen, sizeof (HEADER_802_11),
 			  &DeauthHdr, 2, &pInfo->Reason, END_OF_ARGS);
@@ -492,9 +481,6 @@ VOID Cls2errAction(
 	DBGPRINT(RT_DEBUG_TRACE,
 		 ("AUTH - Class 2 error, Send DEAUTH frame...\n"));
 	MgtMacHeaderInit(pAd, &DeauthHdr, SUBTYPE_DEAUTH, 0, pAddr,
-#ifdef P2P_SUPPORT
-						pAd->CurrentAddress,
-#endif /* P2P_SUPPORT */
 						pAd->MlmeAux.Bssid);
 	MakeOutgoingFrame(pOutBuffer, &FrameLen, sizeof (HEADER_802_11),
 			  &DeauthHdr, 2, &Reason, END_OF_ARGS);
@@ -559,9 +545,6 @@ BOOLEAN AUTH_ReqSend(
 			 ("%s - Send AUTH request seq#1 (Alg=%d)...\n", pSMName,
 			  Alg));
 		MgtMacHeaderInit(pAd, &AuthHdr, SUBTYPE_AUTH, 0, Addr,
-#ifdef P2P_SUPPORT
-							pAd->CurrentAddress,
-#endif /* P2P_SUPPORT */
 							pAd->MlmeAux.Bssid);
 		MakeOutgoingFrame(pOutBuffer, &FrameLen, sizeof (HEADER_802_11),
 				  &AuthHdr, 2, &Alg, 2, &Seq, 2, &Status,

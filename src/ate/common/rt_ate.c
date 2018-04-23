@@ -1,30 +1,30 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology	5th	Rd.
- * Science-based Industrial	Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
  * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved.	Ralink's source	code is	an unpublished work	and	the
- * use of a	copyright notice does not imply	otherwise. This	source code
- * contains	confidential trade secret material of Ralink Tech. Any attemp
- * or participation	in deciphering,	decoding, reverse engineering or in	any
- * way altering	the	source code	is stricitly prohibited, unless	the	prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
- 
- 	Module Name:
-	rt_ate.c
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Abstract:
 
-	Revision History:
-	Who			When	    What
-	--------	----------  ----------------------------------------------
-	Name		Date	    Modification logs
-*/
 #include "rt_config.h"
  
 #define ATE_BBP_REG_NUM	168
@@ -68,6 +68,18 @@ extern CHAR desiredTSSIOverHTUsingSTBC[8];
 
 /* The Tx power tuning entry*/
 extern TX_POWER_TUNING_ENTRY_STRUCT TxPowerTuningTable[];
+
+#define CALIBRATION_R         1
+#define CALIBRATION_RXDCOC	  2
+#define CALIBRATION_LC        3
+#define CALIBRATION_LOFT      4
+#define CALIBRATION_TXIQ      5
+#define CALIBRATION_BW_TX     6
+#define CALIBRATION_BW_RX     7
+#define CALIBRATION_DPD       8
+#define CALIBRATION_RXIQ      9
+#define CALIBRATION_TXDCOC    10
+
 
 /*
 ==========================================================================
@@ -214,6 +226,7 @@ VOID DefaultATEAsicAdjustTxPower(
 	UCHAR desiredTSSI = 0, currentTSSI = 0;
 	const TX_POWER_TUNING_ENTRY_STRUCT *TxPowerTuningTable = pAd->chipCap.TxPowerTuningTable_2G;
 	PTX_POWER_TUNING_ENTRY_STRUCT pTxPowerTuningEntry = NULL;
+	UCHAR RFValue = 0, TmpValue = 0;   
 #endif /* RTMP_INTERNAL_TX_ALC */
 
 	maxTxPwrCnt = pChipStruct->maxTxPwrCnt;
@@ -824,12 +837,12 @@ VOID rt_ee_write_all(PRTMP_ADAPTER pAd, USHORT *Data)
 		else
 #endif /* MT7601 */
 		{
-			USHORT offset = 0;
-			USHORT length = EEPROM_SIZE;
+		USHORT offset = 0;
+		USHORT length = EEPROM_SIZE;
 
-			RTUSBWriteEEPROM(pAd, offset, (UCHAR *)Data, length);
-			return;
-		}
+		RTUSBWriteEEPROM(pAd, offset, (UCHAR *)Data, length);
+		return;
+	}
 	}
 #endif /* RTMP_USB_SUPPORT */
 
@@ -1356,113 +1369,6 @@ VOID ATEDisableAsicProtect(
 }
 
 
-#ifdef CONFIG_AP_SUPPORT 
-/*
-==========================================================================
-	Description:
-		Used only by ATE to disassociate all STAs and stop AP service.
-	Note:
-==========================================================================
-*/
-VOID ATEAPStop(
-	IN PRTMP_ADAPTER pAd) 
-{
-	BOOLEAN     Cancelled;
-	UINT32		Value = 0;
-	INT         apidx = 0;
-		
-	DBGPRINT(RT_DEBUG_TRACE, ("!!! ATEAPStop !!!\n"));
-
-	/* To prevent MCU to modify BBP registers w/o indications from driver. */
-#ifdef DFS_SUPPORT
-		NewRadarDetectionStop(pAd);
-#endif /* DFS_SUPPORT */
-
-#ifdef CONFIG_AP_SUPPORT
-#ifdef CARRIER_DETECTION_SUPPORT
-	if (pAd->CommonCfg.CarrierDetect.Enable == TRUE)
-	{
-		CarrierDetectionStop(pAd);
-	}
-#endif /* CARRIER_DETECTION_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
-
-
-
-#ifdef APCLI_SUPPORT
-	ApCliIfDown(pAd);
-#endif /* APCLI_SUPPORT */
-
-	MacTableReset(pAd);
-
-	/* Disable pre-tbtt interrupt */
-	RTMP_IO_READ32(pAd, INT_TIMER_EN, &Value);
-	Value &=0xe;
-	RTMP_IO_WRITE32(pAd, INT_TIMER_EN, Value);
-	/* Disable piggyback */
-	RTMPSetPiggyBack(pAd, FALSE);
-
-	ATEDisableAsicProtect(pAd);
-
-	if (!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_NIC_NOT_EXIST))
-	{
-		AsicDisableSync(pAd);
-
-#ifdef LED_CONTROL_SUPPORT
-		/* Set LED */
-		RTMPSetLED(pAd, LED_LINK_DOWN);
-#endif /* LED_CONTROL_SUPPORT */
-	}
-
-#ifdef RTMP_MAC_USB
-	/* For USB, we need to clear the beacon sync buffer. */
-	RTUSBBssBeaconExit(pAd);
-#endif /* RTMP_MAC_USB */
-
-	for (apidx = 0; apidx < MAX_MBSSID_NUM(pAd); apidx++)
-	{
-		if (pAd->ApCfg.MBSSID[apidx].REKEYTimerRunning == TRUE)
-		{
-			RTMPCancelTimer(&pAd->ApCfg.MBSSID[apidx].REKEYTimer, &Cancelled);
-			pAd->ApCfg.MBSSID[apidx].REKEYTimerRunning = FALSE;
-		}
-	}
-
-	if (pAd->ApCfg.CMTimerRunning == TRUE)
-	{
-		RTMPCancelTimer(&pAd->ApCfg.CounterMeasureTimer, &Cancelled);
-		pAd->ApCfg.CMTimerRunning = FALSE;
-	}
-	
-#ifdef WAPI_SUPPORT
-	RTMPCancelWapiRekeyTimerAction(pAd, NULL);
-#endif /* WAPI_SUPPORT */
-	
-	/* Cancel the Timer, to make sure the timer was not queued. */
-	OPSTATUS_CLEAR_FLAG(pAd, fOP_AP_STATUS_MEDIA_STATE_CONNECTED);
-	RTMP_IndicateMediaState(pAd, NdisMediaStateDisconnected);
-
-	if (pAd->ApCfg.ApQuickResponeForRateUpTimerRunning == TRUE)
-		RTMPCancelTimer(&pAd->ApCfg.ApQuickResponeForRateUpTimer, &Cancelled);
-
-#ifdef IDS_SUPPORT
-	/* if necessary, cancel IDS timer */
-	RTMPIdsStop(pAd);
-#endif /* IDS_SUPPORT */
-
-
-#ifdef GREENAP_SUPPORT
-	if (pAd->ApCfg.bGreenAPEnable == TRUE)
-	{
-		RTMP_CHIP_DISABLE_AP_MIMOPS(pAd);
-		pAd->ApCfg.GreenAPLevel=GREENAP_WITHOUT_ANY_STAS_CONNECT;
-		pAd->ApCfg.bGreenAPEnable = FALSE;
-	}
-#endif /* GREENAP_SUPPORT */
-
-
-}
-#endif /* CONFIG_AP_SUPPORT */
 
 
 #ifdef CONFIG_STA_SUPPORT
@@ -1765,13 +1671,6 @@ static NDIS_STATUS ATESTART(
 		/* Soft reset BBP. */
 		BbpSoftReset(pAd);
 
-#ifdef CONFIG_AP_SUPPORT 
-
-	/* Set IPG 200 by default. */
-	Set_ATE_IPG_Proc(pAd, "200"); 
-	if (atemode == ATE_STOP)
-	ATEAPStop(pAd);
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT 
 	AsicDisableSync(pAd);
@@ -2002,9 +1901,6 @@ static NDIS_STATUS ATESTOP(
 		/* empty function */
 		AsicLockChannel(pAd, pAd->CommonCfg.Channel);
 
-#ifdef CONFIG_AP_SUPPORT 
-	    APStartUp(pAd);
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT 
 	    RTMPStationStart(pAd);
@@ -2020,10 +1916,6 @@ static NDIS_STATUS ATESTOP(
 	pATEInfo->Mode = ATE_STOP;
 #endif /* RTMP_MAC_USB */
 
-#ifdef CONFIG_AP_SUPPORT 
-	/* restore RX_FILTR_CFG */
-	RTMP_IO_WRITE32(pAd, RX_FILTR_CFG, APNORMAL);
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT 
 	/* restore RX_FILTR_CFG due to that QA maybe set it to 0x3 */
@@ -2879,8 +2771,6 @@ INT	Set_ATE_Proc(
 	{
 		DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_Proc Success\n"));
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 		return TRUE;
 	}
 	else
@@ -2921,9 +2811,6 @@ INT	Set_ATE_DA_Proc(
 		{
 			return FALSE;  
 		}
-#ifdef CONFIG_AP_SUPPORT
-		AtoH(value, &pATEInfo->Addr1[octet++], 1);
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 		AtoH(value, &pATEInfo->Addr3[octet++], 1);
@@ -2935,12 +2822,6 @@ INT	Set_ATE_DA_Proc(
 	{
 		return FALSE;  
 	}
-#ifdef CONFIG_AP_SUPPORT		
-	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_DA_Proc (DA = %02x:%02x:%02x:%02x:%02x:%02x)\n", 
-		pATEInfo->Addr1[0], pATEInfo->Addr1[1], pATEInfo->Addr1[2], pATEInfo->Addr1[3],
-		pATEInfo->Addr1[4], pATEInfo->Addr1[5]));
-
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_DA_Proc (DA = %02x:%02x:%02x:%02x:%02x:%02x)\n", 
@@ -2984,9 +2865,6 @@ INT	Set_ATE_SA_Proc(
 		{
 			return FALSE;  
 		}
-#ifdef CONFIG_AP_SUPPORT
-		AtoH(value, &pATEInfo->Addr3[octet++], 1);
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 		AtoH(value, &pATEInfo->Addr2[octet++], 1);
@@ -2998,11 +2876,6 @@ INT	Set_ATE_SA_Proc(
 	{
 		return FALSE;
 	}
-#ifdef CONFIG_AP_SUPPORT		
-	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_SA_Proc (SA = %02x:%02x:%02x:%02x:%02x:%02x)\n", 
-		pATEInfo->Addr3[0], pATEInfo->Addr3[1], pATEInfo->Addr3[2], pATEInfo->Addr3[3],
-		pATEInfo->Addr3[4], pATEInfo->Addr3[5]));
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_SA_Proc (SA = %02x:%02x:%02x:%02x:%02x:%02x)\n", 
@@ -3046,9 +2919,6 @@ INT	Set_ATE_BSSID_Proc(
 		{
 			return FALSE;  
 		}
-#ifdef CONFIG_AP_SUPPORT
-		AtoH(value, &pATEInfo->Addr2[octet++], 1);
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 		AtoH(value, &pATEInfo->Addr1[octet++], 1);
@@ -3060,12 +2930,6 @@ INT	Set_ATE_BSSID_Proc(
 	{
 		return FALSE;
 	}
-#ifdef CONFIG_AP_SUPPORT		
-	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_BSSID_Proc (BSSID = %02x:%02x:%02x:%02x:%02x:%02x)\n",	
-		pATEInfo->Addr2[0], pATEInfo->Addr2[1], pATEInfo->Addr2[2], pATEInfo->Addr2[3],
-		pATEInfo->Addr2[4], pATEInfo->Addr2[5]));
-
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_BSSID_Proc (BSSID = %02x:%02x:%02x:%02x:%02x:%02x)\n",	
@@ -3113,8 +2977,6 @@ INT	Set_ATE_CHANNEL_Proc(
 	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_CHANNEL_Proc (ATE Channel = %d)\n", pATEInfo->Channel));
 	DBGPRINT(RT_DEBUG_TRACE, ("Ralink: Set_ATE_CHANNEL_Proc Success\n"));
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 	
 	return TRUE;
 }
@@ -3183,8 +3045,6 @@ INT	Set_ATE_INIT_CHAN_Proc(
 
 	DBGPRINT(RT_DEBUG_TRACE, ("Ralink: Set_ATE_INIT_CHAN_Proc Success\n"));
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 
 	return TRUE;
 }
@@ -3281,8 +3141,6 @@ static INT ATESetAntennaTxPower(
 
 	DBGPRINT(RT_DEBUG_TRACE, ("Ralink: Set_ATE_TX_POWER%d_Proc Success\n", index));
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 	
 	return TRUE;
 }
@@ -3385,8 +3243,6 @@ INT	Set_ATE_TX_Antenna_Proc(
 	/* calibration power unbalance issues */
 	ATEAsicSwitchChannel(pAd);
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 	
 	return TRUE;
 }
@@ -3427,8 +3283,6 @@ INT	Set_ATE_RX_Antenna_Proc(
 	/* calibration power unbalance issues */
 	ATEAsicSwitchChannel(pAd);
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 	
 	return TRUE;
 }
@@ -3527,8 +3381,6 @@ INT Set_ATE_PA_Bias_Proc(
 	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_PA_Bias_Proc (PABias = %d)\n", pATEInfo->PABias));
 	DBGPRINT(RT_DEBUG_TRACE, ("Ralink: Set_ATE_PA_Bias_Proc Success\n"));
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 
 	return TRUE;
 }
@@ -3566,8 +3418,6 @@ INT	Default_Set_ATE_TX_FREQ_OFFSET_Proc(
 	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_TX_FREQOFFSET_Proc (RFFreqOffset = %d)\n", pATEInfo->RFFreqOffset));
 	DBGPRINT(RT_DEBUG_TRACE, ("Ralink: Set_ATE_TX_FREQOFFSET_Proc Success\n"));
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 	
 	return TRUE;
 }
@@ -3599,8 +3449,6 @@ INT	Set_ATE_TX_FREQ_OFFSET_Proc(
 		DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_TX_FREQ_OFFSET_Proc (RFFreqOffset = %d)\n", pATEInfo->RFFreqOffset));
 		DBGPRINT(RT_DEBUG_TRACE, ("Ralink: Set_ATE_TX_FREQ_OFFSET_Proc Success\n"));
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 	}
 
 	return ret;
@@ -3784,8 +3632,6 @@ INT	Default_Set_ATE_TX_BW_Proc(
 	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_TX_BW_Proc (BBPCurrentBW = %d)\n", pATEInfo->TxWI.TxWIBW));
 	DBGPRINT(RT_DEBUG_TRACE, ("Ralink: Set_ATE_TX_BW_Proc Success\n"));
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 	
 	return TRUE;
 }
@@ -3812,8 +3658,6 @@ INT	Set_ATE_TX_BW_Proc(
 	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_TX_BW_Proc (BBPCurrentBW = %d)\n", pATEInfo->TxWI.TxWIBW));
 	DBGPRINT(RT_DEBUG_TRACE, ("Ralink: Set_ATE_TX_BW_Proc Success\n"));
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 
 	return TRUE;
 }
@@ -3846,8 +3690,6 @@ INT	Set_ATE_TX_LENGTH_Proc(
 	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_TX_LENGTH_Proc (TxLength = %d)\n", pATEInfo->TxLength));
 	DBGPRINT(RT_DEBUG_TRACE, ("Ralink: Set_ATE_TX_LENGTH_Proc Success\n"));
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 	
 	return TRUE;
 }
@@ -3878,8 +3720,6 @@ INT	Set_ATE_TX_COUNT_Proc(
 	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_TX_COUNT_Proc (TxCount = %d)\n", pATEInfo->TxCount));
 	DBGPRINT(RT_DEBUG_TRACE, ("Ralink: Set_ATE_TX_COUNT_Proc Success\n"));
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 	
 	return TRUE;
 }
@@ -3918,8 +3758,6 @@ INT	Set_ATE_TX_MCS_Proc(
 	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_TX_MCS_Proc (MCS = %d)\n", pATEInfo->TxWI.TxWIMCS));
 	DBGPRINT(RT_DEBUG_TRACE, ("Ralink: Set_ATE_TX_MCS_Proc Success\n"));
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 	
 	return TRUE;
 }
@@ -4066,8 +3904,6 @@ INT	Set_ATE_TX_MODE_Proc(
 	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_TX_MODE_Proc (TxMode = %d)\n", pATEInfo->TxWI.TxWIPHYMODE));
 	DBGPRINT(RT_DEBUG_TRACE, ("Ralink: Set_ATE_TX_MODE_Proc Success\n"));
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 	
 	return TRUE;
 }
@@ -4100,8 +3936,6 @@ INT	Set_ATE_TX_GI_Proc(
 	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_TX_GI_Proc (GI = %d)\n", pATEInfo->TxWI.TxWIShortGI));
 	DBGPRINT(RT_DEBUG_TRACE, ("Ralink: Set_ATE_TX_GI_Proc Success\n"));
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 	
 	return TRUE;
 }
@@ -4124,8 +3958,6 @@ INT	Set_ATE_RX_FER_Proc(
 	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_RX_FER_Proc (bRxFER = %d)\n", pATEInfo->bRxFER));
 	DBGPRINT(RT_DEBUG_TRACE, ("Ralink: Set_ATE_RX_FER_Proc Success\n"));
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 	
 	return TRUE;
 }
@@ -4320,6 +4152,8 @@ INT Set_ATE_Cal_Free_Info_Proc(
 	IN	PRTMP_ADAPTER	pAd, 
 	IN	PSTRING			arg)
 {
+	BOOLEAN		    	ret = FALSE;
+
 	if ( pAd->bCalFreeIC )
 		DBGPRINT(RT_DEBUG_OFF, ("%s (bCalFreeIC=TRUE)\n\n", __FUNCTION__));
 	else
@@ -4387,8 +4221,6 @@ INT	Set_ATE_AUTO_ALC_Proc(
 		DBGPRINT(RT_DEBUG_TRACE, ("ATEAUTOALC = FALSE , auto alc disabled!\n"));
 	}	
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 
 	return TRUE;
 }
@@ -4440,8 +4272,6 @@ INT	Set_ATE_TXBF_Proc(
 			break;
 	}
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 	
 	return TRUE;
 	}
@@ -4477,8 +4307,6 @@ INT	Set_ATE_TXSOUNDING_Proc(
 
 	pATEInfo->txSoundingMode = value;
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 
 	return TRUE;
 }
@@ -5143,8 +4971,6 @@ INT	Set_ATE_IPG_Proc(
 	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_IPG_Proc (IPG = %u)\n", pATEInfo->IPG));
 	DBGPRINT(RT_DEBUG_TRACE, ("Ralink: Set_ATE_IPG_Proc Success\n"));
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 
 	return TRUE;
 }
@@ -5177,8 +5003,6 @@ INT	Set_ATE_Payload_Proc(
 	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_Payload_Proc (repeated pattern = 0x%2x)\n", pATEInfo->Payload));
 	DBGPRINT(RT_DEBUG_TRACE, ("Ralink: Set_ATE_Payload_Proc Success\n"));
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 	
 	return TRUE;
 }
@@ -5290,8 +5114,6 @@ INT	Set_ATE_Show_Proc(
 	DBGPRINT(RT_DEBUG_OFF, ("txSoundingMode=%d\n", pATEInfo->txSoundingMode));
 #endif /* TXBF_SUPPORT */
 	DBGPRINT(RT_DEBUG_OFF, ("Set_ATE_Show_Proc Success\n"));
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 	return TRUE;
 }
 
@@ -5437,8 +5259,6 @@ INT RT335x2_Set_ATE_TSSI_CALIBRATION_ENABLE_Proc(
 
 	pAd->ate.bTSSICalbrEnableG = bTSSICalbrEnableG;
 			
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 
 	return TRUE;
 	}
@@ -6318,7 +6138,7 @@ VOID ATEPeriodicExec(
 	PATE_INFO pATEInfo = &(pAd->ate);
 	
 	if (ATE_ON(pAd))
-	{	
+	{
 		pATEInfo->OneSecPeriodicRound++;
 
 		/* for performace enchanement */
@@ -6355,7 +6175,7 @@ VOID ATEPeriodicExec(
 			ATEAsicAdjustTxPower(pAd);
 		}
 		
-		ATEAsicExtraPowerOverMAC(pAd);	
+		ATEAsicExtraPowerOverMAC(pAd);		
 
 		//ATEAsicTemperCompensation(pAd);
 
@@ -6368,3 +6188,82 @@ VOID ATEPeriodicExec(
 	return;
 }
 
+INT Set_ATE_CAL_Proc(
+	IN	PRTMP_ADAPTER	pAd,
+	IN	PSTRING			arg)
+{
+	int value;
+	PATE_INFO pATEInfo = &(pAd->ate);
+
+	/* Get calibration ID */
+	value = simple_strtol(arg, 0, 10);
+
+	switch(value)
+	{
+		case CALIBRATION_R:
+			AndesCalibrationOP(pAd, ANDES_CALIBRATION_R, 0);
+			printk("R Calibration done!\n");
+			break; 
+		case CALIBRATION_RXDCOC:
+			MT7601_RXDC_CAL(pAd);
+			printk("RXDC Calibration done!\n");
+			break;
+		case CALIBRATION_LC:
+			printk("LC tank Calibration is not support!\n");
+			break;
+		case CALIBRATION_LOFT:
+			AndesCalibrationOP(pAd, ANDES_CALIBRATION_LOFT, 0);
+			printk("TXLOFT Calibration done!\n");
+			break;
+		case CALIBRATION_TXIQ:
+			AndesCalibrationOP(pAd, ANDES_CALIBRATION_TXIQ, 0);
+			printk("TXIQ Calibration done!\n");
+			break;
+		case CALIBRATION_BW_TX:
+			AndesCalibrationOP(pAd, ANDES_CALIBRATION_BW, 0x00001);
+			if (pATEInfo->TxWI.TxWIBW == BW_20)
+			{
+				AndesCalibrationOP(pAd, ANDES_CALIBRATION_BW, 0x10001);
+				printk("BW TX (BW20) Calibration done!\n");
+			}
+			else
+			{
+				AndesCalibrationOP(pAd, ANDES_CALIBRATION_BW, 0x10101);
+				printk("BW TX (BW40) Calibration done!\n");
+			}
+			break;
+		case CALIBRATION_BW_RX:
+			AndesCalibrationOP(pAd, ANDES_CALIBRATION_BW, 0x00000);
+			if (pATEInfo->TxWI.TxWIBW == BW_20)
+			{
+				AndesCalibrationOP(pAd, ANDES_CALIBRATION_BW, 0x10000);
+				printk("BW RX (BW20) Calibration done!\n");
+			}
+			else
+			{
+				AndesCalibrationOP(pAd, ANDES_CALIBRATION_BW, 0x10100);
+				printk("BW RX (BW40) Calibration done!\n");
+			}
+			break;
+#ifdef DPD_CALIBRATION_SUPPORT
+		case CALIBRATION_DPD:
+			AndesCalibrationOP(pAd, ANDES_CALIBRATION_DPD, (pAd->chipCap.CurrentTemperBbpR49 - pAd->chipCap.TemperatureRef25C) * MT7601_E2_TEMPERATURE_SLOPE);
+			printk("DPD Calibration done@%d Deg.!\n", (pAd->chipCap.CurrentTemperBbpR49 - pAd->chipCap.TemperatureRef25C) * MT7601_E2_TEMPERATURE_SLOPE);
+			break;
+#endif /* DPD_CALIBRATION_SUPPORT */
+		case CALIBRATION_RXIQ:
+			AndesCalibrationOP(pAd, ANDES_CALIBRATION_RXIQ, 0);
+			printk("RXIQ Calibration done!\n");
+			break;
+		case CALIBRATION_TXDCOC:
+			AndesCalibrationOP(pAd, ANDES_CALIBRATION_TXDCOC, 0);
+			printk("TXDCOC Calibration done!\n");
+			break;
+		default:
+			printk("Calibration %d is not support\n", value);
+	}
+
+	return TRUE;
+
+	
+}

@@ -1,30 +1,30 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2004, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Module Name:
-	rtmp_init_inf.c
 
-	Abstract:
-	Miniport generic portion header file
-
-	Revision History:
-	Who         When          What
-	--------    ----------    ----------------------------------------------
-*/
 #include	"rt_config.h"
 
 
@@ -72,17 +72,14 @@ VOID RtmpDrvOpsInit(
 #ifdef MBSS_SUPPORT
 	pDrvOps->MBSS_PacketSend = MBSS_PacketSend;
 #endif /* MBSS_SUPPORT */
+#ifdef WDS_SUPPORT
+	pDrvOps->WDS_PacketSend = WDS_PacketSend;
+#endif /* WDS_SUPPORT */
 #ifdef APCLI_SUPPORT
 	pDrvOps->APC_PacketSend = APC_PacketSend;
 #endif /* APCLI_SUPPORT */
-#ifdef P2P_SUPPORT
-	pDrvOps->P2P_PacketSend = P2P_PacketSend;
-#endif /* P2P_SUPPORT */
 
 	pDrvOps->RTMP_COM_IoctlHandle = RTMP_COM_IoctlHandle;
-#ifdef CONFIG_AP_SUPPORT
-	pDrvOps->RTMP_AP_IoctlHandle = RTMP_AP_IoctlHandle;
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 	pDrvOps->RTMP_STA_IoctlHandle = RTMP_STA_IoctlHandle;
 #endif /* CONFIG_STA_SUPPORT */
@@ -207,13 +204,6 @@ int rt28xx_init(VOID *pAdSrc, PSTRING pDefaultMac, PSTRING pHostName)
 	RTMP_CLEAR_FLAGS(pAd);
 
 	/* Init BssTab & ChannelInfo tabbles for auto channel select.*/
-#ifdef CONFIG_AP_SUPPORT	
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		AutoChBssTableInit(pAd);
-		ChannelInfoInit(pAd);
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef DOT11_N_SUPPORT
 	/* Allocate BA Reordering memory*/
@@ -302,10 +292,6 @@ int rt28xx_init(VOID *pAdSrc, PSTRING pDefaultMac, PSTRING pHostName)
 
 	CfgInitHook(pAd);
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		APInitialize(pAd);
-#endif /* CONFIG_AP_SUPPORT */	
 
 #ifdef BLOCK_NET_IF
 	initblockQueueTab(pAd);
@@ -334,11 +320,6 @@ int rt28xx_init(VOID *pAdSrc, PSTRING pDefaultMac, PSTRING pHostName)
 		goto err6;
 	}
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 	/* Read parameters from Config File */
 	/* unknown, it will be updated in NICReadEEPROMParameters */
@@ -451,14 +432,6 @@ int rt28xx_init(VOID *pAdSrc, PSTRING pDefaultMac, PSTRING pHostName)
 #endif /* DOT11_N_SUPPORT */
 
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-#ifdef AP_QLOAD_SUPPORT
-		QBSS_LoadInit(pAd);
-#endif /* AP_QLOAD_SUPPORT */
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 	/* APInitialize(pAd);*/
 
@@ -474,16 +447,6 @@ int rt28xx_init(VOID *pAdSrc, PSTRING pDefaultMac, PSTRING pHostName)
 #ifdef RALINK_ATE
 #endif /* RALINK_ATE */
 
-#ifdef CONFIG_AP_SUPPORT
-	
-	/* Initialize RF register to default value*/
-	
-	if (pAd->OpMode == OPMODE_AP)
-	{
-		AsicSwitchChannel(pAd, pAd->CommonCfg.Channel, FALSE);
-		AsicLockChannel(pAd, pAd->CommonCfg.Channel);
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 	/*
 		Some modules init must be called before APStartUp().
@@ -509,75 +472,6 @@ int rt28xx_init(VOID *pAdSrc, PSTRING pDefaultMac, PSTRING pHostName)
 
 		DBGPRINT(RT_DEBUG_TRACE, ("NDIS_STATUS_MEDIA_DISCONNECT Event B!\n"));
 
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-			if (pAd->ApCfg.bAutoChannelAtBootup || (pAd->CommonCfg.Channel == 0))
-			{	
-				/* Enable Interrupt first due to we need to scan channel to receive beacons.*/
-				RTMP_IRQ_ENABLE(pAd);
-#ifdef RTMP_MAC_USB
-				RTMP_CLEAR_FLAG(pAd, fRTMP_ADAPTER_RESET_IN_PROGRESS);
-				RTMP_CLEAR_FLAG(pAd, fRTMP_ADAPTER_REMOVE_IN_PROGRESS);
-
-				
-				/* Support multiple BulkIn IRP,*/
-				/* the value on pAd->CommonCfg.NumOfBulkInIRP may be large than 1.*/
-				
-				for(index=0; index<pAd->CommonCfg.NumOfBulkInIRP; index++)
-				{
-					RTUSBBulkReceive(pAd);
-					DBGPRINT(RT_DEBUG_TRACE, ("RTUSBBulkReceive!\n" ));
-				}
-
-#endif /* RTMP_MAC_USB */
-				/* Now Enable RxTx*/
-				RTMPEnableRxTx(pAd);
-				//RTMP_SET_FLAG(pAd, fRTMP_ADAPTER_START_UP);
-
-				/* Let BBP register at 20MHz to do scan */
-				rtmp_bbp_set_bw(pAd, BW_20);
-				DBGPRINT(RT_DEBUG_ERROR, ("SYNC - BBP R4 to 20MHz.l\n"));
-
-				/* Now we can receive the beacon and do the listen beacon*/
-				/* use default BW to select channel*/
-				pAd->CommonCfg.Channel = AP_AUTO_CH_SEL(pAd, pAd->ApCfg.AutoChannelAlg);
-				pAd->ApCfg.bAutoChannelAtBootup = FALSE;
-			}
-
-#ifdef DOT11_N_SUPPORT
-			/* If WMODE_CAP_N(phymode) and BW=40 check extension channel, after select channel  */
-			N_ChannelCheck(pAd);
-
-#ifdef DOT11N_DRAFT3
-        		/* 
-         			We only do this Overlapping BSS Scan when system up, for the 
-				other situation of channel changing, we depends on station's 
-				report to adjust ourself.
-			*/
-			if (pAd->CommonCfg.bForty_Mhz_Intolerant == TRUE)
-			{
-				DBGPRINT(RT_DEBUG_TRACE, ("Disable 20/40 BSSCoex Channel Scan(BssCoex=%d, 40MHzIntolerant=%d)\n", 
-											pAd->CommonCfg.bBssCoexEnable, 
-											pAd->CommonCfg.bForty_Mhz_Intolerant));
-			}
-			else if(pAd->CommonCfg.bBssCoexEnable == TRUE)
-			{	
-				DBGPRINT(RT_DEBUG_TRACE, ("Enable 20/40 BSSCoex Channel Scan(BssCoex=%d)\n", 
-							pAd->CommonCfg.bBssCoexEnable));
-				APOverlappingBSSScan(pAd);
-			}
-
-			RTMP_11N_D3_TimerInit(pAd);
-/*			RTMPInitTimer(pAd, &pAd->CommonCfg.Bss2040CoexistTimer, GET_TIMER_FUNCTION(Bss2040CoexistTimeOut), pAd, FALSE);*/
-#endif /* DOT11N_DRAFT3 */
-#endif /* DOT11_N_SUPPORT */
-
-			APStartUp(pAd);
-			DBGPRINT(RT_DEBUG_OFF, ("Main bssid = %02x:%02x:%02x:%02x:%02x:%02x\n", 
-									PRINT_MAC(pAd->ApCfg.MBSSID[BSS0].Bssid)));
-		}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef RTMP_MAC_USB
 		RTMP_CLEAR_FLAG(pAd, fRTMP_ADAPTER_RESET_IN_PROGRESS);
@@ -595,72 +489,25 @@ int rt28xx_init(VOID *pAdSrc, PSTRING pDefaultMac, PSTRING pHostName)
 	}/* end of else*/
 
 	/* Set up the Mac address*/
-#ifdef CONFIG_AP_SUPPORT
-#ifndef P2P_APCLI_SUPPORT
-	RtmpOSNetDevAddrSet(pAd->OpMode, pAd->net_dev, &pAd->CurrentAddress[0], NULL);
-#endif /* P2P_APCLI_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 	RtmpOSNetDevAddrSet(pAd->OpMode, pAd->net_dev, &pAd->CurrentAddress[0], (PUCHAR)(pAd->StaCfg.dev_name));
 #endif /* CONFIG_STA_SUPPORT */
 
 	/* Various AP function init*/
-#ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
-
-#else
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-	{
-#ifdef MBSS_SUPPORT
-		/* the function can not be moved to RT2860_probe() even register_netdev()
-		   is changed as register_netdevice().
-		   Or in some PC, kernel will panic (Fedora 4) */
-/*		RT28xx_MBSS_Init(pAd, pAd->net_dev);  os abl move to rt_main_dev.c*/
-#endif /* MBSS_SUPPORT */
-
-
-#ifdef APCLI_SUPPORT
-/*		RT28xx_ApCli_Init(pAd, pAd->net_dev);*/
-#endif /* APCLI_SUPPORT */
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef UAPSD_SUPPORT
         UAPSD_Init(pAd);
 #endif /* UAPSD_SUPPORT */
 
 	/* assign function pointers*/
-#ifdef MAT_SUPPORT
-	/* init function pointers, used in OS_ABL */
-	RTMP_MATOpsInit(pAd);
-#endif /* MAT_SUPPORT */
 
 
 
-#ifdef P2P_SUPPORT
-/*		RTMP_P2P_Init(pAd, pAd->net_dev); */
-#endif /* P2P_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-#ifdef MAT_SUPPORT
-		MATEngineInit(pAd);
-#endif /* MAT_SUPPORT */
-
-#ifdef CLIENT_WDS
-		CliWds_ProxyTabInit(pAd);
-#endif /* CLIENT_WDS */
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{
-#ifdef DOT11Z_TDLS_SUPPORT
-		TDLS_Table_Init(pAd);
-#endif /* DOT11Z_TDLS_SUPPORT */
 
 #ifdef WPA_SUPPLICANT_SUPPORT
 #ifndef NATIVE_WPA_SUPPLICANT_SUPPORT
@@ -766,11 +613,6 @@ err1:
 	MCUCtrlExit(pAd);
 #endif /* RLT_MAC */
 
-#ifdef CONFIG_AP_SUPPORT
-	/* Free BssTab & ChannelInfo tabbles.*/
-	AutoChBssTableDestroy(pAd);
-	ChannelInfoDestroy(pAd);
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef RT3290
 	if (IS_RT3290(pAd))
@@ -849,11 +691,6 @@ VOID RTMPDrvOpen(
 
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef BG_FT_SUPPORT
-	BG_FTPH_Init();
-#endif /* BG_FT_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 
 //+++Add by shiang for debug
@@ -877,67 +714,6 @@ VOID RTMPDrvOpen(
 #ifdef CONFIG_STA_SUPPORT
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef WSC_INCLUDED
-#ifdef CONFIG_AP_SUPPORT
-	if ((pAd->OpMode == OPMODE_AP)
-#ifdef P2P_SUPPORT
-		/* P2P will use ApCfg.MBSSID and ApCfg.ApCliTab also. */
-		|| TRUE
-#endif /* P2P_SUPPORT */
-		)
-	{
-		INT index;
-		for (index = 0; index < pAd->ApCfg.BssidNum; index++)
-		{
-#ifdef HOSTAPD_SUPPORT
-			if (pAd->ApCfg.MBSSID[index].Hostapd == TRUE)
-			{
-				DBGPRINT(RT_DEBUG_TRACE, ("WPS is control by hostapd now.\n"));
-			}
-			else
-#endif /*HOSTAPD_SUPPORT*/
-			{
-				PWSC_CTRL pWscControl;
-				UCHAR zeros16[16]= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-				
-				pWscControl = &pAd->ApCfg.MBSSID[index].WscControl;
-				DBGPRINT(RT_DEBUG_TRACE, ("Generate UUID for apidx(%d)\n", index));
-				if (NdisEqualMemory(&pWscControl->Wsc_Uuid_E[0], zeros16, UUID_LEN_HEX))
-					WscGenerateUUID(pAd, &pWscControl->Wsc_Uuid_E[0], &pWscControl->Wsc_Uuid_Str[0], index, FALSE);
-				WscInit(pAd, FALSE, index);
-			}
-		}
-
-#ifdef APCLI_SUPPORT
-		for(index = 0; index < MAX_APCLI_NUM; index++)
-		{
-			PWSC_CTRL pWpsCtrl = &pAd->ApCfg.ApCliTab[index].WscControl;
-			
-			pWpsCtrl->pAd = pAd;        
-			NdisZeroMemory(pWpsCtrl->EntryAddr, MAC_ADDR_LEN);
-			pWpsCtrl->WscConfigMethods= 0x018C;
-			RTMP_AP_IoctlHandle(pAd, NULL, CMD_RTPRIV_IOCTL_WSC_INIT, 0, (VOID *)&pAd->ApCfg.ApCliTab[index], index);
-		}
-#endif /* APCLI_SUPPORT */
-	}
-#endif /* CONFIG_AP_SUPPORT */
-
-#ifdef CONFIG_STA_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-	{
-		PWSC_CTRL pWscControl = &pAd->StaCfg.WscControl;
-		
-		WscGenerateUUID(pAd, &pWscControl->Wsc_Uuid_E[0], &pWscControl->Wsc_Uuid_Str[0], 0, FALSE);
-		WscInit(pAd, FALSE, BSS0);
-#ifdef WSC_V2_SUPPORT
-		WscInitRegistrarPair(pAd, &pAd->StaCfg.WscControl, BSS0);
-#endif /* WSC_V2_SUPPORT */
-	}
-#endif /* CONFIG_STA_SUPPORT */
-
-	/* WSC hardware push button function 0811 */
-	WSC_HDR_BTN_Init(pAd);
-#endif /* WSC_INCLUDED */
 
 #ifdef CONFIG_MULTI_CHANNEL
 		MultiChannelThreadInit(pAd);
@@ -973,12 +749,9 @@ VOID RTMPDrvClose(
 #endif /* CREDENTIAL_STORE */
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef BG_FT_SUPPORT
-	BG_FTPH_Remove();
-#endif /* BG_FT_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
-
+#ifdef LED_CONTROL_SUPPORT
+	RTMPExitLEDMode(pAd);
+#endif // LED_CONTROL_SUPPORT
 
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -1005,8 +778,8 @@ VOID RTMPDrvClose(
 	if (pAd->WOW_Cfg.bEnable == FALSE)
 #endif /* ((defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT)) && defined(WOW_IFDOWN_SUPPORT) */
 	{
-	RTMP_CLEAR_FLAG(pAd, fRTMP_ADAPTER_MCU_SEND_IN_BAND_CMD);
-	RTMP_SET_FLAG(pAd, fRTMP_ADAPTER_HALT_IN_PROGRESS);
+		RTMP_CLEAR_FLAG(pAd, fRTMP_ADAPTER_MCU_SEND_IN_BAND_CMD);
+		RTMP_SET_FLAG(pAd, fRTMP_ADAPTER_HALT_IN_PROGRESS);
 	}
 
 #ifdef EXT_BUILD_CHANNEL_LIST
@@ -1019,6 +792,9 @@ VOID RTMPDrvClose(
 
 
 
+#ifdef WDS_SUPPORT
+	WdsDown(pAd);
+#endif /* WDS_SUPPORT */
 
 	for (i = 0 ; i < NUM_OF_TX_RING; i++)
 	{
@@ -1034,26 +810,6 @@ VOID RTMPDrvClose(
 
 #endif /* RTMP_MAC_USB */
 
-#ifdef CONFIG_AP_SUPPORT
-
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-#ifdef RTMP_MAC_USB
-		RTMPCancelTimer(&pAd->CommonCfg.BeaconUpdateTimer, &Cancelled);
-#endif /* RTMP_MAC_USB */
-
-#ifdef DOT11N_DRAFT3
-		if (pAd->CommonCfg.Bss2040CoexistFlag & BSS_2040_COEXIST_TIMER_FIRED)
-		{
-			RTMPCancelTimer(&pAd->CommonCfg.Bss2040CoexistTimer, &Cancelled);
-			pAd->CommonCfg.Bss2040CoexistFlag  = 0;
-		}
-#endif /* DOT11N_DRAFT3 */
-
-		/* PeriodicTimer already been canceled by MlmeHalt() API.*/
-		/*RTMPCancelTimer(&pAd->PeriodicTimer,	&Cancelled);*/
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 	/* Stop Mlme state machine*/
 	MlmeHalt(pAd);
@@ -1066,9 +822,6 @@ VOID RTMPDrvClose(
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{
 		MacTableReset(pAd);
-#ifdef MAT_SUPPORT
-		MATEngineExit(pAd);
-#endif /* MAT_SUPPORT */
 #if ((defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT)) && defined(WOW_IFDOWN_SUPPORT)
 		if (pAd->WOW_Cfg.bEnable == TRUE)
 			ASIC_WOW_ENABLE(pAd);
@@ -1078,47 +831,15 @@ VOID RTMPDrvClose(
 	}
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-#ifdef MAT_SUPPORT
-		MATEngineExit(pAd);
-#endif /* MAT_SUPPORT */
-
-#ifdef CLIENT_WDS
-		CliWds_ProxyTabDestory(pAd);
-#endif /* CLIENT_WDS */
-		/* Shutdown Access Point function, release all related resources */
-		APShutdown(pAd);
-
-/*#ifdef AUTO_CH_SELECT_ENHANCE*/
-		/* Free BssTab & ChannelInfo tabbles.*/
-/*		AutoChBssTableDestroy(pAd); */
-/*		ChannelInfoDestroy(pAd); */
-/*#endif  AUTO_CH_SELECT_ENHANCE */
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 	MeasureReqTabExit(pAd);
 	TpcReqTabExit(pAd);
 
-#ifdef LED_CONTROL_SUPPORT
-	RTMPExitLEDMode(pAd);
-#endif // LED_CONTROL_SUPPORT
 
 	/* Close kernel threads*/
 	RtmpMgmtTaskExit(pAd);
 
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		/* must after RtmpMgmtTaskExit(); Or pAd->pChannelInfo will be NULL */
-		/* Free BssTab & ChannelInfo tabbles.*/
-		AutoChBssTableDestroy(pAd);
-		ChannelInfoDestroy(pAd);
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 
 #ifdef RLT_MAC
@@ -1173,15 +894,6 @@ VOID RTMPDrvClose(
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{
-#ifdef DOT11Z_TDLS_SUPPORT
-		TDLS_Table_Destory(pAd);
-#ifdef TDLS_AUTOLINK_SUPPORT
-		TDLS_ClearEntryList(&pAd->StaCfg.TdlsInfo.TdlsDiscovPeerList);
-		NdisFreeSpinLock(&pAd->StaCfg.TdlsInfo.TdlsDiscovPeerListSemLock);
-		TDLS_ClearEntryList(&pAd->StaCfg.TdlsInfo.TdlsBlackList);
-		NdisFreeSpinLock(&pAd->StaCfg.TdlsInfo.TdlsBlackListSemLock);
-#endif /* TDLS_AUTOLINK_SUPPORT */
-#endif /* DOT11Z_TDLS_SUPPORT */
 	}
 #endif /* CONFIG_STA_SUPPORT */
 
@@ -1210,18 +922,6 @@ VOID RTMPInfClose(
 	PRTMP_ADAPTER	pAd = (PRTMP_ADAPTER)pAdSrc;
 
 
-#ifdef CONFIG_AP_SUPPORT
-	pAd->ApCfg.MBSSID[MAIN_MBSSID].bBcnSntReq = FALSE;
-
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		/* kick out all STAs behind the bss.*/
-		MbssKickOutStas(pAd, MAIN_MBSSID, REASON_DISASSOC_INACTIVE);
-	}
-
-	APMakeAllBssBeacon(pAd);
-	APUpdateAllBeaconFrame(pAd);
-#endif /* CONFIG_AP_SUPPORT */
 
 
 

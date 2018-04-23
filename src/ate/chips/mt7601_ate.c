@@ -1,30 +1,28 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2011, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
-
-	Module Name:
-	rt5592_ate.c
-
-	Abstract:
-	Specific ATE funcitons and variables for RT5572/RT5592
-
-	Revision History:
-	Who         When          What
-	--------    ----------    ----------------------------------------------
-*/
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
 
 #ifdef MT7601
@@ -100,9 +98,9 @@ VOID MT7601ATEAsicSwitchChannel(
 	/* 
 		vcocal_en (initiate VCO calibration (reset after completion)) - It should be at the end of RF configuration. 
 	*/
-	rlt_rf_write(pAd, RF_BANK0, RF_R04, 0x0A);
-	rlt_rf_write(pAd, RF_BANK0, RF_R05, 0x20);
-
+	AndesRFRandomWrite(pAd, 2,
+		RF_BANK0, RF_R04, 0x0A,
+		RF_BANK0, RF_R05, 0x20);
 	rlt_rf_read(pAd, RF_BANK0, RF_R04, &RFValue);
 	RFValue = RFValue | 0x80; 
 	rlt_rf_write(pAd, RF_BANK0, RF_R04, RFValue);
@@ -195,6 +193,7 @@ INT MT7601ATETxPwrHandler(
 	if (Channel <= 14) /* G band */
 	{
 
+#ifdef RTMP_INTERNAL_TX_ALC
 		if ( pATEInfo->bAutoTxAlc == FALSE )
 		{
 			RTMP_IO_READ32(pAd, TX_ALC_CFG_1, &RegValue);
@@ -205,6 +204,7 @@ INT MT7601ATETxPwrHandler(
 		{
 			RTMP_IO_WRITE32(pAd, TX_ALC_CFG_1, pAd->chipCap.TxALCData.InitTxAlcCfg1);
 		}
+#endif /* RTMP_INTERNAL_TX_ALC */
 
 		RTMP_IO_READ32(pAd, TX_ALC_CFG_0, &RegValue);
 		MaxPower = RegValue >> 24;
@@ -374,8 +374,6 @@ INT	MT7601_Set_ATE_TX_BW_Proc(
 	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_TX_BW_Proc (BBPCurrentBW = %d)\n", pAd->ate.TxWI.TxWIBW));
 	DBGPRINT(RT_DEBUG_TRACE, ("Ralink: Set_ATE_TX_BW_Proc Success\n"));
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 	
 	return TRUE;
 }	
@@ -395,11 +393,12 @@ BOOLEAN MT7601ATEGetTssiCompensationParam(
 	OUT 	PINT32 				TargetPower)
 {
 #define MAX_TSSI_WAITING_COUNT	40
-	UCHAR BBPReg;
+	UCHAR RFReg, BBPReg;
 	UCHAR PacketType;
 	UCHAR BbpR47;
 	UCHAR TxRate;
 	INT32 Power;
+	UINT count;
 	UCHAR ch = 0;
 	MT7601_TX_ALC_DATA *pTxALCData = &pAd->chipCap.TxALCData;
 
@@ -417,7 +416,7 @@ BOOLEAN MT7601ATEGetTssiCompensationParam(
 	if ( pTxALCData->TssiTriggered == 0 )
 	{
 		if ( RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_MCU_SEND_IN_BAND_CMD) )
-		{
+	{
 			MT7601_EnableTSSI(pAd);
 			pTxALCData->TssiTriggered = 1;
 		}
@@ -656,6 +655,7 @@ VOID MT7601ATEAsicTxAlcGetAutoAgcOffset(
 	UINT32 value;
 	UCHAR ch = 0;
 	MT7601_TX_ALC_DATA *pTxALCData = &pAd->chipCap.TxALCData;
+	PATE_INFO pATEInfo = &(pAd->ate);
 
 	//if (pATEInfo->OneSecPeriodicRound % 4 == 0)
 	{
@@ -807,6 +807,13 @@ VOID MT7601ATEAsicTemperatureCompensation(
 VOID MT7601ATEAsicAdjustTxPower(
 	IN PRTMP_ADAPTER pAd) 
 {
+	CHAR		DeltaPwr = 0;
+	CHAR		TxAgcCompensate = 0;
+	CHAR		DeltaPowerByBbpR1 = 0; 
+	CHAR		TotalDeltaPower = 0; /* (non-positive number) including the transmit power controlled by the MAC and the BBP R1 */
+	CONFIGURATION_OF_TX_POWER_CONTROL_OVER_MAC CfgOfTxPwrCtrlOverMAC = {0};	
+
+
 #ifdef RTMP_INTERNAL_TX_ALC
 	/* Get temperature compensation delta power value */
 	MT7601ATEAsicTxAlcGetAutoAgcOffset(pAd);
@@ -829,7 +836,9 @@ INT	MT7601_Set_ATE_TX_FREQ_OFFSET_Proc(
 	IN	PSTRING			arg)
 {
 	UCHAR RFFreqOffset = 0;
+	ULONG R4 = 0;
 	UCHAR RFValue = 0;
+	UCHAR PreRFValue = 0;
 	RFFreqOffset = simple_strtol(arg, 0, 10);
 
 	pAd->ate.RFFreqOffset = RFFreqOffset;
@@ -838,9 +847,9 @@ INT	MT7601_Set_ATE_TX_FREQ_OFFSET_Proc(
 	{
 		rlt_rf_write(pAd, RF_BANK0, RF_R12, pAd->ate.RFFreqOffset);
 
-		rlt_rf_write(pAd, RF_BANK0, RF_R04, 0x0A);
-		rlt_rf_write(pAd, RF_BANK0, RF_R05, 0x20);
-
+		AndesRFRandomWrite(pAd, 2,
+			RF_BANK0, RF_R04, 0x0A,
+			RF_BANK0, RF_R05, 0x20);
 		rlt_rf_read(pAd, RF_BANK0, RF_R04, &RFValue);
 		RFValue = RFValue | 0x80; 	/* vcocal_en (initiate VCO calibration (reset after completion)) - It should be at the end of RF configuration. */
 		rlt_rf_write(pAd, RF_BANK0, RF_R04, RFValue);
@@ -850,8 +859,6 @@ INT	MT7601_Set_ATE_TX_FREQ_OFFSET_Proc(
 	DBGPRINT(RT_DEBUG_TRACE, ("Set_ATE_TX_FREQOFFSET_Proc (RFFreqOffset = %d)\n", pAd->ate.RFFreqOffset));
 	DBGPRINT(RT_DEBUG_TRACE, ("Ralink: Set_ATE_TX_FREQOFFSET_Proc Success\n"));
 
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 	
 	return TRUE;
 }
@@ -860,8 +867,9 @@ INT	MT7601_Set_ATE_TX_FREQ_OFFSET_Proc(
 VOID MT7601ATERxVGAInit(
 	IN PRTMP_ADAPTER		pAd)
 {
+	PATE_INFO pATEInfo = &(pAd->ate);
 	UCHAR R66 = 0x14;
-	GET_LNA_GAIN(pAd);
+	CHAR LNAGain = GET_LNA_GAIN(pAd);
 	
 	//RTMP_BBP_IO_WRITE8_BY_REG_ID(pAd, BBP_R66, 0x14);
 
@@ -875,6 +883,8 @@ VOID MT7601ATERxVGAInit(
 VOID MT7601ATEAsicSetTxRxPath(
     IN PRTMP_ADAPTER pAd)
 {
+	UCHAR	BbpValue = 0;
+
 	AsicSetRxAnt(pAd, pAd->ate.RxAntennaSel);
 }
 

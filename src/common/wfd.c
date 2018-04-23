@@ -1,16 +1,28 @@
-/****************************************************************************
+/*
+ *************************************************************************
  * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
  * Taiwan, R.O.C.
  *
- * (c) Copyright 2002, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************/  
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
 
 #ifdef WFD_SUPPORT
@@ -276,46 +288,6 @@ INT Set_PeerRtspPort_Proc(
 	PRT_P2P_CONFIG pP2PCtrl = &pAd->P2pCfg;
 	INT i;
 
-#ifdef DOT11Z_TDLS_SUPPORT
-	i = -1;
-	if (pAd->StaCfg.TdlsInfo.bTDLSCapable && pAd->StaCfg.WfdCfg.PC == WFD_PC_TDLS)
-	{
-		PRT_802_11_TDLS pTDLS = NULL;
-		DBGPRINT(RT_DEBUG_TRACE, ("%s - TDLS peer rtsp port get...\n", __FUNCTION__));
-		for (i = MAX_NUM_OF_TDLS_ENTRY - 1; i >= 0; i--)
-		{
-			if ((pAd->StaCfg.TdlsInfo.TDLSEntry[i].Valid) && (pAd->StaCfg.TdlsInfo.TDLSEntry[i].Status == TDLS_MODE_CONNECTED))
-			{
-				pTDLS = &pAd->StaCfg.TdlsInfo.TDLSEntry[i];
-				RtspPort = pTDLS->WfdEntryInfo.rtsp_port;
-				DBGPRINT(RT_DEBUG_TRACE, ("TDLS Entry[%d][%02x:%02x:%02x:%02x:%02x:%02x]\n", i, PRINT_MAC(pTDLS->MacAddr)));
-				DBGPRINT(RT_DEBUG_TRACE, ("RTSP_PORT = %d.\n", pTDLS->WfdEntryInfo.rtsp_port));
-				break;
-			}
-		}
-
-		if ((RtspPort == 0) && (pTDLS != NULL))
-		{
-			DBGPRINT(RT_DEBUG_ERROR, ("TDLS peer rtsp port is zero, search P2P Entry!\n", RtspPort));
-
-			P2pIdx = P2pGroupTabSearch(pAd, pTDLS->MacAddr);
-			if (P2pIdx != P2P_NOT_FOUND)
-			{
-				RtspPort = pAd->P2pTable.Client[P2pIdx].WfdEntryInfo.rtsp_port; 
-				DBGPRINT(RT_DEBUG_TRACE, ("P2P Entry[%d][%02x:%02x:%02x:%02x:%02x:%02x]\n", P2pIdx, PRINT_MAC(pTDLS->MacAddr)));
-				DBGPRINT(RT_DEBUG_TRACE, ("RTSP_PORT = %d.\n", pAd->P2pTable.Client[P2pIdx].WfdEntryInfo.rtsp_port));
-				if (RtspPort == 0)
-					RtspPort = WFD_RTSP_DEFAULT_PORT;
-			}
-			else
-			{
-				RtspPort = WFD_RTSP_DEFAULT_PORT;
-				DBGPRINT(RT_DEBUG_ERROR, ("OID_802_11_P2P_PEER_RTSP_PORT::P2P not found, use default RTSP port\n"));
-			}
-		}
-	}
-	if (i < 0)
-#endif /* DOT11Z_TDLS_SUPPORT */
 	{
 		DBGPRINT(RT_DEBUG_TRACE, ("%s - P2P peer rtsp port get...\n", __FUNCTION__));
 		if (P2P_GO_ON(pAd) || P2P_CLI_ON(pAd))

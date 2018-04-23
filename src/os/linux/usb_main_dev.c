@@ -1,16 +1,29 @@
-/****************************************************************************
+/*
+ *************************************************************************
  * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
  * Taiwan, R.O.C.
  *
- * (c) Copyright 2002, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************/
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
+
 
 #define RTMP_MODULE_OS
 
@@ -100,7 +113,6 @@ static BOOLEAN USBDevConfigInit(
 	struct usb_interface_descriptor *iface_desc;
 	struct usb_endpoint_descriptor *endpoint;
 	ULONG BulkOutIdx;
-	ULONG BulkInIdx;
 	UINT32 i;
 	RT_CMD_USB_DEV_CONFIG Config, *pConfig = &Config;
 
@@ -114,14 +126,13 @@ static BOOLEAN USBDevConfigInit(
 	/* Configure Pipes */
 	endpoint = &iface_desc->endpoint[0];
 	BulkOutIdx = 0;
-	BulkInIdx = 0;
 
 	for(i=0; i<pConfig->NumberOfPipes; i++)
 	{
 		if ((endpoint[i].bmAttributes == USB_ENDPOINT_XFER_BULK) && 
 			((endpoint[i].bEndpointAddress & USB_ENDPOINT_DIR_MASK) == USB_DIR_IN))
 		{
-			pConfig->BulkInEpAddr[BulkInIdx++] = endpoint[i].bEndpointAddress;
+			pConfig->BulkInEpAddr = endpoint[i].bEndpointAddress;
 			pConfig->BulkInMaxPacketSize = endpoint[i].wMaxPacketSize;
 
 			DBGPRINT_RAW(RT_DEBUG_TRACE, ("BULK IN MaximumPacketSize = %d\n", pConfig->BulkInMaxPacketSize));
@@ -380,6 +391,7 @@ static int rt2870_suspend(
 	struct usb_interface *intf,
 	pm_message_t state)
 {
+	struct net_device *net_dev;
 	VOID *pAd = usb_get_intfdata(intf);
 #if (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT)
 	UCHAR Flag;
@@ -422,8 +434,8 @@ static int rt2870_suspend(
 	else
 #endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT) */
 	{
-	RTMP_DRIVER_ADAPTER_RT28XX_USB_ASICRADIO_OFF(pAd);
-	RTMP_DRIVER_ADAPTER_SUSPEND_SET(pAd);
+		RTMP_DRIVER_ADAPTER_RT28XX_USB_ASICRADIO_OFF(pAd);
+		RTMP_DRIVER_ADAPTER_SUSPEND_SET(pAd);
 	}
 
 
@@ -435,6 +447,7 @@ static int rt2870_suspend(
 static int rt2870_resume(
 	struct usb_interface *intf)
 {
+	struct net_device *net_dev;
 	VOID *pAd = usb_get_intfdata(intf);
 #if (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT)
 	UCHAR Flag;
@@ -485,8 +498,8 @@ static int rt2870_resume(
 	else
 #endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT) */
 	{
-	RTMP_DRIVER_ADAPTER_SUSPEND_CLEAR(pAd);
-	RTMP_DRIVER_ADAPTER_RT28XX_USB_ASICRADIO_ON(pAd);
+		RTMP_DRIVER_ADAPTER_SUSPEND_CLEAR(pAd);
+		RTMP_DRIVER_ADAPTER_RT28XX_USB_ASICRADIO_ON(pAd);
 	}
 
 

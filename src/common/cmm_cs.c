@@ -1,30 +1,30 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-    Module Name:
-    cmm_cs.c
 
-    Abstract:
-    Carrier Sensing related functions
-
-    Revision History:
-    Who       When            What
-    ---------------------------------------------------------------------
-*/
 #include "rt_config.h"
 
 #ifdef CARRIER_DETECTION_SUPPORT
@@ -35,73 +35,6 @@ static ULONG cd_idx=0;
 
 static void ToneRadarProgram(PRTMP_ADAPTER pAd);
 
-#ifdef CONFIG_AP_SUPPORT
-/* 
-    ==========================================================================
-    Description:
-	Check current CS state, indicating Silient state (carrier exist) or not 
-	Arguments:
-	    pAd                    Pointer to our adapter
-
-    Return Value:
-        TRUE if the current state is SILENT state, FALSE other wise
-    Note:
-    ==========================================================================
-*/
-INT isCarrierDetectExist(
-	IN PRTMP_ADAPTER pAd)
-{
-	if (pAd->CommonCfg.CarrierDetect.CD_State == CD_SILENCE)
-		return TRUE;
-	else
-		return FALSE;
-}		
-
-/* 
-    ==========================================================================
-    Description:
-        Enable or Disable Carrier Detection feature (AP ioctl).
-	Arguments:
-	    pAd                    Pointer to our adapter
-	    arg                     Pointer to the ioctl argument
-
-    Return Value:
-        None
-
-    Note:
-        Usage: 
-               1.) iwpriv ra0 set CarrierDetect=[1/0]
-    ==========================================================================
-*/
-INT Set_CarrierDetect_Proc(
-	IN PRTMP_ADAPTER pAd, 
-	IN PSTRING arg)
-{
-    POS_COOKIE pObj = (POS_COOKIE) pAd->OS_Cookie;
-    UCHAR apidx = pObj->ioctl_if;
-	UINT Enable;
-
-	if (apidx != MAIN_MBSSID)
-		return FALSE;
-
-	Enable = (UINT) simple_strtol(arg, 0, 10);
-
-	pAd->CommonCfg.CarrierDetect.Enable = (BOOLEAN)(Enable == 0 ? FALSE : TRUE);
-	
-	RTMP_CHIP_RADAR_GLRT_COMPENSATE(pAd);
-	RTMP_CHIP_CCK_MRC_STATUS_CTRL(pAd);	
-
-	if (pAd->CommonCfg.CarrierDetect.Enable == TRUE)
-		CarrierDetectionStart(pAd);
-	else
-		CarrierDetectionStop(pAd);
-
-	DBGPRINT(RT_DEBUG_TRACE, ("%s:: %s\n", __FUNCTION__,
-		pAd->CommonCfg.CarrierDetect.Enable == TRUE ? "Enable Carrier Detection":"Disable Carrier Detection"));
-
-	return TRUE;
-}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CARRIER_DETECTION_FIRMWARE_SUPPORT
 /* 

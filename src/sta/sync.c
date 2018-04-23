@@ -1,30 +1,30 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
- * (c) Copyright 2002, Ralink Technology, Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Module Name:
-	sync.c
 
-	Abstract:
-
-	Revision History:
-	Who			When			What
-	--------	----------		----------------------------------------------
-	John Chang	2004-09-01      modified for rt2561/2661
-	Jan Lee		2006-08-01      modified for rt2860 for 802.11n
-*/
 #include "rt_config.h"
 
 
@@ -56,9 +56,6 @@ VOID SyncStateMachineInit(
 	StateMachineSetAction(Sm, SYNC_IDLE, MT2_MLME_START_REQ, (STATE_MACHINE_FUNC)MlmeStartReqAction);
 	StateMachineSetAction(Sm, SYNC_IDLE, MT2_PEER_BEACON, (STATE_MACHINE_FUNC)PeerBeacon);
 	StateMachineSetAction(Sm, SYNC_IDLE, MT2_PEER_PROBE_REQ, (STATE_MACHINE_FUNC)PeerProbeReqAction); 
-#ifdef P2P_SUPPORT
-	StateMachineSetAction(Sm, SYNC_IDLE, MT2_PEER_PROBE_RSP, (STATE_MACHINE_FUNC)PeerBeaconAtScanAction);
-#endif /* P2P_SUPPORT */
 
 	/* column 2 */
 	StateMachineSetAction(Sm, JOIN_WAIT_BEACON, MT2_MLME_JOIN_REQ, (STATE_MACHINE_FUNC)MlmeJoinReqAction);
@@ -272,16 +269,10 @@ VOID MlmeForceJoinReqAction(
 		{
 			COPY_MAC_ADDR(pAd->MlmeAux.Bssid, pAd->StaCfg.ConnectinfoBssid);
 			MgtMacHeaderInit(pAd, &Hdr80211, SUBTYPE_PROBE_REQ, 0, pAd->MlmeAux.Bssid,
-#ifdef P2P_SUPPORT
-                                                                pAd->CurrentAddress,
-#endif /* P2P_SUPPORT */ 
 								pAd->MlmeAux.Bssid);
 		}
 		else
 			MgtMacHeaderInit(pAd, &Hdr80211, SUBTYPE_PROBE_REQ, 0, BROADCAST_ADDR,
-#ifdef P2P_SUPPORT
-                                                                pAd->CurrentAddress,
-#endif /* P2P_SUPPORT */
 								BROADCAST_ADDR);
 
 		MakeOutgoingFrame(pOutBuffer,               &FrameLen,
@@ -364,7 +355,7 @@ VOID MlmeForceScanReqAction(
 			if ( IS_MT7601(pAd) )
 				ASIC_RADIO_ON(pAd, DOT11_RADIO_ON);
 			else
-				RT28xxUsbAsicRadioOn(pAd);
+			RT28xxUsbAsicRadioOn(pAd);
 	}
 #endif /* RTMP_MAC_USB */
        /*
@@ -400,7 +391,11 @@ VOID MlmeForceScanReqAction(
 		    Send an NULL data with turned PSM bit on to current associated AP before SCAN progress.
 		    And should send an NULL data with turned PSM bit off to AP, when scan progress done 
 		*/
-		if (OPSTATUS_TEST_FLAG(pAd, fOP_STATUS_MEDIA_STATE_CONNECTED) && (INFRA_ON(pAd)))
+		if (OPSTATUS_TEST_FLAG(pAd, fOP_STATUS_MEDIA_STATE_CONNECTED) && (INFRA_ON(pAd))
+#ifdef CONFIG_MULTI_CHANNEL
+								&& (pAd->CommonCfg.Channel == pAd->LatchRfRegs.Channel)
+#endif /*CONFIG_MULTI_CHANNEL*/
+)
 		{
 			RTMPSendNullFrame(pAd, 
 							  pAd->CommonCfg.TxRate, 
@@ -494,7 +489,7 @@ VOID MlmeScanReqAction(
 			if ( IS_MT7601(pAd) )
 				ASIC_RADIO_ON(pAd, DOT11_RADIO_ON);
 			else
-				RT28xxUsbAsicRadioOn(pAd);
+			RT28xxUsbAsicRadioOn(pAd);
 	}
 #endif /* RTMP_MAC_USB */
        /*
@@ -548,7 +543,11 @@ VOID MlmeScanReqAction(
 		    Send an NULL data with turned PSM bit on to current associated AP before SCAN progress.
 		    And should send an NULL data with turned PSM bit off to AP, when scan progress done 
 		*/
-		if (OPSTATUS_TEST_FLAG(pAd, fOP_STATUS_MEDIA_STATE_CONNECTED) && (INFRA_ON(pAd)))
+		if (OPSTATUS_TEST_FLAG(pAd, fOP_STATUS_MEDIA_STATE_CONNECTED) && (INFRA_ON(pAd))
+#ifdef CONFIG_MULTI_CHANNEL
+								&& (pAd->CommonCfg.Channel == pAd->LatchRfRegs.Channel)
+#endif /*CONFIG_MULTI_CHANNEL*/
+)
 		{
 			RTMPSendNullFrame(pAd, 
 							  pAd->CommonCfg.TxRate, 
@@ -596,12 +595,6 @@ VOID MlmeScanReqAction(
 		{
 			pAd->MlmeAux.Channel = pAd->StaCfg.LastScanChannel;
 		}
-#ifdef P2P_SUPPORT
-		else if (pAd->P2pCfg.CtrlCurrentState == P2P_CTRL_DISCOVERY)
-		{
-			pAd->MlmeAux.Channel = 1;
-		}
-#endif /* P2P_SUPPORT */
 		else
 		{
 			if (pAd->StaCfg.bFastConnect && (pAd->CommonCfg.Channel != 0) && !pAd->StaCfg.bNotFirstScan)
@@ -663,9 +656,6 @@ VOID MlmeJoinReqAction(
 	UCHAR         ASupRate[] = {0x8C, 0x12, 0x98, 0x24, 0xb0, 0x48, 0x60, 0x6C};
 	UCHAR         ASupRateLen = sizeof(ASupRate)/sizeof(UCHAR);	
 	MLME_JOIN_REQ_STRUCT *pInfo = (MLME_JOIN_REQ_STRUCT *)(Elem->Msg);
-#ifdef WSC_STA_SUPPORT
-	BOOLEAN bHasWscIe = FALSE;
-#endif /* WSC_STA_SUPPORT */
 
 #ifdef CONFIG_PM
 #ifdef USB_SUPPORT_SELECTIVE_SUSPEND
@@ -673,9 +663,6 @@ VOID MlmeJoinReqAction(
 #endif /* USB_SUPPORT_SELECTIVE_SUSPEND */
 #endif /* CONFIG_PM */
 	BOOLEAN       bChangeInitBW = FALSE;
-#ifdef P2P_SUPPORT	
-	PAPCLI_STRUCT pApCliEntry = NULL;
-#endif /* P2P_SUPPORT */
 
 	DBGPRINT(RT_DEBUG_TRACE, ("SYNC - MlmeJoinReqAction(BSS #%ld)\n", pInfo->BssIdx));
 
@@ -749,21 +736,10 @@ VOID MlmeJoinReqAction(
 	}
 #endif /* EXT_BUILD_CHANNEL_LIST */
 	
-#ifdef P2P_SUPPORT
-	pApCliEntry = &pAd->ApCfg.ApCliTab[BSS0];
-
-	if (!P2P_GO_ON(pAd) && (pApCliEntry->Valid == FALSE))
-#endif /* P2P_SUPPORT */
 	{
 		bChangeInitBW = TRUE;
 	}
 
-#ifdef P2P_SUPPORT
-	if ((P2P_GO_ON(pAd) || (pApCliEntry->Valid == TRUE)) && (pAd->CommonCfg.Channel != pAd->MlmeAux.Channel))
-	{
-		bChangeInitBW = TRUE;
-	}
-#endif /* P2P_SUPPORT */
 
 	if (bChangeInitBW == TRUE)
 	{
@@ -776,16 +752,6 @@ VOID MlmeJoinReqAction(
 		AsicLockChannel(pAd, pAd->MlmeAux.Channel);
 	}
 
-#ifdef WSC_STA_SUPPORT
-#ifdef WSC_LED_SUPPORT
-	/* LED indication. */
-	if (pAd->MlmeAux.BssType == BSS_INFRA)
-	{
-		LEDConnectionStart(pAd);
-		LEDConnectionCompletion(pAd, TRUE);
-	}
-#endif /* WSC_LED_SUPPORT */
-#endif /* WSC_STA_SUPPORT */
 
 	RTMPSetTimer(&pAd->MlmeAux.BeaconTimer, JOIN_TIMEOUT);
 
@@ -827,15 +793,9 @@ VOID MlmeJoinReqAction(
 
 			if (pAd->MlmeAux.BssType == BSS_INFRA)
 				MgtMacHeaderInit(pAd, &Hdr80211, SUBTYPE_PROBE_REQ, 0, pAd->MlmeAux.Bssid,
-#ifdef P2P_SUPPORT
-									pAd->CurrentAddress,
-#endif /* P2P_SUPPORT */
 									pAd->MlmeAux.Bssid);
 			else
 				MgtMacHeaderInit(pAd, &Hdr80211, SUBTYPE_PROBE_REQ, 0, BROADCAST_ADDR,
-#ifdef P2P_SUPPORT
-									pAd->CurrentAddress,
-#endif /* P2P_SUPPORT */
 									BROADCAST_ADDR);
 
 			MakeOutgoingFrame(pOutBuffer, &FrameLen,
@@ -859,43 +819,6 @@ VOID MlmeJoinReqAction(
 				FrameLen += Tmp;
 			}
 			
-#ifdef WSC_STA_SUPPORT
-			/* Append WSC information in probe request if WSC state is running */
-			if ((pAd->StaCfg.WscControl.WscEnProbeReqIE) && 
-				(pAd->StaCfg.WscControl.WscConfMode != WSC_DISABLE) &&
-				(pAd->StaCfg.WscControl.bWscTrigger
-				))
-				bHasWscIe = TRUE;
-#ifdef WSC_V2_SUPPORT
-			else if ((pAd->StaCfg.WscControl.WscEnProbeReqIE) && 
-				(pAd->StaCfg.WscControl.WscV2Info.bEnableWpsV2))
-				bHasWscIe = TRUE;
-#endif /* WSC_V2_SUPPORT */
-
-			if (bHasWscIe)
-			{
-				UCHAR WscIeLen = 0;
-				UCHAR *WscBuf = NULL;
-				ULONG WscTmpLen = 0;
-
-				/* allocate memory */
-				os_alloc_mem(NULL, (UCHAR **)&WscBuf, 256);
-				if (WscBuf != NULL)
-				{
-					NdisZeroMemory(WscBuf, 256);
-					WscBuildProbeReqIE(pAd, STA_MODE, WscBuf, &WscIeLen);
-
-					MakeOutgoingFrame(pOutBuffer + FrameLen,              &WscTmpLen,
-									WscIeLen,                             WscBuf,
-									END_OF_ARGS);
-
-					FrameLen += WscTmpLen;
-					os_free_mem(NULL, WscBuf);
-				}
-				else
-					DBGPRINT(RT_DEBUG_ERROR, ("%s: Allocate memory fail!!!\n", __FUNCTION__));
-			}
-#endif /* WSC_STA_SUPPORT */
 
 
 #ifdef WPA_SUPPLICANT_SUPPORT
@@ -985,11 +908,6 @@ VOID MlmeStartReqAction(
 		NdisMoveMemory(pAd->MlmeAux.Ssid, Ssid, SsidLen); 
 		pAd->MlmeAux.SsidLen = SsidLen;
 
-#ifdef IWSC_SUPPORT
-		if (pAd->StaCfg.IWscInfo.bDoNotChangeBSSID)
-			pAd->StaCfg.IWscInfo.bDoNotChangeBSSID = FALSE;
-		else
-#endif /* IWSC_SUPPORT */
 		{
 			/* generate a radom number as BSSID */
 			MacAddrRandomBssid(pAd, pAd->MlmeAux.Bssid);
@@ -1411,13 +1329,8 @@ VOID PeerBeaconAtScanAction(
 
 
 	BCN_IE_LIST *ie_list = NULL;
+
 	
-
-#ifdef P2P_SUPPORT
-	if (P2P_GO_ON(pAd))
-		return;
-#endif /* P2P_SUPPORT */
-
 	os_alloc_mem(NULL, (UCHAR **)&ie_list, sizeof(BCN_IE_LIST));
 	if (!ie_list) {
 		DBGPRINT(RT_DEBUG_ERROR, ("%s():Alloc ie_list failed!\n", __FUNCTION__));
@@ -1452,9 +1365,6 @@ VOID PeerBeaconAtScanAction(
 							ConvertToRssi(pAd, Elem->Rssi1, RSSI_1, Elem->AntSel, BW_20),
 							ConvertToRssi(pAd, Elem->Rssi2, RSSI_2, Elem->AntSel, BW_20));
 
-#ifdef P2P_SUPPORT
-		MlmeEnqueue(pAd, P2P_DISC_STATE_MACHINE, P2P_DISC_PEER_PROB_RSP, Elem->MsgLen, Elem->Msg, ie_list->Channel);
-#endif /* P2P_SUPPORT */
 
 #ifdef DOT11_N_SUPPORT
 		if ((ie_list->HtCapabilityLen > 0) || (ie_list->PreNHtCapabilityLen > 0))
@@ -1599,12 +1509,6 @@ VOID PeerBeaconAtJoinAction(
 			((ie_list->SupRateLen+ie_list->ExtRateLen)< 12))
 			goto LabelOK;
 
-#ifdef P2P_SUPPORT
-		if (P2P_INF_ON(pAd))
-		{
-			P2pPeerBeaconAtJoinAction(pAd, Elem, &ie_list->Bssid[0]);
-		}
-#endif /* P2P_SUPPORT */
 
 		/*
 		    BEACON from desired BSS/IBSS found. We should be able to decide most
@@ -1620,23 +1524,6 @@ VOID PeerBeaconAtJoinAction(
 								__FUNCTION__, ie_list->Channel));
 			RTMPCancelTimer(&pAd->MlmeAux.BeaconTimer, &TimerCancelled);
 
-#ifdef P2P_SUPPORT
-			if (IS_P2P_ENROLLEE(pAd))
-			{
-				int p2pIdx;
-				DBGPRINT(RT_DEBUG_ERROR, ("Recv desired Beacon, update SSID[%d][%s]\n",
-											ie_list->SsidLen, &ie_list->Ssid[0]));
-				pAd->MlmeAux.SsidLen = ie_list->SsidLen;
-				NdisMoveMemory(pAd->MlmeAux.Ssid, ie_list->Ssid, pAd->MlmeAux.SsidLen);
-
-				p2pIdx = P2pGroupTabSearch(pAd, ie_list->Addr2);
-				if (p2pIdx < MAX_P2P_GROUP_SIZE)
-				{
-					pAd->P2pTable.Client[p2pIdx].SsidLen = ie_list->SsidLen;
-					NdisMoveMemory(pAd->P2pTable.Client[p2pIdx].Ssid, ie_list->Ssid, pAd->P2pTable.Client[p2pIdx].SsidLen);
-				}
-			}
-#endif /* P2P_SUPPORT */
 			/* Update RSSI to prevent No signal display when cards first initialized */
 			pAd->StaCfg.RssiSample.LastRssi0 = ConvertToRssi(pAd, Elem->Rssi0, RSSI_0, Elem->AntSel, BW_20);
 			pAd->StaCfg.RssiSample.LastRssi1 = ConvertToRssi(pAd, Elem->Rssi1, RSSI_1, Elem->AntSel, BW_20);
@@ -1690,12 +1577,6 @@ VOID PeerBeaconAtJoinAction(
 						;
 					else
 #endif /* WPA_SUPPLICANT_SUPPORT */
-#ifdef WSC_STA_SUPPORT
-					if ((pAd->StaCfg.WscControl.WscState != WSC_STATE_OFF)
-					)
-						;
-					else
-#endif /* WSC_STA_SUPPORT */
 					{
 
 						/*
@@ -1902,20 +1783,6 @@ VOID PeerBeaconAtJoinAction(
 											,0
 #endif /*CONFIG_MULTI_CHANNEL*/											
 				);
-#ifdef P2P_SUPPORT
-				if (BwFallBack == 1)
-				{
-					DBGPRINT(RT_DEBUG_TRACE, ("P2P STA connection to 40MHz GO, but Infra extra and P2P Group extra is different!!!\n"));
-					pAd->MlmeAux.HtCapability.HtCapInfo.ChannelWidth = BW_20;
-					pAd->MlmeAux.CentralChannel = pAd->MlmeAux.Channel;
-					pAd->MlmeAux.bBwFallBack = TRUE;
-				}
-				else
-				{
-					pAd->MlmeAux.bBwFallBack = FALSE;
-				}
-				pAd->MlmeAux.ConCurrentCentralChannel = pAd->CommonCfg.CentralChannel;
-#endif /* P2P_SUPPORT */
 			}
 
 			pAd->Mlme.SyncMachine.CurrState = SYNC_IDLE;
@@ -1977,9 +1844,6 @@ VOID PeerBeacon(
 #endif /* RALINK_ATE */
 
 	if (!(INFRA_ON(pAd) || ADHOC_ON(pAd)
-#ifdef P2P_SUPPORT
-		|| P2P_GO_ON(pAd) || P2P_CLI_ON(pAd)
-#endif /* P2P_SUPPORT */
 		))
 		return;
 
@@ -2087,14 +1951,6 @@ VOID PeerBeacon(
 		if ((! is_my_bssid) && ADHOC_ON(pAd))
 		{
 			INT	i;
-#ifdef IWSC_SUPPORT
-			if ((pAd->StaCfg.WscControl.WscConfMode != WSC_DISABLE) &&
-				(pAd->StaCfg.WscControl.bWscTrigger == TRUE))
-			{
-				;
-			}
-			else
-#endif /* IWSC_SUPPORT */
 			/* Add the safeguard against the mismatch of adhoc wep status */
 			if ((pAd->StaCfg.WepStatus != pAd->ScanTab.BssEntry[Bssidx].WepStatus) ||
 				(pAd->StaCfg.AuthMode != pAd->ScanTab.BssEntry[Bssidx].AuthMode))
@@ -2209,9 +2065,6 @@ VOID PeerBeacon(
 			if (pAd->StaCfg.WpaSupplicantUP & WPA_SUPPLICANT_ENABLE_WPS) ;
 			else
 #endif /* WPA_SUPPLICANT_SUPPORT */
-#ifdef WSC_STA_SUPPORT
-			if (pAd->StaCfg.WscControl.WscState == WSC_STATE_OFF)
-#endif /* WSC_STA_SUPPORT */
 			{
 				if ((((pAd->StaCfg.WepStatus != Ndis802_11WEPDisabled) << 4) ^ ie_list->CapabilityInfo) & 0x0010)
 				{
@@ -2260,9 +2113,6 @@ VOID PeerBeacon(
 				UCHAR			MaxSupportedRateIn500Kbps = 0;
 				UCHAR			idx;
 				MAC_TABLE_ENTRY *pEntry;
-#ifdef WSC_STA_SUPPORT
-				PWSC_CTRL		pWpsCtrl = &pAd->StaCfg.WscControl;
-#endif /* WSC_STA_SUPPORT */
 	
 				MaxSupportedRateIn500Kbps = dot11_max_sup_rate(ie_list->SupRateLen, &ie_list->SupRate[0], 
 																ie_list->ExtRateLen, &ie_list->ExtRate[0]);
@@ -2284,16 +2134,6 @@ VOID PeerBeacon(
 					if (pEntry == NULL)
 						goto LabelOK;
 
-#ifdef IWSC_SUPPORT
-					hex_dump("Another adhoc joining - Addr2", ie_list->Addr2, 6);
-					hex_dump("Another adhoc joining - WscPeerMAC", pAd->StaCfg.WscControl.WscPeerMAC, 6);
-					if ((NdisEqualMemory(ie_list->Addr2, pAd->StaCfg.WscControl.WscPeerMAC, MAC_ADDR_LEN)) &&
-						(pAd->StaCfg.IWscInfo.bSendEapolStart == FALSE) &&
-						(pWpsCtrl->bWscTrigger == TRUE))
-					{
-						pAd->StaCfg.IWscInfo.bSendEapolStart = TRUE;
-					}
-#endif /* IWSC_SUPPORT */
 
 #ifdef DOT11_VHT_AC
 {
@@ -2328,10 +2168,6 @@ VOID PeerBeacon(
 						DBGPRINT(RT_DEBUG_TRACE, ("ADHOC - Add Entry failed.\n"));
 						goto LabelOK;
 					}
-#ifdef IWSC_SUPPORT
-					else
-						pEntry->bUpdateInfoFromPeerBeacon = TRUE;
-#endif /* IWSC_SUPPORT */
 }
 #else
 					if (StaAddMacTableEntry(pAd, 
@@ -2347,10 +2183,6 @@ VOID PeerBeacon(
 						DBGPRINT(RT_DEBUG_TRACE, ("ADHOC - Add Entry failed.\n"));
 						goto LabelOK;
 					}
-#ifdef IWSC_SUPPORT
-					else
-						pEntry->bUpdateInfoFromPeerBeacon = TRUE;
-#endif /* IWSC_SUPPORT */
 #endif /* DOT11_VHT_AC */
 
 					if (ADHOC_ON(pAd) && pEntry)
@@ -2372,72 +2204,6 @@ VOID PeerBeacon(
 
 					pEntry->LastBeaconRxTime = 0;
 
-#ifdef ADHOC_WPA2PSK_SUPPORT
-                    /* Adhoc support WPA2PSK by Eddy */
-                    if ((pAd->StaCfg.AuthMode == Ndis802_11AuthModeWPA2PSK) 
-                        && (pEntry->WPA_Authenticator.WpaState < AS_INITPSK)
-#ifdef IWSC_SUPPORT
-						&& ((pAd->StaCfg.WscControl.WscConfMode == WSC_DISABLE) ||
-							(pAd->StaCfg.WscControl.bWscTrigger == FALSE) ||
-							(NdisEqualMemory(pEntry->Addr, pAd->StaCfg.WscControl.WscPeerMAC, MAC_ADDR_LEN) == FALSE))
-#ifdef IWSC_TEST_SUPPORT
-						&& (pAd->StaCfg.IWscInfo.bBlockConnection == FALSE)
-#endif /* IWSC_TEST_SUPPORT */
-#endif // IWSC_SUPPORT //
-						)                      
-                    {
-        				INT len, i;
-        				PEID_STRUCT         pEid;
-                    	NDIS_802_11_VARIABLE_IEs    *pVIE2 = NULL;
-						BOOLEAN bHigherMAC = FALSE;
-
-                        pVIE2 = pVIE;
-        				len	 = LenVIE;
-        				while (len > 0)
-        				{
-        					pEid = (PEID_STRUCT) pVIE;	
-                            if ((pEid->Eid == IE_RSN) && (NdisEqualMemory(pEid->Octet + 2, RSN_OUI, 3)))
-        					{
-        						NdisMoveMemory(pEntry->RSN_IE, pVIE, (pEid->Len + 2));
-        						pEntry->RSNIE_Len = (pEid->Len + 2);	
-        					}
-        					pVIE2 += (pEid->Len + 2);
-        					len  -= (pEid->Len + 2);
-        				}
-                		pEntry->PortSecured = WPA_802_1X_PORT_NOT_SECURED;
-                        NdisZeroMemory(&pEntry->WPA_Supplicant.ReplayCounter, LEN_KEY_DESC_REPLAY);                        
-                        NdisZeroMemory(&pEntry->WPA_Authenticator.ReplayCounter, LEN_KEY_DESC_REPLAY);                        
-                        pEntry->WPA_Authenticator.WpaState = AS_INITPSK;
-                        pEntry->WPA_Supplicant.WpaState = AS_INITPSK;
-                		pEntry->EnqueueEapolStartTimerRunning = EAPOL_START_PSK;
-
-						for (i = 0; i < 6; i++)
-						{
-							if (ie_list->Addr2[i] > pAd->CurrentAddress[i])
-							{
-								bHigherMAC = TRUE;
-								break;
-							}
-							else if (ie_list->Addr2[i] < pAd->CurrentAddress[i])
-								break;
-						}
-						hex_dump("PeerBeacon:: Addr2", ie_list->Addr2, MAC_ADDR_LEN);
-						hex_dump("PeerBeacon:: CurrentAddress", pAd->CurrentAddress, MAC_ADDR_LEN);
-						pEntry->bPeerHigherMAC = bHigherMAC;
-						if (pEntry->bPeerHigherMAC == FALSE)
-						{
-							/*
-								My MAC address is higher than peer's MAC address.
-							*/
-							DBGPRINT(RT_DEBUG_TRACE, ("ADHOC - EnqueueStartForPSKTimer.\n"));
-                			RTMPSetTimer(&pEntry->EnqueueStartForPSKTimer, ENQUEUE_EAPOL_START_TIMER);                        
-                    	}
-                    }
-					else 
-					{
-                		pEntry->PortSecured = WPA_802_1X_PORT_SECURED;
-                    }
-#endif /* ADHOC_WPA2PSK_SUPPORT */
 
 					if (pEntry && (Elem->Wcid == RESERVED_WCID))
 					{
@@ -2452,43 +2218,6 @@ VOID PeerBeacon(
 				if (pEntry && IS_ENTRY_CLIENT(pEntry))
 				{
 					pEntry->LastBeaconRxTime = Now;
-#ifdef IWSC_SUPPORT
-					if (pEntry->bUpdateInfoFromPeerBeacon == FALSE)
-					{
-						if (StaAddMacTableEntry(pAd, 
-												pEntry, 
-												MaxSupportedRateIn500Kbps, 
-												&ie_list->HtCapability, 
-												ie_list->HtCapabilityLen, 
-												&ie_list->AddHtInfo,
-												ie_list->AddHtInfoLen,
-												ie_list,
-												ie_list->CapabilityInfo) == FALSE)
-						{
-							DBGPRINT(RT_DEBUG_TRACE, ("ADHOC 2 - Add Entry failed.\n"));
-							return;
-						}
-
-						if (ADHOC_ON(pAd) && pEntry)
-						{
-							RTMPSetSupportMCS(pAd,
-											OPMODE_STA,
-											pEntry,
-											ie_list->SupRate,
-											ie_list->SupRateLen,
-											ie_list->ExtRate,
-											ie_list->ExtRateLen,
-#ifdef DOT11_VHT_AC
-											ie_list->vht_cap_len,
-											&ie_list->vht_cap_ie,
-#endif /* DOT11_VHT_AC */
-											&ie_list->HtCapability,
-											ie_list->HtCapabilityLen);
-						}
-
-						pEntry->bUpdateInfoFromPeerBeacon = TRUE;
-					}
-#endif /* IWSC_SUPPORT */
 				}
 
 				/* At least another peer in this IBSS, declare MediaState as CONNECTED */
@@ -2499,18 +2228,6 @@ VOID PeerBeacon(
 	                pAd->ExtraInfo = GENERAL_LINK_UP;
 					DBGPRINT(RT_DEBUG_TRACE, ("ADHOC  fOP_STATUS_MEDIA_STATE_CONNECTED.\n"));
 				}	
-#ifdef IWSC_SUPPORT
-				if (pAd->StaCfg.IWscInfo.bSendEapolStart &&
-					(pAd->Mlme.IWscMachine.CurrState != IWSC_WAIT_PIN) &&
-					(pAd->StaCfg.WscControl.WscConfMode == WSC_ENROLLEE))
-				{
-					pAd->StaCfg.IWscInfo.bSendEapolStart = FALSE;
-					pWpsCtrl->WscState = WSC_STATE_LINK_UP;
-					pWpsCtrl->WscStatus = STATUS_WSC_LINK_UP;
-					NdisMoveMemory(pWpsCtrl->EntryAddr, pWpsCtrl->WscPeerMAC, MAC_ADDR_LEN);
-					WscSendEapolStart(pAd, pWpsCtrl->WscPeerMAC, STA_MODE);
-				}
-#endif // IWSC_SUPPORT 
 			}
 
 			if (INFRA_ON(pAd))
@@ -2604,11 +2321,6 @@ VOID PeerBeacon(
 				if ((ie_list->AddHtInfoLen != 0) && INFRA_ON(pAd) && pAd->CommonCfg.Channel <= 14)
 				{
 					BOOLEAN bChangeBW = FALSE;
-#ifdef P2P_SUPPORT
-					PAPCLI_STRUCT pApCliEntry = NULL;
-					
-					pApCliEntry = &pAd->ApCfg.ApCliTab[BSS0];
-#endif /* P2P_SUPPORT */
 
 					/*
 					     1) HT Information
@@ -2626,9 +2338,6 @@ VOID PeerBeacon(
 							pAd->StaActive.SupportedHtPhy.ChannelWidth = BW_20;
 							pAd->MacTab.Content[BSSID_WCID].HTPhyMode.field.BW = 0;
 
-#ifdef P2P_SUPPORT
-							if (!P2P_GO_ON(pAd) && (pApCliEntry->Valid == FALSE))
-#endif /* P2P_SUPPORT */
 							{
 								bChangeBW = TRUE;
 								pAd->CommonCfg.CentralChannel = pAd->CommonCfg.Channel;
@@ -2654,9 +2363,6 @@ VOID PeerBeacon(
 							(ie_list->HtCapabilityLen>0) && (ie_list->HtCapability.HtCapInfo.ChannelWidth == 1)
 						)
 						{
-#ifdef P2P_SUPPORT
-							if (!P2P_GO_ON(pAd) && (pApCliEntry->Valid == FALSE))
-#endif /* P2P_SUPPORT */
 							{
 								pAd->CommonCfg.CentralChannel = get_cent_ch_by_htinfo(pAd, 
 																		&ie_list->AddHtInfo,
@@ -2719,12 +2425,6 @@ VOID PeerBeacon(
 						pAd->CommonCfg.bAPSDAC_VO)
 					{
 						pAd->CommonCfg.bNeedSendTriggerFrame = TRUE;
-#ifdef DOT11Z_TDLS_SUPPORT
-						RTMPSendNullFrame(pAd, 
-				  						pAd->CommonCfg.TxRate, 
-				  						TRUE,
-				  						pAd->CommonCfg.bAPSDForcePowerSave ? PWR_SAVE : pAd->StaCfg.Psm);
-#endif /* DOT11Z_TDLS_SUPPORT */
 					}
 					else
 #endif /* UAPSD_SUPPORT */
@@ -2781,10 +2481,6 @@ VOID PeerBeacon(
 						(pAd->CommonCfg.bACMAPSDTr[QID_AC_VI]) ||
 						(pAd->CommonCfg.bACMAPSDTr[QID_AC_BK]) ||
 						(pAd->CommonCfg.bACMAPSDTr[QID_AC_BE])
-#ifdef DOT11Z_TDLS_SUPPORT
-						|| (pAd->StaCfg.FlgPsmCanNotSleep == TRUE)||
-						(RtmpPktPmBitCheck(pAd) == FALSE)
-#endif /* DOT11Z_TDLS_SUPPORT */
 						)
 					{
 					}
@@ -2853,12 +2549,6 @@ VOID PeerProbeReqAction(
 	BOOLEAN       Privacy;
 	USHORT        CapabilityInfo;
 
-#ifdef P2P_SUPPORT
-	/* P2P device and Listen State could response Probe Req. */
-/*	if ((pAd->P2pCfg.DiscCurrentState == P2P_DISC_LISTEN) && !(P2P_CLI_ON(pAd)))*/
-	if(P2P_INF_ON(pAd))
-		MlmeEnqueue(pAd, P2P_DISC_STATE_MACHINE, P2P_DISC_PEER_PROB_REQ, Elem->MsgLen, Elem->Msg, Elem->Channel);
-#endif /* P2P_SUPPORT */
 
 	if (! ADHOC_ON(pAd))
 		return;
@@ -2873,9 +2563,6 @@ VOID PeerProbeReqAction(
 				return;
 
 			MgtMacHeaderInit(pAd, &ProbeRspHdr, SUBTYPE_PROBE_RSP, 0, Addr2,
-#ifdef P2P_SUPPORT
-								pAd->CurrentAddress,
-#endif /* P2P_SUPPORT */
 								pAd->CommonCfg.Bssid);
 
 			Privacy = (pAd->StaCfg.WepStatus == Ndis802_11Encryption1Enabled) || 
@@ -2916,19 +2603,11 @@ VOID PeerProbeReqAction(
 
         	/* Modify by Eddy, support WPA2PSK in Adhoc mode */
         	if ((pAd->StaCfg.AuthMode == Ndis802_11AuthModeWPANone)
-#ifdef ADHOC_WPA2PSK_SUPPORT
-                || (pAd->StaCfg.AuthMode == Ndis802_11AuthModeWPA2PSK)
-#endif /* ADHOC_WPA2PSK_SUPPORT */
                 )
         	{
         		ULONG   tmp;
        	        UCHAR   RSNIe = IE_WPA;
 
-#ifdef ADHOC_WPA2PSK_SUPPORT
-                RTMPMakeRSNIE(pAd, pAd->StaCfg.AuthMode, pAd->StaCfg.WepStatus, BSS0);
-            	if (pAd->StaCfg.AuthMode == Ndis802_11AuthModeWPA2PSK)
-                    RSNIe = IE_RSN;
-#endif /* ADHOC_WPA2PSK_SUPPORT */
                 
         		MakeOutgoingFrame(pOutBuffer + FrameLen,        	&tmp,
         						  1,                              	&RSNIe,
@@ -2973,18 +2652,6 @@ VOID PeerProbeReqAction(
 			}
 #endif /* DOT11_N_SUPPORT */
 
-#ifdef WSC_STA_SUPPORT
-		    /* add Simple Config Information Element */
-		    if (pAd->StaCfg.WpsIEProbeResp.ValueLen != 0)
-		    {
-				ULONG WscTmpLen = 0;
-		        
-				MakeOutgoingFrame(pOutBuffer + FrameLen,					&WscTmpLen,
-								  pAd->StaCfg.WpsIEProbeResp.ValueLen,		pAd->StaCfg.WpsIEProbeResp.Value,
-								  END_OF_ARGS);
-				FrameLen += WscTmpLen;
-		    }
-#endif /* WSC_STA_SUPPORT */
 
 
 			MiniportMMRequest(pAd, 0, pOutBuffer, FrameLen);
@@ -3041,7 +2708,10 @@ VOID ScanTimeoutAction(
 	}
 	else
 	{
-		pAd->MlmeAux.Channel = NextChannel(pAd, pAd->MlmeAux.Channel);
+		BOOLEAN skip = FALSE;
+		
+		if (!skip)
+			pAd->MlmeAux.Channel = NextChannel(pAd, pAd->MlmeAux.Channel);
 	}
 
 	/* Only one channel scanned for CISCO beacon request */
@@ -3065,30 +2735,12 @@ VOID InvalidStateWhenScan(
 	IN MLME_QUEUE_ELEM *Elem) 
 {
 	USHORT Status;
-#ifdef P2P_SUPPORT
-	UCHAR          Ssid[MAX_LEN_OF_SSID], SsidLen, ScanType, BssType;
-#endif /* P2P_SUPPORT */
 
 	if (Elem->MsgType != MT2_MLME_SCAN_REQ)
 		DBGPRINT(RT_DEBUG_TRACE, ("AYNC - InvalidStateWhenScan(state=%ld). Reset SYNC machine\n", pAd->Mlme.SyncMachine.CurrState));
 	else
 		DBGPRINT(RT_DEBUG_TRACE, ("AYNC - Already in scanning, do nothing here.(state=%ld). \n", pAd->Mlme.SyncMachine.CurrState));
 	
-#ifdef P2P_SUPPORT
-	if (MlmeScanReqSanity(pAd, 
-						  Elem->Msg, 
-						  Elem->MsgLen, 
-						  &BssType, 
-						  (PCHAR)Ssid, 
-						  &SsidLen, 
-						  &ScanType))
-	{
-		/* reset Device Discovery State Machine. */
-		MlmeEnqueue(pAd, P2P_CTRL_STATE_MACHINE, P2P_CTRL_DISC_CANL_EVT, 0, NULL, 0);
-		P2PSetNextScanTimer(pAd, 10);
-		return;
-	}
-#endif /* P2P_SUPPORT */
 	if (Elem->MsgType != MT2_MLME_SCAN_REQ)
 	{
 		pAd->Mlme.SyncMachine.CurrState = SYNC_IDLE;
@@ -3185,9 +2837,6 @@ VOID EnqueueProbeRequest(
 	if (NState == NDIS_STATUS_SUCCESS) 
 	{
 		MgtMacHeaderInit(pAd, &Hdr80211, SUBTYPE_PROBE_REQ, 0, BROADCAST_ADDR,
-#ifdef P2P_SUPPORT
-							pAd->CurrentAddress,
-#endif /* P2P_SUPPORT */
 							BROADCAST_ADDR);
 
 		/* this ProbeRequest explicitly specify SSID to reduce unwanted ProbeResponse */

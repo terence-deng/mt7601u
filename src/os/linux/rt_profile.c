@@ -1,28 +1,30 @@
-/****************************************************************************
+/*
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
- * (c) Copyright 2002, Ralink Technology, Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ****************************************************************************
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-    Module Name:
-	rt_profile.c
- 
-    Abstract:
- 
-    Revision History:
-    Who          When          What
-    ---------    ----------    ----------------------------------------------
- */
- 
+
 #include "rt_config.h"
 
 
@@ -87,55 +89,8 @@ char const *pWirelessFloodEventText[IW_FLOOD_EVENT_TYPE_NUM] = {
 	};
 #endif /* IDS_SUPPORT */
 
-#ifdef WSC_INCLUDED
-/* for WSC wireless event message */
-char const *pWirelessWscEventText[IW_WSC_EVENT_TYPE_NUM] = {   	
-	"PBC Session Overlap",									/* IW_WSC_PBC_SESSION_OVERLAP */
-	"This WPS Registrar supports PBC",						/* IW_WSC_REGISTRAR_SUPPORT_PBC */
-	"This WPS Registrar supports PIN",						/* IW_WSC_REGISTRAR_SUPPORT_PIN */
-	"WPS status success",									/* IW_WSC_STATUS_SUCCESS */
-	"WPS status fail",										/* IW_WSC_STATUS_FAIL */
-	"WPS 2 mins time out!",									/* IW_WSC_2MINS_TIMEOUT */
-	"WPS Send EAPOL_Start!",								/* IW_WSC_SEND_EAPOL_START */
-	"WPS Send WscStart!",									/* IW_WSC_SEND_WSC_START */
-	"WPS Send M1!",											/* IW_WSC_SEND_M1 */
-	"WPS Send M2!",											/* IW_WSC_SEND_M2 */
-	"WPS Send M3!",											/* IW_WSC_SEND_M3 */
-	"WPS Send M4!",											/* IW_WSC_SEND_M4 */
-	"WPS Send M5!",											/* IW_WSC_SEND_M5 */
-	"WPS Send M6!",											/* IW_WSC_SEND_M6 */
-	"WPS Send M7!",											/* IW_WSC_SEND_M7 */
-	"WPS Send M8!",											/* IW_WSC_SEND_M8 */
-	"WPS Send WscDone!",									/* IW_WSC_SEND_DONE */
-	"WPS Send WscAck!",										/* IW_WSC_SEND_ACK */
-	"WPS Send WscNack!",									/* IW_WSC_SEND_NACK */
-	"WPS Receive WscStart!",								/* IW_WSC_RECEIVE_WSC_START */
-	"WPS Receive M1!",										/* IW_WSC_RECEIVE_M1 */
-	"WPS Receive M2!",										/* IW_WSC_RECEIVE_M2 */
-	"WPS Receive M3!",										/* IW_WSC_RECEIVE_M3 */
-	"WPS Receive M4!",										/* IW_WSC_RECEIVE_M4 */
-	"WPS Receive M5!",										/* IW_WSC_RECEIVE_M5 */
-	"WPS Receive M6!",										/* IW_WSC_RECEIVE_M6 */
-	"WPS Receive M7!",										/* IW_WSC_RECEIVE_M7 */
-	"WPS Receive M8!",										/* IW_WSC_RECEIVE_M8 */
-	"WPS Receive WscDone!",									/* IW_WSC_RECEIVE_DONE */
-	"WPS Receive WscAck!",									/* IW_WSC_RECEIVE_ACK */
-	"WPS Receive WscNack!",									/* IW_WSC_RECEIVE_NACK */
-	"Not only one candidate found"							/* IW_WSC_MANY_CANDIDATE */
-	};
-#endif /* WSC_INCLUDED */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef IWSC_SUPPORT
-// for IWSC wireless event messagechar 
-char const *pWirelessIWscEventText[IW_IWSC_EVENT_TYPE_NUM] = {
-	"IWSC - T1 mins time out!",									/* IW_IWSC_T1_TIMER_TIMEOUT */
-	"IWSC - T2 mins time out!",									/* IW_IWSC_T2_TIMER_TIMEOUT */
-	"IWSC - Become Registrar",									/* IW_IWSC_BECOME_REGISTRAR */
-	"IWSC - Become Enrollee",									/* IW_IWSC_BECOME_ENROLLEE */
-	"IWSC - Entry time out",									/* IW_IWSC_ENTRY_TIMER_TIMEOUT */
-	};
-#endif /* IWSC_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 #endif /* SYSTEM_LOG_SUPPORT */
 
@@ -160,12 +115,6 @@ NDIS_STATUS	RTMPReadParametersHook(
 	memset(buffer, 0x00, MAX_INI_BUFFER_SIZE);
 			
 	{	
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-			src = AP_PROFILE_PATH;
-		}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -282,17 +231,7 @@ VOID RtmpDrvSendWirelessEvent(
 			event_table_len = IW_FLOOD_EVENT_TYPE_NUM;
 			break;
 #endif /* IDS_SUPPORT */ 			
-#ifdef WSC_INCLUDED
-		case IW_WSC_EVENT_FLAG_START:
-			event_table_len = IW_WSC_EVENT_TYPE_NUM;
-			break;
-#endif /* WSC_INCLUDED */
 #ifdef CONFIG_STA_SUPPORT
-#ifdef IWSC_SUPPORT
-		case IW_IWSC_EVENT_FLAG_START:
-			event_table_len = IW_IWSC_EVENT_TYPE_NUM;
-			break;
-#endif /* IWSC_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 	}
 	
@@ -340,15 +279,7 @@ VOID RtmpDrvSendWirelessEvent(
 		else if (type == IW_FLOOD_EVENT_FLAG_START)
 			pBufPtr += sprintf(pBufPtr, "%s", pWirelessFloodEventText[event]);
 #endif /* IDS_SUPPORT */		
-#ifdef WSC_INCLUDED
-		else if (type == IW_WSC_EVENT_FLAG_START)
-			pBufPtr += sprintf(pBufPtr, "%s", pWirelessWscEventText[event]);
-#endif /* WSC_INCLUDED */
 #ifdef CONFIG_STA_SUPPORT
-#ifdef IWSC_SUPPORT
-		else if (type == IW_IWSC_EVENT_FLAG_START)
-			pBufPtr += sprintf(pBufPtr, "%s", pWirelessIWscEventText[event]);
-#endif /* IWSC_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 		else
 			pBufPtr += sprintf(pBufPtr, "%s", "unknown event");
@@ -389,78 +320,6 @@ void RTMP_IndicateMediaState(
 
 void tbtt_tasklet(unsigned long data)
 {
-#ifdef CONFIG_AP_SUPPORT
-#ifdef WORKQUEUE_BH
-	struct work_struct *work = (struct work_struct *)data;
-	POS_COOKIE pObj = container_of(work, struct os_cookie, tbtt_task);
-	RTMP_ADAPTER *pAd = (RTMP_ADAPTER *)pObj->pAd_va;
-#else
-		PRTMP_ADAPTER pAd = (RTMP_ADAPTER *)data;
-#endif /* WORKQUEUE_BH */
-
-
-#ifdef P2P_SUPPORT
-	if (P2P_INF_ON(pAd) && P2P_GO_ON(pAd))																											  
-#else
-	if (pAd->OpMode == OPMODE_AP)
-#endif /* P2P_SUPPORT */
-	{
-		/* step 7 - if DTIM, then move backlogged bcast/mcast frames from PSQ to TXQ whenever DtimCount==0 */
-#ifdef RTMP_MAC_USB   
-		if ((pAd->ApCfg.DtimCount + 1) == pAd->ApCfg.DtimPeriod)
-#endif /* RTMP_MAC_USB */
-		{
-			PQUEUE_ENTRY    pEntry;
-			BOOLEAN			bPS = FALSE;
-			UINT 			count = 0;
-			unsigned long 		IrqFlags;
-
-/*			NdisAcquireSpinLock(&pAd->MacTabLock); */
-/*			NdisAcquireSpinLock(&pAd->TxSwQueueLock); */
-			
-			RTMP_IRQ_LOCK(&pAd->irq_lock, IrqFlags);
-			while (pAd->MacTab.McastPsQueue.Head)
-			{
-				bPS = TRUE;
-				if (pAd->TxSwQueue[QID_AC_BE].Number <= (pAd->TxSwQMaxLen + MAX_PACKETS_IN_MCAST_PS_QUEUE))
-				{
-					pEntry = RemoveHeadQueue(&pAd->MacTab.McastPsQueue);
-					/*if(pAd->MacTab.McastPsQueue.Number) */
-					if (count)
-					{
-						RTMP_SET_PACKET_MOREDATA(pEntry, TRUE);
-					}
-					InsertHeadQueue(&pAd->TxSwQueue[QID_AC_BE], pEntry);
-					count++;
-				}
-				else
-				{
-					break;
-				}
-			}
-			RTMP_IRQ_UNLOCK(&pAd->irq_lock, IrqFlags);
-			
-			
-/*			NdisReleaseSpinLock(&pAd->TxSwQueueLock); */
-/*			NdisReleaseSpinLock(&pAd->MacTabLock); */
-			if (pAd->MacTab.McastPsQueue.Number == 0)
-			{			
-		                UINT bss_index;
-
-                		/* clear MCAST/BCAST backlog bit for all BSS */
-				for(bss_index=BSS0; bss_index<pAd->ApCfg.BssidNum; bss_index++)
-					WLAN_MR_TIM_BCMC_CLEAR(bss_index);
-			}
-			pAd->MacTab.PsQIdleCount = 0;
-
-			/* Dequeue outgoing framea from TxSwQueue0..3 queue and process it */
-			if (bPS == TRUE) 
-			{
-				RTMPDeQueuePacket(pAd, FALSE, NUM_OF_TX_RING, /*MAX_TX_IN_TBTT*/MAX_PACKETS_IN_MCAST_PS_QUEUE);
-			}
-		}
-	}
-#endif /* CONFIG_AP_SUPPORT */
 }
 
 
@@ -469,40 +328,18 @@ void announce_802_3_packet(
 	IN PNDIS_PACKET pPacket,
 	IN UCHAR OpMode)
 {
+	RTMP_ADAPTER *pAd = (RTMP_ADAPTER *)pAdSrc;
 	PNDIS_PACKET pRxPkt = pPacket;
 
 	ASSERT(pPacket);
 	MEM_DBG_PKT_FREE_INC(pPacket);
 
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef APCLI_SUPPORT
-#ifdef P2P_SUPPORT
-	if (OpMode == OPMODE_AP)
-#else
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-	{
-		if (RTMP_MATPktRxNeedConvert(pAd, RtmpOsPktNetDevGet(pRxPkt)))
-			RTMP_MATEngineRxHandle(pAd, pRxPkt, 0);
-	}
-#endif /* APCLI_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 #endif /* CONFIG_STA_SUPPORT */
 
     /* Push up the protocol stack */
-#ifdef CONFIG_AP_SUPPORT
-#ifdef PLATFORM_BL2348
-{
-	extern int (*pToUpperLayerPktSent)(PNDIS_PACKET *pSkb);
-	RtmpOsPktProtocolAssign(pRxPkt);
-	pToUpperLayerPktSent(pRxPkt);
-	return;
-}
-#endif /* PLATFORM_BL2348 */
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef IKANOS_VX_1X0
 {
@@ -522,12 +359,6 @@ void announce_802_3_packet(
 
 
 	
-#ifdef CONFIG_AP_SUPPORT
-#ifdef BG_FT_SUPPORT
-		if (BG_FTPH_PacketFromApHandle(pRxPkt) == 0)
-			return;
-#endif /* BG_FT_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 //+++Add by shiang for debug
 if (0) {
@@ -741,21 +572,10 @@ int	RTMPSendPackets(
     }
 #endif
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		APSendPackets((NDIS_HANDLE)pAd, (PPNDIS_PACKET) &pPacket, 1);
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{
-#ifdef P2P_SUPPORT
-		if (RTMP_GET_PACKET_OPMODE(pPacket))
-		{
-			APSendPackets((NDIS_HANDLE)pAd, (PPNDIS_PACKET) &pPacket, 1);
-			goto done;
-		}
-#endif /* P2P_SUPPORT */
 
 		STASendPackets((NDIS_HANDLE)pAd, (PPNDIS_PACKET) &pPacket, 1);
 	}
@@ -772,40 +592,11 @@ PNET_DEV get_netdev_from_bssid(
 	IN	UCHAR			FromWhichBSSID)
 {
 	PNET_DEV dev_p = NULL;
-#ifdef CONFIG_AP_SUPPORT
-	UCHAR infRealIdx;
-#endif /* CONFIG_AP_SUPPORT */
 
 	do
 	{
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
-		if(FromWhichBSSID >= MIN_NET_DEVICE_FOR_P2P_GO)
-		{
-			dev_p = pAd->ApCfg.MBSSID[BSS0].MSSIDDev;
-			break;
-		}
-#endif /* P2P_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
-#ifdef CONFIG_AP_SUPPORT
-		infRealIdx = FromWhichBSSID & (NET_DEVICE_REAL_IDX_MASK);
-#ifdef APCLI_SUPPORT
-		if(FromWhichBSSID >= MIN_NET_DEVICE_FOR_APCLI)
-		{
-			dev_p = (infRealIdx >= MAX_APCLI_NUM ? NULL : pAd->ApCfg.ApCliTab[infRealIdx].dev);
-			break;
-		} 
-#endif /* APCLI_SUPPORT */
-
-		if ((FromWhichBSSID > 0) &&
-			(FromWhichBSSID < pAd->ApCfg.BssidNum) &&
-				(FromWhichBSSID < MAX_MBSSID_NUM(pAd)) &&
-				(FromWhichBSSID < HW_BEACON_MAX_NUM))
-    		{
-    	    		dev_p = pAd->ApCfg.MBSSID[FromWhichBSSID].MSSIDDev;
-    		}
-		else
-#endif /* CONFIG_AP_SUPPORT */
 		{
 			dev_p = pAd->net_dev;
 		}
@@ -817,159 +608,6 @@ PNET_DEV get_netdev_from_bssid(
 }
 
 
-#ifdef CONFIG_AP_SUPPORT
-/*
-========================================================================
-Routine Description:
-	Driver pre-Ioctl for AP.
-
-Arguments:
-	pAdSrc			- WLAN control block pointer
-	pCB				- the IOCTL parameters
-
-Return Value:
-	NDIS_STATUS_SUCCESS	- IOCTL OK
-	Otherwise			- IOCTL fail
-
-Note:
-========================================================================
-*/
-INT RTMP_AP_IoctlPrepare(
-	IN	RTMP_ADAPTER			*pAd,
-	IN	VOID					*pCB)
-{
-	RT_CMD_AP_IOCTL_CONFIG *pConfig = (RT_CMD_AP_IOCTL_CONFIG *)pCB;
-	POS_COOKIE pObj;
-	USHORT index;
-	INT	Status = NDIS_STATUS_SUCCESS;
-#ifdef CONFIG_APSTA_MIXED_SUPPORT
-	INT cmd = 0xff;
-#endif /* CONFIG_APSTA_MIXED_SUPPORT */
-
-
-	pObj = (POS_COOKIE) pAd->OS_Cookie;
-	
-    if((pConfig->priv_flags == INT_MAIN) && !RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_INTERRUPT_IN_USE))
-    {
-		if (pConfig->pCmdData == NULL)
-			return Status;
-		
-		if (RtPrivIoctlSetVal() == pConfig->CmdId_RTPRIV_IOCTL_SET)
-		{
-			if (TRUE
-#ifdef CONFIG_APSTA_MIXED_SUPPORT
-				&& (strstr(pConfig->pCmdData, "OpMode") == NULL)
-#endif /* CONFIG_APSTA_MIXED_SUPPORT */
-#ifdef SINGLE_SKU
-				&& (strstr(pConfig->pCmdData, "ModuleTxpower") == NULL)
-#endif /* SINGLE_SKU */
-				)
-
-			{
-				return -ENETDOWN;
-			}
-		}
-		else
-			return -ENETDOWN;
-    }
-
-    /* determine this ioctl command is comming from which interface. */
-    if (pConfig->priv_flags == INT_MAIN)
-    {
-		pObj->ioctl_if_type = INT_MAIN;
-        pObj->ioctl_if = MAIN_MBSSID;
-/*        DBGPRINT(RT_DEBUG_INFO, ("rt28xx_ioctl I/F(ra%d)(flags=%d): cmd = 0x%08x\n", pObj->ioctl_if, RT_DEV_PRIV_FLAGS_GET(net_dev), cmd)); */
-    }
-    else if (pConfig->priv_flags == INT_MBSSID)
-    {
-		pObj->ioctl_if_type = INT_MBSSID;
-/*    	if (!RTMPEqualMemory(net_dev->name, pAd->net_dev->name, 3))  // for multi-physical card, no MBSSID */
-		if (strcmp(pConfig->name, RtmpOsGetNetDevName(pAd->net_dev)) != 0) /* sample */
-    	{
-	        for (index = 1; index < pAd->ApCfg.BssidNum; index++)
-	    	{
-	    	    if (pAd->ApCfg.MBSSID[index].MSSIDDev == pConfig->net_dev)
-	    	    {
-	    	        pObj->ioctl_if = index;
-	    	        
-/*	    	        DBGPRINT(RT_DEBUG_INFO, ("rt28xx_ioctl I/F(ra%d)(flags=%d): cmd = 0x%08x\n", index, RT_DEV_PRIV_FLAGS_GET(net_dev), cmd)); */
-	    	        break;
-	    	    }
-	    	}
-	        /* Interface not found! */
-	        if(index == pAd->ApCfg.BssidNum)
-	        {
-/*	        	DBGPRINT(RT_DEBUG_ERROR, ("rt28xx_ioctl can not find I/F\n")); */
-	            return -ENETDOWN;
-	        }
-	    }
-	    else    /* ioctl command from I/F(ra0) */
-	    {
-/*			GET_PAD_FROM_NET_DEV(pAd, net_dev); */
-    	    pObj->ioctl_if = MAIN_MBSSID;
-/*	        DBGPRINT(RT_DEBUG_ERROR, ("rt28xx_ioctl can not find I/F and use default: cmd = 0x%08x\n", cmd)); */
-	    }
-        MBSS_MR_APIDX_SANITY_CHECK(pAd, pObj->ioctl_if);
-    }
-#ifdef APCLI_SUPPORT
-	else if (pConfig->priv_flags == INT_APCLI)
-	{
-		pObj->ioctl_if_type = INT_APCLI;
-		for (index = 0; index < MAX_APCLI_NUM; index++)
-		{
-			if (pAd->ApCfg.ApCliTab[index].dev == pConfig->net_dev)
-			{
-				pObj->ioctl_if = index;
-
-				break;
-			}
-
-			if(index == MAX_APCLI_NUM)
-			{
-				DBGPRINT(RT_DEBUG_ERROR, ("rt28xx_ioctl can not find Apcli I/F\n"));
-				return -ENETDOWN;
-			}
-		}
-		APCLI_MR_APIDX_SANITY_CHECK(pObj->ioctl_if);
-	}
-#endif /* APCLI_SUPPORT */
-#ifdef P2P_SUPPORT
-	else if (pConfig->priv_flags == INT_P2P)
-	{
-		pObj->ioctl_if_type = INT_P2P;
-		pObj->ioctl_if = MAIN_MBSSID;
-	}
-#endif /* P2P_SUPPORT */
-    else
-    {
-/*    	DBGPRINT(RT_DEBUG_WARN, ("IOCTL is not supported in WDS interface\n")); */
-    	return -EOPNOTSUPP;
-    }
-
-	pConfig->apidx = pObj->ioctl_if;
-	return Status;
-}
-
-
-VOID AP_E2PROM_IOCTL_PostCtrl(
-	IN	RTMP_IOCTL_INPUT_STRUCT	*wrq,
-	IN	PSTRING					msg)
-{
-	wrq->u.data.length = strlen(msg);
-	if (copy_to_user(wrq->u.data.pointer, msg, wrq->u.data.length))
-	{
-		DBGPRINT(RT_DEBUG_TRACE, ("%s: copy_to_user() fail\n", __FUNCTION__));			
-	}
-}
-
-
-VOID IAPP_L2_UpdatePostCtrl(
-	IN PRTMP_ADAPTER	pAd,
-    IN UINT8 *mac_p,
-    IN INT  bssid)
-{
-}
-#endif /* CONFIG_AP_SUPPORT */
 
 
 //#ifdef WDS_SUPPORT

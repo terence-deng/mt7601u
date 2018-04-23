@@ -1,16 +1,28 @@
-/****************************************************************************
+/*
+ *************************************************************************
  * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
  * Taiwan, R.O.C.
  *
- * (c) Copyright 2002, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************/
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
 
 #ifdef RTMP_MAC_USB
@@ -1355,6 +1367,10 @@ Note:
 VOID RT28XXDMAEnable(
 	IN RTMP_ADAPTER *pAd)
 {
+	WPDMA_GLO_CFG_STRUC GloCfg;
+	USB_DMA_CFG_STRUC	UsbCfg;
+	
+	
 	RTMP_IO_WRITE32(pAd, MAC_SYS_CTRL, 0x4);
 
 	if (AsicWaitPDMAIdle(pAd, 200, 1000) == FALSE) {
@@ -1412,14 +1428,6 @@ VOID RT28xx_UpdateBeaconToAsic(
 	UCHAR			bcn_idx = 0;
 	UINT8 TXWISize = pAd->chipCap.TXWISize;
 
-#ifdef CONFIG_AP_SUPPORT
-	if ((apidx < pAd->ApCfg.BssidNum) && (apidx < MAX_MBSSID_NUM(pAd)))
-	{
-		bcn_idx = pAd->ApCfg.MBSSID[apidx].BcnBufIdx;
-		pBeaconFrame = (PUCHAR) pAd->ApCfg.MBSSID[apidx].BeaconBuf;
-		bBcnReq = BeaconTransmitRequired(pAd, apidx, &pAd->ApCfg.MBSSID[apidx]);
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 	if (pBeaconFrame == NULL)
 	{
@@ -1486,15 +1494,6 @@ VOID RT28xx_UpdateBeaconToAsic(
 		pBeaconSync->BeaconBitMap |= (1 << bcn_idx);
 	
 		/* For AP interface, set the DtimBitOn so that we can send Bcast/Mcast frame out after this beacon frame.*/
-#ifdef CONFIG_AP_SUPPORT
-		{
-			ptr = (PUCHAR) (pAd->ApCfg.MBSSID[apidx].BeaconBuf + pAd->ApCfg.MBSSID[apidx].TimIELocationInBeacon);
-			if ((*(ptr + 4)) & 0x01)
-				pBeaconSync->DtimBitOn |= (1 << apidx);
-			else
-				pBeaconSync->DtimBitOn &= ~(1 << apidx);
-		}
-#endif /* CONFIG_AP_SUPPORT */
 }
 
 }
@@ -1513,20 +1512,11 @@ VOID RTUSBBssBeaconStop(
 	{
 		INT NumOfBcn = 0;
 
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-			NumOfBcn = pAd->ApCfg.BssidNum + MAX_MESH_NUM;
-		}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		{
 			NumOfBcn = MAX_MESH_NUM;
-#ifdef P2P_SUPPORT
-			NumOfBcn +=  MAX_P2P_NUM;
-#endif /* P2P_SUPPORT */
 		}
 #endif /* CONFIG_STA_SUPPORT */
 
@@ -1562,20 +1552,11 @@ VOID RTUSBBssBeaconStart(
 	{
 		INT NumOfBcn = 0;
 
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-			NumOfBcn = pAd->ApCfg.BssidNum + MAX_MESH_NUM;
-		}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		{
 			NumOfBcn = MAX_MESH_NUM;
-#ifdef P2P_SUPPORT
-			NumOfBcn +=  MAX_P2P_NUM;
-#endif /* P2P_SUPPORT */
 		}
 #endif /* CONFIG_STA_SUPPORT */
 
@@ -1583,24 +1564,8 @@ VOID RTUSBBssBeaconStart(
 		{
 			UCHAR CapabilityInfoLocationInBeacon = 0;
 			UCHAR TimIELocationInBeacon = 0;
-#ifdef CONFIG_AP_SUPPORT
-			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-			{
-				{
-					CapabilityInfoLocationInBeacon = pAd->ApCfg.MBSSID[apidx].CapabilityInfoLocationInBeacon;
-					TimIELocationInBeacon = pAd->ApCfg.MBSSID[apidx].TimIELocationInBeacon;
-				}
-			}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
-				{
-					CapabilityInfoLocationInBeacon = pAd->ApCfg.MBSSID[apidx].CapabilityInfoLocationInBeacon;
-					TimIELocationInBeacon = pAd->ApCfg.MBSSID[apidx].TimIELocationInBeacon;
-				}
-#else
-#endif /* P2P_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 
 			NdisZeroMemory(pBeaconSync->BeaconBuf[apidx], HW_BEACON_OFFSET);
@@ -1728,36 +1693,6 @@ VOID BeaconUpdateExec(
 	{
 		ReSyncBeaconTime(pAd);
 		
-#ifdef CONFIG_AP_SUPPORT
-#ifdef P2P_SUPPORT
-		if (P2P_INF_ON(pAd) && P2P_GO_ON(pAd))
-#else
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-#endif /* P2P_SUPPORT */
-		{
-			BEACON_SYNC_STRUCT *pBeaconSync = pAd->CommonCfg.pBeaconSync;
-			ULONG UpTime;
-
-			/* update channel utilization */
-			NdisGetSystemUpTime(&UpTime);
-
-#ifdef AP_QLOAD_SUPPORT
-			QBSS_LoadUpdate(pAd, UpTime);
-#endif /* AP_QLOAD_SUPPORT */
-
-		
-			if (pAd->ApCfg.DtimCount == 0 && pBeaconSync->DtimBitOn)
-			{
-				POS_COOKIE pObj;
-			
-				pObj = (POS_COOKIE) pAd->OS_Cookie;
-				RTMP_OS_TASKLET_SCHE(&pObj->tbtt_task);
-			}
-
-
-			APUpdateAllBeaconFrame(pAd);
-		}
-#endif /* CONFIG_AP_SUPPORT */
 
 	}
 	
@@ -1821,17 +1756,6 @@ VOID BeaconUpdateExec(
 		pAd->CommonCfg.BeaconUpdateTimer.TimerValue = delta2MS + 10;
 		pAd->CommonCfg.IsUpdateBeacon=TRUE;
 	}
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-	{
-		if ((pAd->CommonCfg.Channel > 14)
-			&& (pAd->CommonCfg.bIEEE80211H == 1)
-			&& (pAd->Dot11_H.RDMode == RD_SWITCHING_MODE))
-		{
-			ChannelSwitchingCountDownProc(pAd);
-		}
-	}
-#endif /* CONFIG_AP_SUPPORT */
 }
 
 
@@ -1850,23 +1774,16 @@ VOID RT28xxUsbMlmeRadioOn(
 		return;
 
 	ASIC_RADIO_ON(pAd, MLME_RADIO_ON);
-	
+
 	/* Clear Radio off flag*/
 	RTMP_CLEAR_FLAG(pAd, fRTMP_ADAPTER_RADIO_OFF);
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		APStartUp(pAd);
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef LED_CONTROL_SUPPORT
 	/* Set LED*/
 #ifdef CONFIG_STA_SUPPORT
 	RTMPSetLED(pAd, LED_RADIO_ON);
 #endif /* CONFIG_STA_SUPPORT */
-#ifdef CONFIG_AP_SUPPORT
-	RTMPSetLED(pAd, LED_LINK_UP);
-#endif /* CONFIG_AP_SUPPORT */
 #endif /* LED_CONTROL_SUPPORT */
 
 }
@@ -1875,26 +1792,12 @@ VOID RT28xxUsbMlmeRadioOn(
 VOID RT28xxUsbMlmeRadioOFF(
 	IN PRTMP_ADAPTER pAd)
 {
-#ifdef WSC_INCLUDED
-#ifdef WSC_LED_SUPPORT
-	UINT	WPSLedMode10;
-#endif /* WSC_LED_SUPPORT */
-#endif /* WSC_INCLUDED */
 	
 	DBGPRINT(RT_DEBUG_TRACE,("RT28xxUsbMlmeRadioOFF()\n"));
 
 	if (RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_RADIO_OFF))
 		return;
 
-#ifdef WSC_INCLUDED
-#ifdef WSC_LED_SUPPORT
-	if(LED_MODE(pAd) == WPS_LED_MODE_10)
-	{
-		//WPSLedMode10 = LINK_STATUS_WPS_MODE10_TURN_OFF;
-		//RTEnqueueInternalCmd(pAd, CMDTHREAD_LED_WPS_MODE10, &WPSLedMode10, sizeof(WPSLedMode10));
-	}
-#endif /* WSC_LED_SUPPORT */
-#endif /* WSC_INCLUDED */
 
 #ifdef CONFIG_STA_SUPPORT	
 	/* Clear PMKID cache.*/
@@ -1951,10 +1854,6 @@ VOID RT28xxUsbMlmeRadioOFF(
 	}
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		APStop(pAd);
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef LED_CONTROL_SUPPORT
 	/* Set LED*/
@@ -2029,6 +1928,7 @@ VOID RT28xxUsbAsicRadioOn(RTMP_ADAPTER *pAd)
 	BOOLEAN brc;
 	UINT RetryRound = 0;
 	UINT32 rx_filter_flag;
+	WPDMA_GLO_CFG_STRUC GloCfg;
 	RTMP_CHIP_OP *pChipOps = &pAd->chipOps;
 
 

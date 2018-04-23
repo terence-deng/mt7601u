@@ -1,16 +1,29 @@
-/****************************************************************************
+/*
+ *************************************************************************
+ * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
+ *
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-    Module Name:
-    UTIL/rt_linux_symb.c
- 
-    Abstract:
-	All symbols provided from UTIL module are put here.
- 
-    Revision History:
-    Who        When          What
-    ---------  ----------    ----------------------------------------------
-
-***************************************************************************/
 
 #define RTMP_MODULE_OS
 #define RTMP_MODULE_OS_UTIL
@@ -74,9 +87,6 @@ EXPORT_SYMBOL(RtmpOsPktRcvHandle);
 EXPORT_SYMBOL(RtmpOsPktIappMakeUp);
 #endif /* IAPP_SUPPORT */
 EXPORT_SYMBOL(RtmpOsPktInit);
-#ifdef CONFIG_AP_SUPPORT
-EXPORT_SYMBOL(VLAN_8023_Header_Copy);
-#endif /* CONFIG_AP_SUPPORT */
 EXPORT_SYMBOL(wlan_802_11_to_802_3_packet);
 EXPORT_SYMBOL(RtmpOsPktOffsetInit);
 
@@ -237,13 +247,6 @@ EXPORT_SYMBOL(OS_NumOfPktFree);
 #endif /* VENDOR_FEATURE2_SUPPORT */
 
 /* only for AP */
-#ifdef CONFIG_AP_SUPPORT
-EXPORT_SYMBOL(duplicate_pkt_with_VLAN);
-#ifdef BG_FT_SUPPORT
-EXPORT_SYMBOL(BG_FTPH_Init);
-EXPORT_SYMBOL(BG_FTPH_Remove);
-#endif /* BG_FT_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 EXPORT_SYMBOL(ralinkrate);
@@ -290,6 +293,9 @@ EXPORT_SYMBOL(RtmpFlashRead);
 EXPORT_SYMBOL(RtmpFlashWrite);
 #endif /* defined(RTMP_RBUS_SUPPORT) || defined (RTMP_FLASH_SUPPORT)  */
 
+#ifdef CONFIG_STA_SUPPORT
+EXPORT_SYMBOL(RtmpOSNotifyRawData);
+#endif /* CONFIG_STA_SUPPORT */
 
 EXPORT_SYMBOL(RtPrivIoctlSetVal);
 

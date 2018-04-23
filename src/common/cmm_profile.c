@@ -1,28 +1,30 @@
-/****************************************************************************
+/*
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
- * (c) Copyright 2002, Ralink Technology, Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ****************************************************************************
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-    Module Name:
-	cmm_profile.c
- 
-    Abstract:
- 
-    Revision History:
-    Who          When          What
-    ---------    ----------    ----------------------------------------------
- */
- 
+
 #include "rt_config.h"
 
 
@@ -618,26 +620,6 @@ static void rtmp_read_key_parms_from_file(IN  PRTMP_ADAPTER pAd, PSTRING tmpbuf,
 	/*DefaultKeyID*/
 	if(RTMPGetKeyParameter("DefaultKeyID", tmpbuf, 25, buffer, TRUE))
 	{
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-			for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-			{
-				if (i >= pAd->ApCfg.BssidNum)
-				{
-					break;
-				}
-
-				KeyIdx = simple_strtol(macptr, 0, 10);
-				if((KeyIdx >= 1 ) && (KeyIdx <= 4))
-					pAd->ApCfg.MBSSID[i].DefaultKeyId = (UCHAR) (KeyIdx - 1 );
-				else
-					pAd->ApCfg.MBSSID[i].DefaultKeyId = 0;
-
-				DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) DefaultKeyID(0~3)=%d\n", i, pAd->ApCfg.MBSSID[i].DefaultKeyId));
-			}
-		}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -668,50 +650,6 @@ static void rtmp_read_key_parms_from_file(IN  PRTMP_ADAPTER pAd, PSTRING tmpbuf,
 				if (i < MAX_MBSSID_NUM(pAd))
 					KeyType[i] = simple_strtol(macptr, 0, 10);
 		    }
-#ifdef CONFIG_AP_SUPPORT
-			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-			{
-				if (TRUE)
-				{
-					BOOLEAN bKeyxStryIsUsed = FALSE;
- 
-					//GPRINT(RT_DEBUG_TRACE, ("pAd->ApCfg.BssidNum=%d\n", pAd->ApCfg.BssidNum));
-					for (i = 0; i < pAd->ApCfg.BssidNum; i++)
-			        	{
-						snprintf(tok_str, sizeof(tok_str), "Key%dStr%d", idx + 1, i + 1);
-					if (RTMPGetKeyParameter(tok_str, tmpbuf, 128, buffer, FALSE))
-						{
-							rtmp_parse_key_buffer_from_file(pAd, tmpbuf, KeyType[i], i, idx);
-
-							if (bKeyxStryIsUsed == FALSE)
-							{
-								bKeyxStryIsUsed = TRUE;
-							}						
-						}
-					}
-
-					if (bKeyxStryIsUsed == FALSE)
-					{
-						snprintf(tok_str, sizeof(tok_str), "Key%dStr", idx + 1);
-					if (RTMPGetKeyParameter(tok_str, tmpbuf, 128, buffer, FALSE))
-						{
-							if (pAd->ApCfg.BssidNum == 1)
-							{
-								rtmp_parse_key_buffer_from_file(pAd, tmpbuf, KeyType[BSS0], BSS0, idx);
-							}
-							else
-							{
-								/* Anyway, we still do the legacy dissection of the whole KeyxStr string.*/
-							    for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-							    {
-									rtmp_parse_key_buffer_from_file(pAd, macptr, KeyType[i], i, idx);
-							    }
-							}
-						}
-					}
-				}
-			}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 			IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -727,875 +665,6 @@ static void rtmp_read_key_parms_from_file(IN  PRTMP_ADAPTER pAd, PSTRING tmpbuf,
 	}
 }
 
-#ifdef CONFIG_AP_SUPPORT 
-
-#ifdef APCLI_SUPPORT
-static void rtmp_read_ap_client_from_file(
-	IN PRTMP_ADAPTER pAd,
-	IN PSTRING tmpbuf,
-	IN PSTRING buffer)
-{
-	PSTRING		macptr = NULL;
-	INT			i=0, j=0, idx;
-	UCHAR		macAddress[MAC_ADDR_LEN];
-	/*UCHAR		keyMaterial[40];*/
-	PAPCLI_STRUCT   pApCliEntry = NULL;
-	ULONG		KeyIdx;
-	STRING		tok_str[16];
-	ULONG		KeyType[MAX_APCLI_NUM];
-	ULONG		KeyLen;
-	/*UCHAR		CipherAlg = CIPHER_WEP64;*/
-
-
-	NdisZeroMemory(KeyType, sizeof(KeyType));
-
-	/*ApCliEnable*/
-	if(RTMPGetKeyParameter("ApCliEnable", tmpbuf, 128, buffer, TRUE))
-	{
-		for (i = 0, macptr = rstrtok(tmpbuf,";"); (macptr && i < MAX_APCLI_NUM); macptr = rstrtok(NULL,";"), i++)
-		{
-			pApCliEntry = &pAd->ApCfg.ApCliTab[i];
-			if ((strncmp(macptr, "0", 1) == 0))
-				pApCliEntry->Enable = FALSE;
-			else if ((strncmp(macptr, "1", 1) == 0))
-				pApCliEntry->Enable = TRUE;
-	        else
-				pApCliEntry->Enable = FALSE;
-
-			if (pApCliEntry->Enable)
-			{
-				/*pApCliEntry->WpaState = SS_NOTUSE;*/
-				/*pApCliEntry->PortSecured = WPA_802_1X_PORT_NOT_SECURED;*/
-				/*NdisZeroMemory(pApCliEntry->ReplayCounter, LEN_KEY_DESC_REPLAY); */
-			}
-			DBGPRINT(RT_DEBUG_TRACE, ("ApCliEntry[%d].Enable=%d\n", i, pApCliEntry->Enable));
-	    }
-	}
-
-	/*ApCliSsid*/
-	if(RTMPGetKeyParameter("ApCliSsid", tmpbuf, MAX_PARAM_BUFFER_SIZE, buffer, FALSE))
-	{
-		for (i=0, macptr = rstrtok(tmpbuf,";"); (macptr && i < MAX_APCLI_NUM); macptr = rstrtok(NULL,";"), i++) 
-		{
-			pApCliEntry = &pAd->ApCfg.ApCliTab[i];
-
-			/*Ssid acceptable strlen must be less than 32 and bigger than 0.*/
-			pApCliEntry->CfgSsidLen = (UCHAR)strlen(macptr);
-			if (pApCliEntry->CfgSsidLen > 32)
-			{
-				pApCliEntry->CfgSsidLen = 0;
-				continue; 
-			}
-			if(pApCliEntry->CfgSsidLen > 0)
-			{
-				memcpy(&pApCliEntry->CfgSsid, macptr, pApCliEntry->CfgSsidLen);
-				pApCliEntry->Valid = FALSE;/* it should be set when successfuley association*/
-			} else
-			{
-				NdisZeroMemory(&(pApCliEntry->CfgSsid), MAX_LEN_OF_SSID);
-				continue;
-			}
-			DBGPRINT(RT_DEBUG_TRACE, ("ApCliEntry[%d].CfgSsidLen=%d, CfgSsid=%s\n", i, pApCliEntry->CfgSsidLen, pApCliEntry->CfgSsid));
-		}
-	}
-
-	/*ApCliBssid*/
-	if(RTMPGetKeyParameter("ApCliBssid", tmpbuf, MAX_PARAM_BUFFER_SIZE, buffer, TRUE))
-	{
-		for (i=0, macptr = rstrtok(tmpbuf,";"); (macptr && i < MAX_APCLI_NUM); macptr = rstrtok(NULL,";"), i++) 
-		{
-			pApCliEntry = &pAd->ApCfg.ApCliTab[i];
-
-			if(strlen(macptr) != 17)  /*Mac address acceptable format 01:02:03:04:05:06 length 17*/
-				continue; 
-			if(strcmp(macptr,"00:00:00:00:00:00") == 0)
-				continue; 
-			for (j=0; j<ETH_LENGTH_OF_ADDRESS; j++)
-			{
-				AtoH(macptr, &macAddress[j], 1);
-				macptr=macptr+3;
-			}	
-			memcpy(pApCliEntry->CfgApCliBssid, &macAddress, ETH_LENGTH_OF_ADDRESS);
-			pApCliEntry->Valid = FALSE;/* it should be set when successfuley association*/
-		}
-	}
-
-	/*ApCliAuthMode*/
-	if (RTMPGetKeyParameter("ApCliAuthMode", tmpbuf, 255, buffer, TRUE))
-	{
-		for (i = 0, macptr = rstrtok(tmpbuf,";"); (macptr && i < MAX_APCLI_NUM); macptr = rstrtok(NULL,";"), i++)
-		{
-			pApCliEntry = &pAd->ApCfg.ApCliTab[i];
-			
-			if ((strncmp(macptr, "WEPAUTO", 7) == 0) || (strncmp(macptr, "wepauto", 7) == 0))
-				pApCliEntry->AuthMode = Ndis802_11AuthModeAutoSwitch;
-			else if ((strncmp(macptr, "SHARED", 6) == 0) || (strncmp(macptr, "shared", 6) == 0))
-				pApCliEntry->AuthMode = Ndis802_11AuthModeShared;
-			else if ((strncmp(macptr, "WPAPSK", 6) == 0) || (strncmp(macptr, "wpapsk", 6) == 0))
-				pApCliEntry->AuthMode = Ndis802_11AuthModeWPAPSK;
-			else if ((strncmp(macptr, "WPA2PSK", 7) == 0) || (strncmp(macptr, "wpa2psk", 7) == 0))
-				pApCliEntry->AuthMode = Ndis802_11AuthModeWPA2PSK;
-			else
-				pApCliEntry->AuthMode = Ndis802_11AuthModeOpen;
-
-			/*pApCliEntry->PortSecured = WPA_802_1X_PORT_NOT_SECURED;*/
-
-			DBGPRINT(RT_DEBUG_TRACE, ("I/F(apcli%d) ApCli_AuthMode=%d \n", i, pApCliEntry->AuthMode));
-			RTMPMakeRSNIE(pAd, pApCliEntry->AuthMode, pApCliEntry->WepStatus, (i + MIN_NET_DEVICE_FOR_APCLI));
-		}
-
-	}
-
-	/*ApCliEncrypType*/
-	if (RTMPGetKeyParameter("ApCliEncrypType", tmpbuf, 255, buffer, TRUE))
-	{
-		for (i = 0, macptr = rstrtok(tmpbuf,";"); (macptr && i < MAX_APCLI_NUM); macptr = rstrtok(NULL,";"), i++)
-		{
-			pApCliEntry = &pAd->ApCfg.ApCliTab[i];
-
-			pApCliEntry->WepStatus = Ndis802_11WEPDisabled;
-			if ((strncmp(macptr, "WEP", 3) == 0) || (strncmp(macptr, "wep", 3) == 0))
-            {
-				if (pApCliEntry->AuthMode < Ndis802_11AuthModeWPA)
-					pApCliEntry->WepStatus = Ndis802_11WEPEnabled;				  
-			}
-			else if ((strncmp(macptr, "TKIP", 4) == 0) || (strncmp(macptr, "tkip", 4) == 0))
-			{
-				if (pApCliEntry->AuthMode >= Ndis802_11AuthModeWPA)
-					pApCliEntry->WepStatus = Ndis802_11Encryption2Enabled;                       
-            }
-			else if ((strncmp(macptr, "AES", 3) == 0) || (strncmp(macptr, "aes", 3) == 0))
-			{
-				if (pApCliEntry->AuthMode >= Ndis802_11AuthModeWPA)
-					pApCliEntry->WepStatus = Ndis802_11Encryption3Enabled;                            
-			}    
-			else
-			{
-				pApCliEntry->WepStatus      = Ndis802_11WEPDisabled;                 
-			}
-
-			pApCliEntry->PairCipher     = pApCliEntry->WepStatus;
-			pApCliEntry->GroupCipher    = pApCliEntry->WepStatus;
-			pApCliEntry->bMixCipher		= FALSE;
-			
-			/*pApCliEntry->PortSecured = WPA_802_1X_PORT_NOT_SECURED;*/
-
-			DBGPRINT(RT_DEBUG_TRACE, ("I/F(apcli%d) APCli_EncrypType = %d \n", i, pApCliEntry->WepStatus));
-			RTMPMakeRSNIE(pAd, pApCliEntry->AuthMode, pApCliEntry->WepStatus, (i + MIN_NET_DEVICE_FOR_APCLI));
-		}
-
-	}
-	
-	/*ApCliWPAPSK*/
-	if (RTMPGetKeyParameter("ApCliWPAPSK", tmpbuf, 255, buffer, FALSE))
-	{
-		for (i = 0, macptr = rstrtok(tmpbuf,";"); (macptr && i < MAX_APCLI_NUM); macptr = rstrtok(NULL,";"), i++)
-		{
-			int retval = TRUE;
-
-			pApCliEntry = &pAd->ApCfg.ApCliTab[i];
-
-			if((strlen(macptr) < 8) || (strlen(macptr) > 64))
-			{
-				DBGPRINT(RT_DEBUG_ERROR, ("APCli_WPAPSK_KEY, key string required 8 ~ 64 characters!!!\n"));
-				continue; 
-			}
-			
-			NdisMoveMemory(pApCliEntry->PSK, macptr, strlen(macptr));
-			pApCliEntry->PSKLen = strlen(macptr);
-			DBGPRINT(RT_DEBUG_TRACE, ("I/F(apcli%d) APCli_WPAPSK_KEY=%s, Len=%d\n", i, pApCliEntry->PSK, pApCliEntry->PSKLen));
-
-			if ((pApCliEntry->AuthMode != Ndis802_11AuthModeWPAPSK) &&
-				(pApCliEntry->AuthMode != Ndis802_11AuthModeWPA2PSK))
-			{
-				retval = FALSE;
-			}
-
-			{
-				retval = RT_CfgSetWPAPSKKey(pAd, macptr, strlen(macptr), (PUCHAR)pApCliEntry->CfgSsid, (INT)pApCliEntry->CfgSsidLen, pApCliEntry->PMK);
-			}
-			if (retval == TRUE)
-			{
-				/* Start STA supplicant WPA state machine*/
-				DBGPRINT(RT_DEBUG_TRACE, ("Start AP-client WPAPSK state machine \n"));
-				/*pApCliEntry->WpaState = SS_START;				*/
-			}
-
-			/*RTMPMakeRSNIE(pAd, pApCliEntry->AuthMode, pApCliEntry->WepStatus, (i + MIN_NET_DEVICE_FOR_APCLI));			*/
-#ifdef DBG
-			DBGPRINT(RT_DEBUG_TRACE, ("I/F(apcli%d) PMK Material => \n", i));
-			
-			for (j = 0; j < 32; j++)
-			{
-				DBGPRINT(RT_DEBUG_OFF, ("%02x:", pApCliEntry->PMK[j]));
-				if ((j%16) == 15)
-					DBGPRINT(RT_DEBUG_OFF, ("\n"));
-			}
-			DBGPRINT(RT_DEBUG_OFF,("\n"));
-#endif
-		}
-	}
-
-	/*ApCliDefaultKeyID*/
-	if (RTMPGetKeyParameter("ApCliDefaultKeyID", tmpbuf, 255, buffer, TRUE))
-	{
-		for (i = 0, macptr = rstrtok(tmpbuf,";"); (macptr && i < MAX_APCLI_NUM); macptr = rstrtok(NULL,";"), i++)
-		{
-			pApCliEntry = &pAd->ApCfg.ApCliTab[i];
-			
-			KeyIdx = simple_strtol(macptr, 0, 10);
-			if((KeyIdx >= 1 ) && (KeyIdx <= 4))
-				pApCliEntry->DefaultKeyId = (UCHAR) (KeyIdx - 1);
-			else
-				pApCliEntry->DefaultKeyId = 0;
-
-			DBGPRINT(RT_DEBUG_TRACE, ("I/F(apcli%d) DefaultKeyID(0~3)=%d\n", i, pApCliEntry->DefaultKeyId));
-		}
-	}
-
-	/*ApCliKeyXType, ApCliKeyXStr*/
-	for (idx=0; idx<4; idx++)
-	{
-		snprintf(tok_str, sizeof(tok_str),  "ApCliKey%dType", idx+1);
-		/*ApCliKey1Type*/
-		if(RTMPGetKeyParameter(tok_str, tmpbuf, 128, buffer, TRUE))
-		{
-			for (i = 0, macptr = rstrtok(tmpbuf,";"); (macptr && i < MAX_APCLI_NUM); macptr = rstrtok(NULL,";"), i++)
-			{
-			    KeyType[i] = simple_strtol(macptr, 0, 10);
-			}
-
-			snprintf(tok_str, sizeof(tok_str), "ApCliKey%dStr", idx+1);
-			/*ApCliKey1Str*/
-			if(RTMPGetKeyParameter(tok_str, tmpbuf, 512, buffer, FALSE))
-			{
-				for (i = 0, macptr = rstrtok(tmpbuf,";"); (macptr && i < MAX_APCLI_NUM); macptr = rstrtok(NULL,";"), i++)
-				{
-					pApCliEntry = &pAd->ApCfg.ApCliTab[i];
-					KeyLen = strlen(macptr);
-					if(((KeyType[i] == 0) && (KeyLen != 10) && (KeyLen != 26)) ||
-					    ((KeyType[i] != 0) && (KeyLen != 5) && (KeyLen != 13)))
-					{
-						DBGPRINT(RT_DEBUG_ERROR, ("I/F(apcli%d) Key%dStr is Invalid key length!\n", i, idx+1));
-					}
-					else
-					{
-						if (RT_CfgSetWepKey(pAd, macptr, &pApCliEntry->SharedKey[idx], idx) != TRUE)
-							DBGPRINT(RT_DEBUG_ERROR, ("RT_CfgSetWepKey fail!\n"));
-					}
-				}
-			}
-		}
-	}
-	
-	/* ApCliTxMode*/
-	if (RTMPGetKeyParameter("ApCliTxMode", tmpbuf, 25, buffer, TRUE))
-	{
-		for (i = 0, macptr = rstrtok(tmpbuf,";"); (macptr && i < MAX_APCLI_NUM); macptr = rstrtok(NULL,";"), i++)
-		{
-			pApCliEntry = &pAd->ApCfg.ApCliTab[i];
-
-			pApCliEntry->DesiredTransmitSetting.field.FixedTxMode = 
-										RT_CfgSetFixedTxPhyMode(macptr);
-			DBGPRINT(RT_DEBUG_TRACE, ("I/F(apcli%d) Tx Mode = %d\n", i,
-											pApCliEntry->DesiredTransmitSetting.field.FixedTxMode));					
-		}	
-	}
-
-	/* ApCliTxMcs*/
-	if (RTMPGetKeyParameter("ApCliTxMcs", tmpbuf, 50, buffer, TRUE))
-	{
-		for (i = 0, macptr = rstrtok(tmpbuf,";"); (macptr && i < MAX_APCLI_NUM); macptr = rstrtok(NULL,";"), i++)
-		{
-			pApCliEntry = &pAd->ApCfg.ApCliTab[i];
-
-			pApCliEntry->DesiredTransmitSetting.field.MCS = 
-					RT_CfgSetTxMCSProc(macptr, &pApCliEntry->bAutoTxRateSwitch);
-
-			DBGPRINT(RT_DEBUG_TRACE, ("I/F(apcli%d) Tx MCS = %s(%d)\n", i,
-						(pApCliEntry->DesiredTransmitSetting.field.MCS == MCS_AUTO ? "AUTO" : ""),
-									pApCliEntry->DesiredTransmitSetting.field.MCS));
-		}	
-	}
-
-	
-#ifdef WSC_AP_SUPPORT
-
-		/* Wsc4digitPinCode = TRUE use 4-digit Pin code, otherwise 8-digit Pin code */
-		if (RTMPGetKeyParameter("ApCli_Wsc4digitPinCode", tmpbuf, 32, buffer, TRUE))
-		{
-			if (simple_strtol(macptr, 0, 10) != 0)	//Enable
-				pAd->ApCfg.ApCliTab[0].WscControl.WscEnrollee4digitPinCode = TRUE;
-			else //Disable
-				pAd->ApCfg.ApCliTab[0].WscControl.WscEnrollee4digitPinCode = FALSE;
-	
-			DBGPRINT(RT_DEBUG_TRACE, ("I/F(apcli%d) ApCli_Wsc4digitPinCode=%d\n", i, pAd->ApCfg.ApCliTab[0].WscControl.WscEnrollee4digitPinCode));
-		}
-#endif /* WSC_AP_SUPPORT */	
-
-
-#ifdef UAPSD_SUPPORT
-	/*APSDCapable*/
-	if(RTMPGetKeyParameter("ApCliAPSDCapable", tmpbuf, 10, buffer, TRUE))
-	{
-		pAd->ApCfg.FlgApCliIsUapsdInfoUpdated = TRUE;
-
-		for (i = 0, macptr = rstrtok(tmpbuf,";");
-			(macptr && i < MAX_APCLI_NUM);
-			macptr = rstrtok(NULL,";"), i++)
-		{
-			pApCliEntry = &pAd->ApCfg.ApCliTab[i];
-
-			pApCliEntry->UapsdInfo.bAPSDCapable = \
-									(UCHAR) simple_strtol(macptr, 0, 10);
-			DBGPRINT(RT_DEBUG_ERROR, ("ApCliAPSDCapable[%d]=%d\n", i,
-					pApCliEntry->UapsdInfo.bAPSDCapable));
-	    }
-	}
-#endif /* UAPSD_SUPPORT */
-}
-#endif /* APCLI_SUPPORT */
-
-
-static void rtmp_read_acl_parms_from_file(IN  PRTMP_ADAPTER pAd, PSTRING tmpbuf, PSTRING buffer)
-{
-	STRING		tok_str[32];
-	PSTRING		macptr;						
-	INT			i=0, j=0, idx;
-	UCHAR		macAddress[MAC_ADDR_LEN];
-
-
-	memset(macAddress, 0, MAC_ADDR_LEN);
-	for (idx=0; idx<MAX_MBSSID_NUM(pAd); idx++)
-	{
-		memset(&pAd->ApCfg.MBSSID[idx].AccessControlList, 0, sizeof(RT_802_11_ACL));
-		/* AccessPolicyX*/
-		snprintf(tok_str, sizeof(tok_str), "AccessPolicy%d", idx);
-		if (RTMPGetKeyParameter(tok_str, tmpbuf, 10, buffer, TRUE))
-		{
-			switch (simple_strtol(tmpbuf, 0, 10))
-			{
-				case 1: /* Allow All, and the AccessControlList is positive now.*/
-					pAd->ApCfg.MBSSID[idx].AccessControlList.Policy = 1;
-					break;
-				case 2: /* Reject All, and the AccessControlList is negative now.*/
-					pAd->ApCfg.MBSSID[idx].AccessControlList.Policy = 2;
-					break;
-				case 0: /* Disable, don't care the AccessControlList.*/
-				default:
-					pAd->ApCfg.MBSSID[idx].AccessControlList.Policy = 0;
-					break;
-			}
-			DBGPRINT(RT_DEBUG_TRACE, ("%s=%ld\n", tok_str, pAd->ApCfg.MBSSID[idx].AccessControlList.Policy));
-		}
-		/* AccessControlListX*/
-		snprintf(tok_str, sizeof(tok_str), "AccessControlList%d", idx);
-		if (RTMPGetKeyParameter(tok_str, tmpbuf, MAX_PARAM_BUFFER_SIZE, buffer, TRUE))
-		{
-			for (i=0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++) 
-			{
-				if (strlen(macptr) != 17)  /* Mac address acceptable format 01:02:03:04:05:06 length 17*/
-					continue;
-
-				ASSERT(pAd->ApCfg.MBSSID[idx].AccessControlList.Num <= MAX_NUM_OF_ACL_LIST);
-				
-				for (j=0; j<ETH_LENGTH_OF_ADDRESS; j++)
-				{
-					AtoH(macptr, &macAddress[j], 1);
-					macptr=macptr+3;
-				}
-
-				if (pAd->ApCfg.MBSSID[idx].AccessControlList.Num == MAX_NUM_OF_ACL_LIST)
-				{
-					DBGPRINT(RT_DEBUG_WARN, ("The AccessControlList is full, and no more entry can join the list!\n"));
-        			DBGPRINT(RT_DEBUG_WARN, ("The last entry of ACL is %02x:%02x:%02x:%02x:%02x:%02x\n",
-        				macAddress[0],macAddress[1],macAddress[2],macAddress[3],macAddress[4],macAddress[5]));
-
-				    break;
-				}
-				
-				pAd->ApCfg.MBSSID[idx].AccessControlList.Num++;
-				NdisMoveMemory(pAd->ApCfg.MBSSID[idx].AccessControlList.Entry[(pAd->ApCfg.MBSSID[idx].AccessControlList.Num - 1)].Addr, macAddress, ETH_LENGTH_OF_ADDRESS);				
-			}
-			DBGPRINT(RT_DEBUG_TRACE, ("%s=Get %ld Mac Address\n", tok_str, pAd->ApCfg.MBSSID[idx].AccessControlList.Num));
- 		}
-	}
-}
-
-/*
-    ========================================================================
-
-    Routine Description:
-        In kernel mode read parameters from file
-
-    Arguments:
-        src                     the location of the file.
-        dest                        put the parameters to the destination.
-        Length                  size to read.
-
-    Return Value:
-        None
-
-    Note:
-
-    ========================================================================
-*/
-static void rtmp_read_ap_wmm_parms_from_file(IN  PRTMP_ADAPTER pAd, PSTRING tmpbuf, PSTRING buffer)
-{
-	PSTRING					macptr;						
-	INT						i=0;
-
-	/*WmmCapable*/
-	if(RTMPGetKeyParameter("WmmCapable", tmpbuf, 32, buffer, TRUE))
-	{
-	    BOOLEAN bEnableWmm = FALSE;
-	    for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-	    {
-			if (i >= pAd->ApCfg.BssidNum)
-			{
-				break;
-			}
-
-			if(simple_strtol(macptr, 0, 10) != 0)
-			{
-				pAd->ApCfg.MBSSID[i].bWmmCapable = TRUE;
-				bEnableWmm = TRUE;
-			}
-			else
-			{
-				pAd->ApCfg.MBSSID[i].bWmmCapable = FALSE;
-			}
-
-			if (bEnableWmm)
-			{
-				pAd->CommonCfg.APEdcaParm.bValid = TRUE;
-				pAd->ApCfg.BssEdcaParm.bValid = TRUE;
-			}
-			else
-			{
-				pAd->CommonCfg.APEdcaParm.bValid = FALSE;
-				pAd->ApCfg.BssEdcaParm.bValid = FALSE;
-			}
-
-			pAd->ApCfg.MBSSID[i].bWmmCapableOrg = \
-											pAd->ApCfg.MBSSID[i].bWmmCapable;
-
-			DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) WmmCapable=%d\n", i, pAd->ApCfg.MBSSID[i].bWmmCapable));
-	    }
-	}
-	/*DLSCapable*/
-	if(RTMPGetKeyParameter("DLSCapable", tmpbuf, 32, buffer, TRUE))
-	{
-	    for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-	    {
-			if (i >= pAd->ApCfg.BssidNum)
-			{
-				break;
-			}
-
-			if(simple_strtol(macptr, 0, 10) != 0)  /*Enable*/
-			{
-				pAd->ApCfg.MBSSID[i].bDLSCapable = TRUE;
-			}
-			else /*Disable*/
-			{
-				pAd->ApCfg.MBSSID[i].bDLSCapable = FALSE;
-			}
-
-			DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) DLSCapable=%d\n", i, pAd->ApCfg.MBSSID[i].bDLSCapable));
-	    }
-	}
-	/*APAifsn*/
-	if(RTMPGetKeyParameter("APAifsn", tmpbuf, 32, buffer, TRUE))
-	{
-	    for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-	    {
-			pAd->CommonCfg.APEdcaParm.Aifsn[i] = (UCHAR) simple_strtol(macptr, 0, 10);;
-
-			DBGPRINT(RT_DEBUG_TRACE, ("APAifsn[%d]=%d\n", i, pAd->CommonCfg.APEdcaParm.Aifsn[i]));
-	    }
-	}
-	/*APCwmin*/
-	if(RTMPGetKeyParameter("APCwmin", tmpbuf, 32, buffer, TRUE))
-	{
-	    for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-	    {
-			pAd->CommonCfg.APEdcaParm.Cwmin[i] = (UCHAR) simple_strtol(macptr, 0, 10);;
-
-			DBGPRINT(RT_DEBUG_TRACE, ("APCwmin[%d]=%d\n", i, pAd->CommonCfg.APEdcaParm.Cwmin[i]));
-	    }
-	}
-	/*APCwmax*/
-	if(RTMPGetKeyParameter("APCwmax", tmpbuf, 32, buffer, TRUE))
-	{
-	    for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-	    {
-			pAd->CommonCfg.APEdcaParm.Cwmax[i] = (UCHAR) simple_strtol(macptr, 0, 10);;
-
-			DBGPRINT(RT_DEBUG_TRACE, ("APCwmax[%d]=%d\n", i, pAd->CommonCfg.APEdcaParm.Cwmax[i]));
-	    }
-	}
-	/*APTxop*/
-	if(RTMPGetKeyParameter("APTxop", tmpbuf, 32, buffer, TRUE))
-	{
-	    for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-	    {
-			pAd->CommonCfg.APEdcaParm.Txop[i] = (USHORT) simple_strtol(macptr, 0, 10);;
-
-			DBGPRINT(RT_DEBUG_TRACE, ("APTxop[%d]=%d\n", i, pAd->CommonCfg.APEdcaParm.Txop[i]));
-	    }
-	}
-	/*APACM*/
-	if(RTMPGetKeyParameter("APACM", tmpbuf, 32, buffer, TRUE))
-	{
-	    for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-	    {
-			pAd->CommonCfg.APEdcaParm.bACM[i] = (BOOLEAN) simple_strtol(macptr, 0, 10);;
-
-			DBGPRINT(RT_DEBUG_TRACE, ("APACM[%d]=%d\n", i, pAd->CommonCfg.APEdcaParm.bACM[i]));
-	    }
-	}
-	/*BSSAifsn*/
-	if(RTMPGetKeyParameter("BSSAifsn", tmpbuf, 32, buffer, TRUE))
-	{
-	    for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-	    {
-			pAd->ApCfg.BssEdcaParm.Aifsn[i] = (UCHAR) simple_strtol(macptr, 0, 10);;
-
-			DBGPRINT(RT_DEBUG_TRACE, ("BSSAifsn[%d]=%d\n", i, pAd->ApCfg.BssEdcaParm.Aifsn[i]));
-	    }
-	}
-	/*BSSCwmin*/
-	if(RTMPGetKeyParameter("BSSCwmin", tmpbuf, 32, buffer, TRUE))
-	{
-	    for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-	    {
-			pAd->ApCfg.BssEdcaParm.Cwmin[i] = (UCHAR) simple_strtol(macptr, 0, 10);;
-
-			DBGPRINT(RT_DEBUG_TRACE, ("BSSCwmin[%d]=%d\n", i, pAd->ApCfg.BssEdcaParm.Cwmin[i]));
-	    }
-	}
-	/*BSSCwmax*/
-	if(RTMPGetKeyParameter("BSSCwmax", tmpbuf, 32, buffer, TRUE))
-	{
-	    for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-	    {
-			pAd->ApCfg.BssEdcaParm.Cwmax[i] = (UCHAR) simple_strtol(macptr, 0, 10);;
-
-			DBGPRINT(RT_DEBUG_TRACE, ("BSSCwmax[%d]=%d\n", i, pAd->ApCfg.BssEdcaParm.Cwmax[i]));
-	    }
-	}
-	/*BSSTxop*/
-	if(RTMPGetKeyParameter("BSSTxop", tmpbuf, 32, buffer, TRUE))
-	{
-	    for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-	    {
-			pAd->ApCfg.BssEdcaParm.Txop[i] = (USHORT) simple_strtol(macptr, 0, 10);;
-
-			DBGPRINT(RT_DEBUG_TRACE, ("BSSTxop[%d]=%d\n", i, pAd->ApCfg.BssEdcaParm.Txop[i]));
-	    }
-	}
-	/*BSSACM*/
-	if(RTMPGetKeyParameter("BSSACM", tmpbuf, 32, buffer, TRUE))
-	{
-	    for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-	    {
-			pAd->ApCfg.BssEdcaParm.bACM[i] = (BOOLEAN) simple_strtol(macptr, 0, 10);;
-
-			DBGPRINT(RT_DEBUG_TRACE, ("BSSACM[%d]=%d\n", i, pAd->ApCfg.BssEdcaParm.bACM[i]));
-	    }
-	}
-	/*AckPolicy*/
-	if(RTMPGetKeyParameter("AckPolicy", tmpbuf, 32, buffer, TRUE))
-	{
-	    for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-	    {
-			pAd->CommonCfg.AckPolicy[i] = (UCHAR) simple_strtol(macptr, 0, 10);;
-
-			DBGPRINT(RT_DEBUG_TRACE, ("AckPolicy[%d]=%d\n", i, pAd->CommonCfg.AckPolicy[i]));
-	    }
-	}
-#ifdef UAPSD_SUPPORT
-	/*APSDCapable*/
-	if(RTMPGetKeyParameter("APSDCapable", tmpbuf, 10, buffer, TRUE))
-	{
-
-	    for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-	    {
-			if (i < HW_BEACON_MAX_NUM)
-			{
-				pAd->ApCfg.MBSSID[i].UapsdInfo.bAPSDCapable = \
-										(UCHAR) simple_strtol(macptr, 0, 10);
-				DBGPRINT(RT_DEBUG_ERROR, ("APSDCapable[%d]=%d\n", i,
-						pAd->ApCfg.MBSSID[i].UapsdInfo.bAPSDCapable));
-			}
-	    }
-
-		if (i == 1)
-		{
-			/*
-				Old format in UAPSD settings: only 1 parameter
-				i.e. UAPSD for all BSS is enabled or disabled.
-			*/
-			for(i=1; i<HW_BEACON_MAX_NUM; i++)
-			{
-				pAd->ApCfg.MBSSID[i].UapsdInfo.bAPSDCapable =
-							pAd->ApCfg.MBSSID[0].UapsdInfo.bAPSDCapable;
-				DBGPRINT(RT_DEBUG_ERROR, ("APSDCapable[%d]=%d\n", i,
-						pAd->ApCfg.MBSSID[i].UapsdInfo.bAPSDCapable));
-			}
-		}
-
-#ifdef APCLI_SUPPORT
-		if (pAd->ApCfg.FlgApCliIsUapsdInfoUpdated == FALSE)
-		{
-			/*
-				Backward:
-				All UAPSD for AP Client interface is same as MBSS0
-				when we can not find "ApCliAPSDCapable".
-				When we find "ApCliAPSDCapable" hereafter, we will over-write.
-			*/
-			for(i=0; i<MAX_APCLI_NUM; i++)
-			{
-				pAd->ApCfg.ApCliTab[i].UapsdInfo.bAPSDCapable = \
-								pAd->ApCfg.MBSSID[0].UapsdInfo.bAPSDCapable;
-				DBGPRINT(RT_DEBUG_ERROR, ("default ApCliAPSDCapable[%d]=%d\n",
-						i, pAd->ApCfg.ApCliTab[i].UapsdInfo.bAPSDCapable));
-			}
-		}
-#endif /* APCLI_SUPPORT */
-	}
-#endif /* UAPSD_SUPPORT */
-}
-
-#ifdef DOT1X_SUPPORT
-/*
-    ========================================================================
-
-    Routine Description:
-        In kernel mode read parameters from file
-
-    Arguments:
-        src                     the location of the file.
-        dest                        put the parameters to the destination.
-        Length                  size to read.
-
-    Return Value:
-        None
-
-    Note:
-
-    ========================================================================
-*/
-static void rtmp_read_radius_parms_from_file(IN  PRTMP_ADAPTER pAd, PSTRING tmpbuf, PSTRING buffer)
-{
-	STRING					tok_str[16];
-	PSTRING					macptr;		
-	UINT32					ip_addr;
-	INT						i=0;
-	BOOLEAN					bUsePrevFormat = FALSE;
-	USHORT					offset;
-	INT						count[HW_BEACON_MAX_NUM];
-
-	/* own_ip_addr*/
-	if (RTMPGetKeyParameter("own_ip_addr", tmpbuf, 32, buffer, TRUE))
-	{
-		Set_OwnIPAddr_Proc(pAd, tmpbuf);
-	}
-
-
-	/* session_timeout_interval*/
-	if (RTMPGetKeyParameter("session_timeout_interval", tmpbuf, 32, buffer, TRUE))
-	{
-		pAd->ApCfg.session_timeout_interval = simple_strtol(tmpbuf, 0, 10); 
-		DBGPRINT(RT_DEBUG_TRACE, ("session_timeout_interval=%d\n", pAd->ApCfg.session_timeout_interval));
-	} 
-
-	/* quiet_interval*/
-	if (RTMPGetKeyParameter("quiet_interval", tmpbuf, 32, buffer, TRUE))
-	{
-		pAd->ApCfg.quiet_interval = simple_strtol(tmpbuf, 0, 10); 
-		DBGPRINT(RT_DEBUG_TRACE, ("quiet_interval=%d\n", pAd->ApCfg.quiet_interval));
-	} 
-
-	/* EAPifname*/
-	if (RTMPGetKeyParameter("EAPifname", tmpbuf, 256, buffer, TRUE))
-	{
-		Set_EAPIfName_Proc(pAd, tmpbuf);
-	}
-	
-	/* PreAuthifname*/
-	if (RTMPGetKeyParameter("PreAuthifname", tmpbuf, 256, buffer, TRUE))
-	{
-		Set_PreAuthIfName_Proc(pAd, tmpbuf);
-	}
-	
-	/*PreAuth*/
-	if(RTMPGetKeyParameter("PreAuth", tmpbuf, 10, buffer, TRUE))
-	{
-	    for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-	    {
-			if (i >= pAd->ApCfg.BssidNum)
-				break;
-
-			if(simple_strtol(macptr, 0, 10) != 0)  /*Enable*/
-				pAd->ApCfg.MBSSID[i].PreAuth = TRUE;
-			else /*Disable*/
-				pAd->ApCfg.MBSSID[i].PreAuth = FALSE;
-
-			DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) PreAuth=%d\n", i, pAd->ApCfg.MBSSID[i].PreAuth));
-	    }
-	}
-
-	/*IEEE8021X*/
-	if(RTMPGetKeyParameter("IEEE8021X", tmpbuf, 10, buffer, TRUE))
-	{
-	    for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-	    {
-			if (i >= pAd->ApCfg.BssidNum)
-				break;
-
-			if(simple_strtol(macptr, 0, 10) != 0)  /*Enable*/
-				pAd->ApCfg.MBSSID[i].IEEE8021X = TRUE;
-			else /*Disable*/
-				pAd->ApCfg.MBSSID[i].IEEE8021X = FALSE;
-
-			DBGPRINT(RT_DEBUG_TRACE, ("IF(ra%d), IEEE8021X=%d\n", i, pAd->ApCfg.MBSSID[i].IEEE8021X));
-	    }
-	}
-	
-	/* RADIUS_Server*/
-	offset = 0;
-	/*if (RTMPGetKeyParameter("RADIUS_Server", tmpbuf, 256, buffer, TRUE))*/
-	while (RTMPGetKeyParameterWithOffset("RADIUS_Server", tmpbuf, &offset, 256, buffer, TRUE))	
-	{
-		for (i=0, macptr = rstrtok(tmpbuf,";"); (macptr && i < MAX_MBSSID_NUM(pAd)); macptr = rstrtok(NULL,";"), i++) 
-		{
-			if (rtinet_aton(macptr, &ip_addr) && pAd->ApCfg.MBSSID[i].radius_srv_num < MAX_RADIUS_SRV_NUM)
-			{
-				INT	srv_idx = pAd->ApCfg.MBSSID[i].radius_srv_num;
-
-				pAd->ApCfg.MBSSID[i].radius_srv_info[srv_idx].radius_ip = ip_addr;
-				pAd->ApCfg.MBSSID[i].radius_srv_num++;
-				DBGPRINT(RT_DEBUG_TRACE, ("IF(ra%d), radius_ip(seq-%d)=%s(%x)\n", i, pAd->ApCfg.MBSSID[i].radius_srv_num, macptr, pAd->ApCfg.MBSSID[i].radius_srv_info[srv_idx].radius_ip));
-			}	    
-		}
-	}
-	/* RADIUS_Port*/
-	/*if (RTMPGetKeyParameter("RADIUS_Port", tmpbuf, 128, buffer, TRUE))*/
-	offset = 0;
-	memset(&count[0], 0, sizeof(count));
-	while (RTMPGetKeyParameterWithOffset("RADIUS_Port", tmpbuf, &offset, 128, buffer, TRUE))
-	{
-		for (i=0, macptr = rstrtok(tmpbuf,";"); (macptr && i < MAX_MBSSID_NUM(pAd)); macptr = rstrtok(NULL,";"), i++) 
-		{	  
-			if (count[i] < pAd->ApCfg.MBSSID[i].radius_srv_num)
-			{		
-				INT		srv_idx = count[i];
-				
-            	pAd->ApCfg.MBSSID[i].radius_srv_info[srv_idx].radius_port = (UINT32) simple_strtol(macptr, 0, 10); 
-				count[i] ++;
-				DBGPRINT(RT_DEBUG_TRACE, ("IF(ra%d), radius_port(seq-%d)=%d\n", i, count[i], pAd->ApCfg.MBSSID[i].radius_srv_info[srv_idx].radius_port));
-			}
-		}
-	}
-	/* RADIUS_Key*/
-	/*if (RTMPGetKeyParameter("RADIUS_Key", tmpbuf, 640, buffer, FALSE))*/
-	offset = 0;
-	memset(&count[0], 0, sizeof(count));
-	while (RTMPGetKeyParameterWithOffset("RADIUS_Key", tmpbuf, &offset, 640, buffer, FALSE))
-	{
-		if (strlen(tmpbuf) > 0)
-			bUsePrevFormat = TRUE;
-	
-		for (i=0, macptr = rstrtok(tmpbuf,";"); (macptr && i < MAX_MBSSID_NUM(pAd)); macptr = rstrtok(NULL,";"), i++) 
-		{	  
-			if (strlen(macptr) > 0 && (count[i] < pAd->ApCfg.MBSSID[i].radius_srv_num))
-			{
-				INT		srv_idx = count[i];
-			
-				pAd->ApCfg.MBSSID[i].radius_srv_info[srv_idx].radius_key_len = strlen(macptr); 
-				NdisMoveMemory(pAd->ApCfg.MBSSID[i].radius_srv_info[srv_idx].radius_key, macptr, strlen(macptr));
-				count[i] ++;
-				DBGPRINT(RT_DEBUG_TRACE, ("IF(ra%d), radius_key(seq-%d)=%s, len=%d\n", i, 
-															count[i],
-															pAd->ApCfg.MBSSID[i].radius_srv_info[srv_idx].radius_key, 
-															pAd->ApCfg.MBSSID[i].radius_srv_info[srv_idx].radius_key_len));
-			}
-		}
-	}
-
-	/* NasIdX, X indicate the interface index(1~8) */		
-	for (i = 0; i < pAd->ApCfg.BssidNum; i++)
-	{
-		snprintf(tok_str, sizeof(tok_str), "NasId%d", i + 1);
-		if (RTMPGetKeyParameter(tok_str, tmpbuf, 33, buffer, FALSE))
-		{
-			if (strlen(tmpbuf) > 0)
-			{
-				pAd->ApCfg.MBSSID[i].NasIdLen = strlen(tmpbuf); 
-				NdisMoveMemory(pAd->ApCfg.MBSSID[i].NasId, tmpbuf, strlen(tmpbuf));
-				DBGPRINT(RT_DEBUG_TRACE, ("IF-ra%d NAS-ID=%s, len=%d\n", i, 
-												pAd->ApCfg.MBSSID[i].NasId, 
-												pAd->ApCfg.MBSSID[i].NasIdLen));
-			}					
-		}
-	}
-	
-	if (!bUsePrevFormat)
-	{
-		for (i = 0; i < MAX_MBSSID_NUM(pAd); i++)
-		{
-			INT	srv_idx = 0;
-			
-			snprintf(tok_str, sizeof(tok_str), "RADIUS_Key%d", i + 1);
-			
-			/* RADIUS_KeyX (X=1~MAX_MBSSID_NUM)*/
-			/*if (RTMPGetKeyParameter(tok_str, tmpbuf, 128, buffer, FALSE))			*/
-			offset = 0;
-			while (RTMPGetKeyParameterWithOffset(tok_str, tmpbuf, &offset, 128, buffer, FALSE))
-			{
-				if (strlen(tmpbuf) > 0 && (srv_idx < pAd->ApCfg.MBSSID[i].radius_srv_num))
-				{
-					pAd->ApCfg.MBSSID[i].radius_srv_info[srv_idx].radius_key_len = strlen(tmpbuf); 
-					NdisMoveMemory(pAd->ApCfg.MBSSID[i].radius_srv_info[srv_idx].radius_key, tmpbuf, strlen(tmpbuf));					
-					DBGPRINT(RT_DEBUG_TRACE, ("IF(ra%d), update radius_key(seq-%d)=%s, len=%d\n", i, srv_idx+1,
-																pAd->ApCfg.MBSSID[i].radius_srv_info[srv_idx].radius_key, 
-																pAd->ApCfg.MBSSID[i].radius_srv_info[srv_idx].radius_key_len));
-					srv_idx ++;
-				}	
-			}
-		}
-	}
-}
-#endif /* DOT1X_SUPPORT */
-
-static int rtmp_parse_wpapsk_buffer_from_file(IN  PRTMP_ADAPTER pAd,IN  PSTRING buffer,IN  INT BSSIdx)
-{
-	PSTRING		tmpbuf = buffer;
-	INT			i = BSSIdx;
-	/*UCHAR		keyMaterial[40];*/
-	ULONG		len = strlen(tmpbuf);
-	int         ret = 0;
-
-	DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) WPAPSK_KEY=%s\n", i, tmpbuf));
-
-	ret = RT_CfgSetWPAPSKKey(pAd, tmpbuf, len, (PUCHAR)pAd->ApCfg.MBSSID[i].Ssid, pAd->ApCfg.MBSSID[i].SsidLen, pAd->ApCfg.MBSSID[i].PMK);
-	if (ret == FALSE)
-		return FALSE;
-
-#ifdef WSC_AP_SUPPORT
-	NdisZeroMemory(pAd->ApCfg.MBSSID[i].WscControl.WpaPsk, 64);
-	pAd->ApCfg.MBSSID[i].WscControl.WpaPskLen = 0;
-	if ((len >= 8) && (len <= 64))
-	{                                    
-		NdisMoveMemory(pAd->ApCfg.MBSSID[i].WscControl.WpaPsk, tmpbuf, len);
-		pAd->ApCfg.MBSSID[i].WscControl.WpaPskLen = len;
-	}
-#endif /* WSC_AP_SUPPORT */
-	return ret;
-}
-#endif /* CONFIG_AP_SUPPORT */
 
 
 #ifdef CONFIG_STA_SUPPORT
@@ -1792,10 +861,6 @@ static void HTParametersHook(
 	IN	PSTRING		  pInput)
 {
 	long Value;
-#ifdef CONFIG_AP_SUPPORT	
-	INT			i=0;
-	PSTRING		Bufptr;
-#endif /* CONFIG_AP_SUPPORT */
 
     if (RTMPGetKeyParameter("HT_PROTECT", pValueStr, 25, pInput, TRUE))
     {
@@ -1932,11 +997,6 @@ static void HTParametersHook(
 	{
 		Value = simple_strtol(pValueStr, 0, 10);
 
-#ifdef CONFIG_AP_SUPPORT
-		/* Intel IOT*/
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		Value = 64;
-#endif /* CONFIG_AP_SUPPORT */
 		if (Value >=1 && Value <= 64)
 		{		
 			pAd->CommonCfg.REGBACapability.field.RxBAWinLimit = Value;
@@ -1990,18 +1050,6 @@ static void HTParametersHook(
 	/* Fixed Tx mode : CCK, OFDM*/
 	if (RTMPGetKeyParameter("FixedTxMode", pValueStr, 25, pInput, TRUE))
 	{
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-			for (i = 0, Bufptr = rstrtok(pValueStr,";"); (Bufptr && i < MAX_MBSSID_NUM(pAd)); Bufptr = rstrtok(NULL,";"), i++) 	
-			{
-				pAd->ApCfg.MBSSID[i].DesiredTransmitSetting.field.FixedTxMode = 
-														RT_CfgSetFixedTxPhyMode(Bufptr);																	
-				DBGPRINT(RT_DEBUG_TRACE, ("(IF-ra%d) Fixed Tx Mode = %d\n", i, 
-											pAd->ApCfg.MBSSID[i].DesiredTransmitSetting.field.FixedTxMode));							
-			}
-		}
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		{
@@ -2045,26 +1093,6 @@ static void HTParametersHook(
 	/* MSC*/
 	if (RTMPGetKeyParameter("HT_MCS", pValueStr, 50, pInput, TRUE))
 	{
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-			for (i = 0, Bufptr = rstrtok(pValueStr,";"); (Bufptr && i < MAX_MBSSID_NUM(pAd)); Bufptr = rstrtok(NULL,";"), i++) 	
-			{
-				Value = simple_strtol(Bufptr, 0, 10);			
-				if ((Value >= 0 && Value <= 23) || (Value == 32))
-				{
-					pAd->ApCfg.MBSSID[i].DesiredTransmitSetting.field.MCS  = Value;
-				}
-				else
-				{
-					pAd->ApCfg.MBSSID[i].DesiredTransmitSetting.field.MCS  = MCS_AUTO;
-				}
-				DBGPRINT(RT_DEBUG_TRACE, ("(IF-ra%d) HT: MCS = %s(%d)\n", i, 
-						(pAd->ApCfg.MBSSID[i].DesiredTransmitSetting.field.MCS == MCS_AUTO ? "AUTO" : "Fixed"),
-						pAd->ApCfg.MBSSID[i].DesiredTransmitSetting.field.MCS));
-			}		
-		}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT 	
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -2073,18 +1101,12 @@ static void HTParametersHook(
 			if ((Value >= 0 && Value <= 23) || (Value == 32))
 			{
 				pAd->StaCfg.DesiredTransmitSetting.field.MCS  = Value;
-#ifdef P2P_SUPPORT
-				pAd->ApCfg.MBSSID[MAIN_MBSSID].DesiredTransmitSetting.field.MCS  = Value;
-#endif /* P2P_SUPPORT */
 				pAd->StaCfg.bAutoTxRateSwitch = FALSE;
 				DBGPRINT(RT_DEBUG_TRACE, ("HT: MCS = %d\n", pAd->StaCfg.DesiredTransmitSetting.field.MCS));
 			}
 			else
 			{
 				pAd->StaCfg.DesiredTransmitSetting.field.MCS  = MCS_AUTO;
-#ifdef P2P_SUPPORT
-				pAd->ApCfg.MBSSID[MAIN_MBSSID].DesiredTransmitSetting.field.MCS  = MCS_AUTO;
-#endif /* P2P_SUPPORT */
 				pAd->StaCfg.bAutoTxRateSwitch = TRUE;
 				DBGPRINT(RT_DEBUG_TRACE, ("HT: MCS = AUTO\n"));
 			}
@@ -2163,22 +1185,6 @@ static void HTParametersHook(
 		}
 		DBGPRINT(RT_DEBUG_TRACE, ("HT: Rx Stream = %d\n", pAd->CommonCfg.RxStream));
 	}
-#ifdef GREENAP_SUPPORT
-	/*Green AP*/
-	if(RTMPGetKeyParameter("GreenAP", pValueStr, 10, pInput, TRUE))
-	{
-		Value = simple_strtol(pValueStr, 0, 10);
-		if (Value == 0)
-		{		
-			pAd->ApCfg.bGreenAPEnable = FALSE;
-		}
-		else
-		{
-			pAd->ApCfg.bGreenAPEnable = TRUE;
-		}
-		DBGPRINT(RT_DEBUG_TRACE, ("HT: Green AP= %d\n", pAd->ApCfg.bGreenAPEnable));
-	}
-#endif /* GREENAP_SUPPORT */
 	/* HT_DisallowTKIP*/
 	if (RTMPGetKeyParameter("HT_DisallowTKIP", pValueStr, 25, pInput, TRUE))
 	{
@@ -2339,10 +1345,6 @@ void RTMPSetSTAPassPhrase(RTMP_ADAPTER *pAd, PSTRING PassPh)
 	if ((pAd->StaCfg.AuthMode != Ndis802_11AuthModeWPAPSK) &&
 		(pAd->StaCfg.AuthMode != Ndis802_11AuthModeWPA2PSK) &&
 		(pAd->StaCfg.AuthMode != Ndis802_11AuthModeWPANone) 
-#ifdef WAPI_SUPPORT
-		&& (pAd->StaCfg.AuthMode != Ndis802_11AuthModeWAICERT)
-		&& (pAd->StaCfg.AuthMode != Ndis802_11AuthModeWAIPSK)
-#endif /* WAPI_SUPPORT */
 		)
 	{
 		ret = FALSE;
@@ -2368,15 +1370,6 @@ void RTMPSetSTAPassPhrase(RTMP_ADAPTER *pAd, PSTRING PassPh)
 		{
 			pAd->StaCfg.WpaState = SS_NOTUSE;
 		}
-#ifdef WSC_STA_SUPPORT
-		NdisZeroMemory(pAd->StaCfg.WscControl.WpaPsk, 64);
-		pAd->StaCfg.WscControl.WpaPskLen = 0;
-		if ((strlen(PassPh) >= 8) && (strlen(PassPh) <= 64))
-		{
-			NdisMoveMemory(pAd->StaCfg.WscControl.WpaPsk, PassPh, strlen(PassPh));
-			pAd->StaCfg.WscControl.WpaPskLen = strlen(PassPh);
-		}
-#endif /* WSC_STA_SUPPORT */ 
 		DBGPRINT(RT_DEBUG_TRACE, ("%s::(WPAPSK=%s)\n", __FUNCTION__, PassPh));
 	}
 }
@@ -2586,107 +1579,7 @@ NDIS_STATUS	RTMPSetProfileParameters(
 		}
 #endif /* EXT_BUILD_CHANNEL_LIST */
 
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-#ifdef MBSS_SUPPORT
-			/*BSSIDNum; This must read first of other multiSSID field, so list this field first in configuration file*/
-			if(RTMPGetKeyParameter("BssidNum", tmpbuf, 25, pBuffer, TRUE))
-			{
-				pAd->ApCfg.BssidNum = (UCHAR) simple_strtol(tmpbuf, 0, 10);
-				if(pAd->ApCfg.BssidNum > MAX_MBSSID_NUM(pAd))
-				{
-					pAd->ApCfg.BssidNum = MAX_MBSSID_NUM(pAd);
-					DBGPRINT(RT_DEBUG_TRACE, ("BssidNum=%d(MAX_MBSSID_NUM is %d)\n", pAd->ApCfg.BssidNum,MAX_MBSSID_NUM(pAd)));
-				}
-				else
-				DBGPRINT(RT_DEBUG_TRACE, ("BssidNum=%d\n", pAd->ApCfg.BssidNum));
-			}
 
-			if (HW_BEACON_OFFSET > (HW_BEACON_MAX_SIZE(pAd) / pAd->ApCfg.BssidNum))
-			{
-				DBGPRINT(RT_DEBUG_OFF, ("mbss> fatal error! beacon offset is error in driver! "
-						"Please re-assign HW_BEACON_OFFSET!\n"));
-			}
-#else
-			pAd->ApCfg.BssidNum = 1;
-#endif /* MBSS_SUPPORT */
-		}
-#endif /* CONFIG_AP_SUPPORT */
-
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-			/* SSID*/
-			if (TRUE)
-			{
-				STRING tok_str[16];
-				UCHAR BssidCountSupposed = 0;
-				BOOLEAN bSSIDxIsUsed = FALSE;
-
-				//PRINT(RT_DEBUG_TRACE, ("pAd->ApCfg.BssidNum=%d\n", pAd->ApCfg.BssidNum));
-				for (i = 0; i < pAd->ApCfg.BssidNum; i++)
-				{
-					snprintf(tok_str, sizeof(tok_str), "SSID%d", i + 1);
-					if(RTMPGetKeyParameter(tok_str, tmpbuf, 33, pBuffer, FALSE))
-						{
-							NdisMoveMemory(pAd->ApCfg.MBSSID[i].Ssid, tmpbuf , strlen(tmpbuf));
-					    	pAd->ApCfg.MBSSID[i].Ssid[strlen(tmpbuf)] = '\0';
-								    	pAd->ApCfg.MBSSID[i].SsidLen = strlen((PSTRING) pAd->ApCfg.MBSSID[i].Ssid);
-							if (bSSIDxIsUsed == FALSE)
-							{
-								bSSIDxIsUsed = TRUE;
-							}
-					    	DBGPRINT(RT_DEBUG_TRACE, ("SSID[%d]=%s\n", i, pAd->ApCfg.MBSSID[i].Ssid));
-						}
-					}
-				if (bSSIDxIsUsed == FALSE)
-				{
-					if(RTMPGetKeyParameter("SSID", tmpbuf, 256, pBuffer, FALSE))
-					{			
-						BssidCountSupposed = delimitcnt(tmpbuf, ";") + 1;
-						if (pAd->ApCfg.BssidNum != BssidCountSupposed)
-						{
-							DBGPRINT_ERR(("Your no. of SSIDs( = %d) does not match your BssidNum( = %d)!\n", BssidCountSupposed, pAd->ApCfg.BssidNum));
-						}
-						if (pAd->ApCfg.BssidNum > 1)
-						{
-							/* Anyway, we still do the legacy dissection of the whole SSID string.*/
-							for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-							{
-								int apidx = 0;
-
-								if (i < pAd->ApCfg.BssidNum)
-								{
-									apidx = i;
-								} 
-								else
-								{
-									break;
-								}
-
-								NdisMoveMemory(pAd->ApCfg.MBSSID[apidx].Ssid, macptr , strlen(macptr));
-				    			pAd->ApCfg.MBSSID[apidx].Ssid[strlen(macptr)] = '\0';
-							   pAd->ApCfg.MBSSID[apidx].SsidLen = strlen((PSTRING) pAd->ApCfg.MBSSID[apidx].Ssid);
-
-				    			DBGPRINT(RT_DEBUG_TRACE, ("SSID[%d]=%s\n", i, pAd->ApCfg.MBSSID[apidx].Ssid));
-							}
-						}
-						else
-						{
-							if ((strlen(tmpbuf) > 0) && (strlen(tmpbuf) <= 32))
-							{
-								NdisMoveMemory(pAd->ApCfg.MBSSID[BSS0].Ssid, tmpbuf , strlen(tmpbuf));
-						    	pAd->ApCfg.MBSSID[BSS0].Ssid[strlen(tmpbuf)] = '\0';
-									    	pAd->ApCfg.MBSSID[BSS0].SsidLen = strlen((PSTRING) pAd->ApCfg.MBSSID[BSS0].Ssid);
-								DBGPRINT(RT_DEBUG_TRACE, ("SSID=%s\n", pAd->ApCfg.MBSSID[BSS0].Ssid));
-							}
-						}
-					}
-				}
-			}
-		}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -2735,37 +1628,12 @@ NDIS_STATUS	RTMPSetProfileParameters(
 			for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
 			{
 				cfg_mode = simple_strtol(macptr, 0, 10);
-#ifdef CONFIG_AP_SUPPORT
-#ifdef MBSS_SUPPORT
-				if (i >= pAd->ApCfg.BssidNum)
-					break;
-
-				pAd->ApCfg.MBSSID[i].PhyMode = cfgmode_2_wmode(cfg_mode);
-				DBGPRINT(RT_DEBUG_TRACE, ("BSS%d PhyMode=%d\n", i, pAd->ApCfg.MBSSID[i].PhyMode));
-#endif /* MBSS_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 				if (i == 0)
 				{
-#ifdef CONFIG_AP_SUPPORT
-#ifdef MBSS_SUPPORT
-					/* for first time, update all phy mode is same as ra0 */
-					{
-						UINT32 IdBss;
-						for(IdBss=1; IdBss<pAd->ApCfg.BssidNum; IdBss++)
-							pAd->ApCfg.MBSSID[IdBss].PhyMode = pAd->ApCfg.MBSSID[0].PhyMode;
-					}
-#endif /* MBSS_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 					/* set mode for 1st time */
 					RT_CfgSetWirelessMode(pAd, macptr);
 				}
-#ifdef CONFIG_AP_SUPPORT
-#ifdef MBSS_SUPPORT
-				else
-					RT_CfgSetMbssWirelessMode(pAd, macptr);
-#endif /* MBSS_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 			}
 
 			DBGPRINT(RT_DEBUG_TRACE, ("PhyMode=%d\n", pAd->CommonCfg.PhyMode));
@@ -2794,141 +1662,6 @@ NDIS_STATUS	RTMPSetProfileParameters(
 
 
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef DFS_SUPPORT
-	/*DFSIndoor*/
-	{
-		PRADAR_DETECT_STRUCT pRadarDetect = &pAd->CommonCfg.RadarDetect;
-		PDFS_PROGRAM_PARAM pDfsProgramParam = &pRadarDetect->DfsProgramParam;
-		
-		if (RTMPGetKeyParameter("DfsIndoor", tmpbuf, 10, pBuffer, TRUE))
-		{
-			pAd->Dot11_H.bDFSIndoor = (USHORT) (simple_strtol(tmpbuf, 0, 10) != 0);
-			DBGPRINT(RT_DEBUG_TRACE, ("DfsIndoor=%d\n", pAd->Dot11_H.bDFSIndoor));
-		}
-		{
-			INT k=0;
-		/*SymRoundFromCfg*/
-	            if (RTMPGetKeyParameter("SymRoundFromCfg", tmpbuf, 10, pBuffer, TRUE))
-	            {
-		                pRadarDetect->SymRoundFromCfg = (UCHAR) simple_strtol(tmpbuf, 0, 10);
-	                pRadarDetect->SymRoundCfgValid = 1;
-	                DBGPRINT(RT_DEBUG_TRACE, ("SymRoundFromCfg=%d\n", pRadarDetect->SymRoundFromCfg));
-	            }
-
-	            /*BusyIdleFromCfg*/
-	            if (RTMPGetKeyParameter("BusyIdleFromCfg", tmpbuf, 10, pBuffer, TRUE))
-	            {
-	                pRadarDetect->BusyIdleFromCfg = (UCHAR) simple_strtol(tmpbuf, 0, 10);
-	                pRadarDetect->BusyIdleCfgValid = 1;
-	                DBGPRINT(RT_DEBUG_TRACE, ("BusyIdleFromCfg=%d\n", pRadarDetect->BusyIdleFromCfg));
-	            }
-	            /*DfsRssiHighFromCfg*/
-	            if (RTMPGetKeyParameter("DfsRssiHighFromCfg", tmpbuf, 10, pBuffer, TRUE))
-	            {
-	                pRadarDetect->DfsRssiHighFromCfg = simple_strtol(tmpbuf, 0, 10);
-	                pRadarDetect->DfsRssiHighCfgValid = 1;
-	                DBGPRINT(RT_DEBUG_TRACE, ("DfsRssiHighFromCfg=%d\n", pRadarDetect->DfsRssiHighFromCfg));
-	            }
-
-	            /*DfsRssiLowFromCfg*/
-	            if (RTMPGetKeyParameter("DfsRssiLowFromCfg", tmpbuf, 10, pBuffer, TRUE))
-	            {
-	                pRadarDetect->DfsRssiLowFromCfg = simple_strtol(tmpbuf, 0, 10);
-	                pRadarDetect->DfsRssiLowCfgValid = 1;
-	                DBGPRINT(RT_DEBUG_TRACE, ("DfsRssiLowFromCfg=%d\n", pRadarDetect->DfsRssiLowFromCfg));
-	            }
-
-		/*DFSParamFromConfig*/
-		 if (RTMPGetKeyParameter("DFSParamFromConfig", tmpbuf, 10, pBuffer, TRUE))
-		 {
-				pRadarDetect->DFSParamFromConfig = (UCHAR) simple_strtol(tmpbuf, 0, 10);
-			
-				DBGPRINT(RT_DEBUG_TRACE, ("DFSParamFromConfig=%d\n", pRadarDetect->DFSParamFromConfig));
-		 }
-		
-		/* DFSParam*/
-			for(k = 0; k < 4*pAd->chipCap.DfsEngineNum; k++) 
-		{
-			STRING	tok_str[32];
-			INT index ; 
-				UINT8 DfsEngineNum = pAd->chipCap.DfsEngineNum;
-				index = (k%DfsEngineNum);
-				if (((k-k%DfsEngineNum)/DfsEngineNum) == 0)
-				snprintf(tok_str, sizeof(tok_str), "FCCParamCh%d", index);
-				else if (((k-k%DfsEngineNum)/DfsEngineNum) == 1)
-				snprintf(tok_str, sizeof(tok_str), "CEParamCh%d", index);
-				else if (((k-k%DfsEngineNum)/DfsEngineNum) == 2)
-				snprintf(tok_str, sizeof(tok_str), "JAPParamCh%d", index);
-				else if (((k-k%DfsEngineNum)/DfsEngineNum) == 3)
-				snprintf(tok_str, sizeof(tok_str), "JAPW53ParamCh%d", index);
-
-			if (RTMPGetKeyParameter(tok_str, tmpbuf, 128, pBuffer, TRUE))
-			{
-				ULONG DfsParam;
-		    		for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-		    		{
-		    			DfsParam = simple_strtol(macptr, 0, 10);
-		    			switch (i)
-		    			{
-		    				case 0:
-		    					pDfsProgramParam->NewDFSTableEntry[k].mode = DfsParam;
-		    					break;
-		    				case 1:
-		    					pDfsProgramParam->NewDFSTableEntry[k].avgLen = DfsParam;
-								pDfsProgramParam->NewDFSTableEntry[k].valid = 1;
-		    					break;
-		    		 		case 2:
-								pDfsProgramParam->NewDFSTableEntry[k].ELow = DfsParam;
-		    					break;
-		    				case 3:
-								pDfsProgramParam->NewDFSTableEntry[k].EHigh = DfsParam;
-		    					break;
-		    				case 4:
-								pDfsProgramParam->NewDFSTableEntry[k].WLow = DfsParam;
-		    					break;
-		    				case 5:
-								pDfsProgramParam->NewDFSTableEntry[k].WHigh = DfsParam;
-		    					break;
-		    				case 6:
-								pDfsProgramParam->NewDFSTableEntry[k].EpsilonW = DfsParam;
-		    					break;
-		    				case 7:
-								pDfsProgramParam->NewDFSTableEntry[k].TLow = DfsParam;
-		    					break;
-		    				case 8:
-								pDfsProgramParam->NewDFSTableEntry[k].THigh = DfsParam;
-		    					break;
-		    				case 9:
-								pDfsProgramParam->NewDFSTableEntry[k].EpsilonT = DfsParam;
-		    					break;
-
-							case 10:
-								pDfsProgramParam->NewDFSTableEntry[k].BLow = DfsParam;
-		    					break;
-							case 11:
-								pDfsProgramParam->NewDFSTableEntry[k].BHigh = DfsParam;
-		    					break;
-
-		    				default:
-		    					break;
-		    			}
-		    		}
-			}
-		}
-		}
-	}	
-#endif /* DFS_SUPPORT */
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-			/*DtimPeriod*/
-			if(RTMPGetKeyParameter("DtimPeriod", tmpbuf, 10, pBuffer, TRUE))
-			{
-				pAd->ApCfg.DtimPeriod = (UCHAR) simple_strtol(tmpbuf, 0, 10);
-				DBGPRINT(RT_DEBUG_TRACE, ("DtimPeriod=%d\n", pAd->ApCfg.DtimPeriod));
-			}
-		}
-#endif /* CONFIG_AP_SUPPORT */					
 	    /*TxPower*/
 		if(RTMPGetKeyParameter("TxPower", tmpbuf, 10, pBuffer, TRUE))
 		{
@@ -2962,25 +1695,6 @@ NDIS_STATUS	RTMPSetProfileParameters(
 			DBGPRINT(RT_DEBUG_TRACE, ("BGProtection=%ld\n", pAd->CommonCfg.UseBGProtection));
 		}
 
-#ifdef CONFIG_AP_SUPPORT
-		/*OLBCDetection*/
-		if(RTMPGetKeyParameter("DisableOLBC", tmpbuf, 10, pBuffer, TRUE))
-		{
-			switch (simple_strtol(tmpbuf, 0, 10))
-			{
-				case 1: /*disable OLBC Detection*/
-					pAd->CommonCfg.DisableOLBCDetect = 1;
-					break;
-				case 0: /*enable OLBC Detection*/
-					pAd->CommonCfg.DisableOLBCDetect = 0;
-					break;
-				default:
-					pAd->CommonCfg.DisableOLBCDetect= 0;
-					break;
-			}
-			DBGPRINT(RT_DEBUG_TRACE, ("OLBCDetection=%ld\n", pAd->CommonCfg.DisableOLBCDetect));
-		}
-#endif /* CONFIG_AP_SUPPORT */		
 		/*TxPreamble*/
 		if(RTMPGetKeyParameter("TxPreamble", tmpbuf, 10, pBuffer, TRUE))
 		{
@@ -3064,10 +1778,6 @@ NDIS_STATUS	RTMPSetProfileParameters(
 #endif /* AGGREGATION_SUPPORT */
 
 		/* WmmCapable*/
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-			rtmp_read_ap_wmm_parms_from_file(pAd, tmpbuf, pBuffer);
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -3079,142 +1789,6 @@ NDIS_STATUS	RTMPSetProfileParameters(
 		}
 #endif /* CONFIG_STA_SUPPORT */
 
-#if defined(P2P_SUPPORT) || defined(CONFIG_AP_SUPPORT)
-		/* IdleTimeout & StationKeepAlive shall be supported in P2P mode,
-		   so moved out from CONFIG_AP_SUPPORT block
-		*/
-		/* IdleTimeout*/
-		if(RTMPGetKeyParameter("IdleTimeout", tmpbuf, 10, pBuffer, TRUE))
-		{
-			ApCfg_Set_IdleTimeout_Proc(pAd, tmpbuf);
-		}
-
-		/*StationKeepAlive*/
-		if(RTMPGetKeyParameter("StationKeepAlive", tmpbuf, 32, pBuffer, TRUE))
-		{
-			for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-			{
-				int apidx = i;
-
-				if (i >= pAd->ApCfg.BssidNum)
-					break;
-
-				pAd->ApCfg.MBSSID[apidx].StationKeepAliveTime = simple_strtol(macptr, 0, 10);
-				DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) StationKeepAliveTime=%d\n", i, pAd->ApCfg.MBSSID[apidx].StationKeepAliveTime));
-			}
-		}
-#endif /* defined(P2P_SUPPORT) || defined(CONFIG_AP_SUPPORT) */
-
-#ifdef CONFIG_AP_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-		{
-			/* MaxStaNum*/
-			if (RTMPGetKeyParameter("MaxStaNum", tmpbuf, 32, pBuffer, TRUE))
-			{
-			    for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-			    {
-					if (i >= pAd->ApCfg.BssidNum)
-						break;
-					
-					ApCfg_Set_MaxStaNum_Proc(pAd, i, macptr);					
-			    }
-			}
-		
-			/*NoForwarding*/
-			if(RTMPGetKeyParameter("NoForwarding", tmpbuf, 32, pBuffer, TRUE))
-			{
-			    for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-			    {
-					if (i >= pAd->ApCfg.BssidNum)
-						break;
-
-					if(simple_strtol(macptr, 0, 10) != 0)  /*Enable*/
-						pAd->ApCfg.MBSSID[i].IsolateInterStaTraffic = TRUE;
-					else /*Disable*/
-						pAd->ApCfg.MBSSID[i].IsolateInterStaTraffic = FALSE;
-
-					DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) NoForwarding=%ld\n", i, pAd->ApCfg.MBSSID[i].IsolateInterStaTraffic));
-			    }
-			}
-			/*NoForwardingBTNBSSID*/
-			if(RTMPGetKeyParameter("NoForwardingBTNBSSID", tmpbuf, 10, pBuffer, TRUE))
-			{
-				if(simple_strtol(tmpbuf, 0, 10) != 0)  /*Enable*/
-					pAd->ApCfg.IsolateInterStaTrafficBTNBSSID = TRUE;
-				else /*Disable*/
-					pAd->ApCfg.IsolateInterStaTrafficBTNBSSID = FALSE;
-
-				DBGPRINT(RT_DEBUG_TRACE, ("NoForwardingBTNBSSID=%ld\n", pAd->ApCfg.IsolateInterStaTrafficBTNBSSID));
-			}
-			/*HideSSID*/
-			if(RTMPGetKeyParameter("HideSSID", tmpbuf, 32, pBuffer, TRUE))
-			{
-				for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-			    {
-					int apidx = i;
-
-					if (i >= pAd->ApCfg.BssidNum)
-						break;
-
-					if(simple_strtol(macptr, 0, 10) != 0)  /*Enable*/
-					{
-						pAd->ApCfg.MBSSID[apidx].bHideSsid = TRUE;								
-#ifdef WSC_V2_SUPPORT
-						pAd->ApCfg.MBSSID[apidx].WscControl.WscV2Info.bWpsEnable = FALSE;
-#endif /* WSC_V2_SUPPORT */
-					}
-					else /*Disable*/
-						pAd->ApCfg.MBSSID[apidx].bHideSsid = FALSE;								
-
-					DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) HideSSID=%d\n", i, pAd->ApCfg.MBSSID[apidx].bHideSsid));
-				}
-			}
-
-			/*AutoChannelSelect*/
-			if(RTMPGetKeyParameter("AutoChannelSelect", tmpbuf, 10, pBuffer, TRUE))
-			{
-				if(simple_strtol(tmpbuf, 0, 10) != 0)  /*Enable*/
-				{
-					ChannelSel_Alg SelAlg=(ChannelSel_Alg)simple_strtol(tmpbuf, 0, 10);
-					if (SelAlg > 2 || SelAlg < 0)
-					{
-						pAd->ApCfg.bAutoChannelAtBootup = FALSE;
-					}
-					else /*Enable*/
-					{
-						pAd->ApCfg.bAutoChannelAtBootup = TRUE;
-						pAd->ApCfg.AutoChannelAlg = SelAlg;
-					}
-				}
-				else /*Disable*/
-					pAd->ApCfg.bAutoChannelAtBootup = FALSE;
-				DBGPRINT(RT_DEBUG_TRACE, ("AutoChannelAtBootup=%d\n", pAd->ApCfg.bAutoChannelAtBootup));
-			}
-			/*AutoChannelSkipList*/
-			if (RTMPGetKeyParameter("AutoChannelSkipList", tmpbuf, 50, pBuffer, FALSE))
-			{		
-				pAd->ApCfg.AutoChannelSkipListNum = delimitcnt(tmpbuf, ";") + 1;
-				if ( pAd->ApCfg.AutoChannelSkipListNum > 10 )
-				{
-					DBGPRINT(RT_DEBUG_TRACE, ("Your no. of AutoChannelSkipList( %d ) is larger than 10 (boundary)\n",pAd->ApCfg.AutoChannelSkipListNum));
-					pAd->ApCfg.AutoChannelSkipListNum = 10;
-				}
-						
-				for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr ; macptr = rstrtok(NULL,";"), i++)
-				{
-					if (i < pAd->ApCfg.AutoChannelSkipListNum )
-					{
-						pAd->ApCfg.AutoChannelSkipList[i] = simple_strtol(macptr, 0, 10);
-						DBGPRINT(RT_DEBUG_TRACE, (" AutoChannelSkipList[%d]= %d \n", i, pAd->ApCfg.AutoChannelSkipList[i]));
-					}
-					else
-					{
-						break;
-					}
-				}
-			}
-		}
-#endif /* CONFIG_AP_SUPPORT */
 
 		/*ShortSlot*/
 		if(RTMPGetKeyParameter("ShortSlot", tmpbuf, 10, pBuffer, TRUE))
@@ -3434,15 +2008,6 @@ NDIS_STATUS	RTMPSetProfileParameters(
 		/*AuthMode*/
 		if(RTMPGetKeyParameter("AuthMode", tmpbuf, 128, pBuffer, TRUE))
 		{
-#ifdef CONFIG_AP_SUPPORT
-			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-			{
-		   		for (i = 0, macptr = rstrtok(tmpbuf,";"); (macptr && i < pAd->ApCfg.BssidNum); macptr = rstrtok(NULL,";"), i++)
-		    	{
-					ApCfg_Set_AuthMode_Proc(pAd, i, macptr);
-				}
-			}
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 			IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 			{
@@ -3462,12 +2027,6 @@ NDIS_STATUS	RTMPSetProfileParameters(
 							else if ((strcmp(tmpbuf, "WPA2") == 0) || (strcmp(tmpbuf, "wpa2") == 0))
 							    pAd->StaCfg.AuthMode = Ndis802_11AuthModeWPA2;  
 #endif /* WPA_SUPPLICANT_SUPPORT */
-#ifdef WAPI_SUPPORT
-							else if ((strcmp(tmpbuf, "WAICERT") == 0) || (strcmp(tmpbuf, "waicert") == 0))
-	                            pAd->StaCfg.AuthMode = Ndis802_11AuthModeWAICERT;  
-							else if ((strcmp(tmpbuf, "WAIPSK") == 0) || (strcmp(tmpbuf, "waipsk") == 0))
-	                            pAd->StaCfg.AuthMode = Ndis802_11AuthModeWAIPSK;  
-#endif /* WAPI_SUPPORT */
 	                        else
 	                            pAd->StaCfg.AuthMode = Ndis802_11AuthModeOpen;
 
@@ -3480,57 +2039,6 @@ NDIS_STATUS	RTMPSetProfileParameters(
 		/*EncrypType*/
 		if(RTMPGetKeyParameter("EncrypType", tmpbuf, 128, pBuffer, TRUE))
 		{
-#ifdef CONFIG_AP_SUPPORT
-			IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-			{
-				/*
-					We need to reset the WepStatus of all interfaces as 1 (Ndis802_11WEPDisabled) first.
-					Or it may have problem when some interface enabled but didn't configure it.
-				*/
-				for ( i= 0; i<pAd->ApCfg.BssidNum; i++)
-					pAd->ApCfg.MBSSID[i].WepStatus = Ndis802_11WEPDisabled;
-		    		for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-		    		{
-					int apidx;
-
-					if (i<pAd->ApCfg.BssidNum)
-					{							
-						apidx = i;
-					}
-		        		else
-					{
-						break;
-					}
-
-					if ((strncmp(macptr, "NONE", 4) == 0) || (strncmp(macptr, "none", 4) == 0))
-		            			pAd->ApCfg.MBSSID[apidx].WepStatus = Ndis802_11WEPDisabled;
-		        		else if ((strncmp(macptr, "WEP", 3) == 0) || (strncmp(macptr, "wep", 3) == 0))
-		            			pAd->ApCfg.MBSSID[apidx].WepStatus = Ndis802_11WEPEnabled;
-		        		else if ((strncmp(macptr, "TKIPAES", 7) == 0) || (strncmp(macptr, "tkipaes", 7) == 0))
-		            			pAd->ApCfg.MBSSID[apidx].WepStatus = Ndis802_11Encryption4Enabled;
-		        		else if ((strncmp(macptr, "TKIP", 4) == 0) || (strncmp(macptr, "tkip", 4) == 0))
-		            			pAd->ApCfg.MBSSID[apidx].WepStatus = Ndis802_11Encryption2Enabled;
-		        		else if ((strncmp(macptr, "AES", 3) == 0) || (strncmp(macptr, "aes", 3) == 0))
-		            			pAd->ApCfg.MBSSID[apidx].WepStatus = Ndis802_11Encryption3Enabled;
-#ifdef WAPI_SUPPORT
-									else if ((strncmp(macptr, "SMS4", 4) == 0) || (strncmp(macptr, "sms4", 4) == 0))
-					            			pAd->ApCfg.MBSSID[apidx].WepStatus = Ndis802_11EncryptionSMS4Enabled;									
-#endif /* WAPI_SUPPORT */
-		        		else
-		            			pAd->ApCfg.MBSSID[apidx].WepStatus = Ndis802_11WEPDisabled;
-
-						/* decide the group key encryption type*/
-						if (pAd->ApCfg.MBSSID[apidx].WepStatus == Ndis802_11Encryption4Enabled)	
-							pAd->ApCfg.MBSSID[apidx].GroupKeyWepStatus = Ndis802_11Encryption2Enabled;		
-						else
-							pAd->ApCfg.MBSSID[apidx].GroupKeyWepStatus = pAd->ApCfg.MBSSID[apidx].WepStatus;
-
-						/* move to ap.c::APStartUp to process*/
-	        			/*RTMPMakeRSNIE(pAd, pAd->ApCfg.MBSSID[apidx].AuthMode, pAd->ApCfg.MBSSID[apidx].WepStatus, apidx);*/
-		        		DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) EncrypType=%d\n", i, pAd->ApCfg.MBSSID[apidx].WepStatus));
-		    		}
-			}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT 
 			IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -3541,10 +2049,6 @@ NDIS_STATUS	RTMPSetProfileParameters(
 					pAd->StaCfg.WepStatus	= Ndis802_11Encryption2Enabled;													
 				else if ((strcmp(tmpbuf, "AES") == 0) || (strcmp(tmpbuf, "aes") == 0))
 					pAd->StaCfg.WepStatus	= Ndis802_11Encryption3Enabled;														 
-#ifdef WAPI_SUPPORT
-				else if ((strcmp(tmpbuf, "SMS4") == 0) || (strcmp(tmpbuf, "sms4") == 0))
-		            pAd->StaCfg.WepStatus	= Ndis802_11EncryptionSMS4Enabled;									
-#endif /* WAPI_SUPPORT */
 				else
 					pAd->StaCfg.WepStatus	= Ndis802_11WEPDisabled;													
 				RTMPSetSTACipherSuites(pAd, pAd->StaCfg.WepStatus);
@@ -3554,199 +2058,6 @@ NDIS_STATUS	RTMPSetProfileParameters(
 		#endif /* CONFIG_STA_SUPPORT */
 		}
 
-#ifdef CONFIG_AP_SUPPORT
-				IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-				{
-					/* WpaMixPairCipher*/
-					if(RTMPGetKeyParameter("WpaMixPairCipher", tmpbuf, 256, pBuffer, TRUE))
-					{
-						/*
-							In WPA-WPA2 mix mode, it provides a more flexible cipher combination. 
-							-	WPA-AES and WPA2-TKIP
-							-	WPA-AES and WPA2-TKIPAES
-							-	WPA-TKIP and WPA2-AES
-							-	WPA-TKIP and WPA2-TKIPAES
-							-	WPA-TKIPAES and WPA2-AES
-							-	WPA-TKIPAES and WPA2-TKIP
-							-	WPA-TKIPAES and WPA2-TKIPAES (default)																 																	
-						 */							
-						for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-						{
-							if (pAd->ApCfg.MBSSID[i].AuthMode != Ndis802_11AuthModeWPA1WPA2 && 
-								pAd->ApCfg.MBSSID[i].AuthMode != Ndis802_11AuthModeWPA1PSKWPA2PSK)
-								continue;
-															
-							if (pAd->ApCfg.MBSSID[i].WepStatus != Ndis802_11Encryption4Enabled)
-								continue;
-
-							if ((strncmp(macptr, "WPA_AES_WPA2_TKIPAES", 20) == 0) || (strncmp(macptr, "wpa_aes_wpa2_tkipaes", 20) == 0))
-								pAd->ApCfg.MBSSID[i].WpaMixPairCipher = WPA_AES_WPA2_TKIPAES;																			
-							else if ((strncmp(macptr, "WPA_AES_WPA2_TKIP", 17) == 0) || (strncmp(macptr, "wpa_aes_wpa2_tkip", 17) == 0))
-								pAd->ApCfg.MBSSID[i].WpaMixPairCipher = WPA_AES_WPA2_TKIP;								 						
-							else if ((strncmp(macptr, "WPA_TKIP_WPA2_AES", 17) == 0) || (strncmp(macptr, "wpa_tkip_wpa2_aes", 17) == 0))
-								pAd->ApCfg.MBSSID[i].WpaMixPairCipher = WPA_TKIP_WPA2_AES;								
-							else if ((strncmp(macptr, "WPA_TKIP_WPA2_TKIPAES", 21) == 0) || (strncmp(macptr, "wpa_tkip_wpa2_tkipaes", 21) == 0))
-								pAd->ApCfg.MBSSID[i].WpaMixPairCipher = WPA_TKIP_WPA2_TKIPAES;
-							else if ((strncmp(macptr, "WPA_TKIPAES_WPA2_AES", 20) == 0) || (strncmp(macptr, "wpa_tkipaes_wpa2_aes", 20) == 0))
-								pAd->ApCfg.MBSSID[i].WpaMixPairCipher = WPA_TKIPAES_WPA2_AES;
-							else if ((strncmp(macptr, "WPA_TKIPAES_WPA2_TKIPAES", 24) == 0) || (strncmp(macptr, "wpa_tkipaes_wpa2_tkipaes", 24) == 0))
-								pAd->ApCfg.MBSSID[i].WpaMixPairCipher = WPA_TKIPAES_WPA2_TKIPAES;
-							else if ((strncmp(macptr, "WPA_TKIPAES_WPA2_TKIP", 21) == 0) || (strncmp(macptr, "wpa_tkipaes_wpa2_tkip", 21) == 0))
-								pAd->ApCfg.MBSSID[i].WpaMixPairCipher = WPA_TKIPAES_WPA2_TKIP;
-							else /*Default*/
-								pAd->ApCfg.MBSSID[i].WpaMixPairCipher = WPA_TKIPAES_WPA2_TKIPAES;
-
-							DBGPRINT(RT_DEBUG_OFF, ("I/F(ra%d) MixWPACipher=0x%02x\n", i, pAd->ApCfg.MBSSID[i].WpaMixPairCipher));
-						}																													
-					}			
-				
-					/*RekeyMethod*/
-					if(RTMPGetKeyParameter("RekeyMethod", tmpbuf, 128, pBuffer, TRUE))
-					{
-						for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-						{				
-							PRT_WPA_REKEY pRekeyInfo = &pAd->ApCfg.MBSSID[i].WPAREKEY;
-						
-							if ((strcmp(macptr, "TIME") == 0) || (strcmp(macptr, "time") == 0))
-								pRekeyInfo->ReKeyMethod = TIME_REKEY;
-							else if ((strcmp(macptr, "PKT") == 0) || (strcmp(macptr, "pkt") == 0))
-								pRekeyInfo->ReKeyMethod = PKT_REKEY;
-							else if ((strcmp(macptr, "DISABLE") == 0) || (strcmp(macptr, "disable") == 0))
-								pRekeyInfo->ReKeyMethod = DISABLE_REKEY;
-							else
-								pRekeyInfo->ReKeyMethod = DISABLE_REKEY;
-
-							DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) ReKeyMethod=%ld\n", i, pRekeyInfo->ReKeyMethod));
-						}
-
-						/* Apply to remaining MBSS*/
-						if (i == 1)
-						{
-							for (i = 1; i < pAd->ApCfg.BssidNum; i++)
-							{
-								pAd->ApCfg.MBSSID[i].WPAREKEY.ReKeyMethod = 
-										pAd->ApCfg.MBSSID[0].WPAREKEY.ReKeyMethod;
-								DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) ReKeyMethod=%ld\n", 
-													i, pAd->ApCfg.MBSSID[i].WPAREKEY.ReKeyMethod));
-							}	
-						}
-					}
-					/*RekeyInterval*/
-					if(RTMPGetKeyParameter("RekeyInterval", tmpbuf, 255, pBuffer, TRUE))
-					{
-						for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-						{				
-							ULONG	value_interval;
-							PRT_WPA_REKEY pRekeyInfo = &pAd->ApCfg.MBSSID[i].WPAREKEY;
-
-							value_interval = simple_strtol(macptr, 0, 10);
-						
-							if((value_interval >= 10) && (value_interval < MAX_REKEY_INTER))
-								pRekeyInfo->ReKeyInterval = value_interval;
-							else /*Default*/
-								pRekeyInfo->ReKeyInterval = 3600;
-
-							DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) ReKeyInterval=%ld\n", 
-															i, pRekeyInfo->ReKeyInterval));
-						}
-
-						/* Apply to remaining MBSS*/
-						if (i == 1)
-						{
-							for (i = 1; i < pAd->ApCfg.BssidNum; i++)
-							{
-								pAd->ApCfg.MBSSID[i].WPAREKEY.ReKeyInterval = 
-										pAd->ApCfg.MBSSID[0].WPAREKEY.ReKeyInterval;
-								DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) ReKeyInterval=%ld\n", 
-															i, pAd->ApCfg.MBSSID[i].WPAREKEY.ReKeyInterval));
-							}
-						}
-
-					}
-					/*PMKCachePeriod*/
-					if(RTMPGetKeyParameter("PMKCachePeriod", tmpbuf, 255, pBuffer, TRUE))
-					{
-						for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-						{									
-							pAd->ApCfg.MBSSID[i].PMKCachePeriod = 
-													simple_strtol(macptr, 0, 10) * 60 * OS_HZ;
-
-							DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) PMKCachePeriod=%ld\n", 
-														i, pAd->ApCfg.MBSSID[i].PMKCachePeriod));
-						}
-
-						/* Apply to remaining MBSS*/
-						if (i == 1)
-						{
-							for (i = 1; i < pAd->ApCfg.BssidNum; i++)
-							{
-								pAd->ApCfg.MBSSID[i].PMKCachePeriod = 
-										pAd->ApCfg.MBSSID[0].PMKCachePeriod;
-
-								DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) PMKCachePeriod=%ld\n", 
-															i, pAd->ApCfg.MBSSID[i].PMKCachePeriod));					
-							}
-						}
-					}
-
-					/*WPAPSK_KEY*/
-					if(TRUE)
-					{
-						STRING tok_str[16];
-						BOOLEAN bWPAPSKxIsUsed = FALSE;
-
-						//DBGPRINT(RT_DEBUG_TRACE, ("pAd->ApCfg.BssidNum=%d\n", pAd->ApCfg.BssidNum));
-						for (i = 0; i < pAd->ApCfg.BssidNum; i++)
-						{
-							snprintf(tok_str, sizeof(tok_str), "WPAPSK%d", i + 1);
-						if(RTMPGetKeyParameter(tok_str, tmpbuf, 65, pBuffer, FALSE))
-							{
-								rtmp_parse_wpapsk_buffer_from_file(pAd, tmpbuf, i);
-								
-								if (bWPAPSKxIsUsed == FALSE)
-								{
-									bWPAPSKxIsUsed = TRUE;
-								}
-							}
-						}
-						if (bWPAPSKxIsUsed == FALSE)
-						{
-						if (RTMPGetKeyParameter("WPAPSK", tmpbuf, 512, pBuffer, FALSE))
-							{
-								if (pAd->ApCfg.BssidNum == 1)
-								{
-									rtmp_parse_wpapsk_buffer_from_file(pAd, tmpbuf, BSS0);
-								}
-								else
-								{
-									/* Anyway, we still do the legacy dissection of the whole WPAPSK passphrase.*/
-									for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-									{
-										rtmp_parse_wpapsk_buffer_from_file(pAd, macptr, i);
-									}
-
-								}
-							}
-						}
-
-#ifdef DBG
-						for (i = 0; i < pAd->ApCfg.BssidNum; i++)
-						{
-							int j;
-							
-											DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) WPAPSK Key => \n", i));
-											for (j = 0; j < 32; j++)
-											{
-												DBGPRINT(RT_DEBUG_TRACE, ("%02x:", pAd->ApCfg.MBSSID[i].PMK[j]));
-												if ((j%16) == 15)
-														DBGPRINT(RT_DEBUG_TRACE, ("\n"));
-											}
-											DBGPRINT(RT_DEBUG_TRACE, ("\n"));
-						}
-#endif
-					}
-				}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 				IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -3759,38 +2070,8 @@ NDIS_STATUS	RTMPSetProfileParameters(
 				/*DefaultKeyID, KeyType, KeyStr*/
 				rtmp_read_key_parms_from_file(pAd, tmpbuf, pBuffer);
 
-#ifdef WAPI_SUPPORT
-				rtmp_read_wapi_parms_from_file(pAd, tmpbuf, pBuffer);
-#endif /* WAPI_SUPPORT */
 
 
-#ifdef CONFIG_AP_SUPPORT
-				IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-				{
-					/*Access Control List*/
-					rtmp_read_acl_parms_from_file(pAd, tmpbuf, pBuffer);
-
-#ifdef APCLI_SUPPORT					
-					rtmp_read_ap_client_from_file(pAd, tmpbuf, pBuffer);
-#endif /* APCLI_SUPPORT */
-
-#ifdef IGMP_SNOOP_SUPPORT
-					/* Igmp Snooping information*/
-					rtmp_read_igmp_snoop_from_file(pAd, tmpbuf, pBuffer);
-#endif /* IGMP_SNOOP_SUPPORT */
-
-
-#ifdef DOT1X_SUPPORT
-					rtmp_read_radius_parms_from_file(pAd, tmpbuf, pBuffer);
-#endif /* DOT1X_SUPPORT */
-
-#ifdef IDS_SUPPORT
-					rtmp_read_ids_from_file(pAd, tmpbuf, pBuffer);
-#endif /* IDS_SUPPORT */
-					rtmp_read_multest_from_file(pAd, tmpbuf, pBuffer);
-				}
-
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef DOT11_N_SUPPORT
 				HTParametersHook(pAd, tmpbuf, pBuffer);
@@ -3800,160 +2081,6 @@ NDIS_STATUS	RTMPSetProfileParameters(
 				VHTParametersHook(pAd, tmpbuf, pBuffer);
 #endif /* DOT11_VHT_AC */
 
-#ifdef CONFIG_AP_SUPPORT
-				IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-				{
-#ifdef WSC_AP_SUPPORT
-					STRING	tok_str[16] = {0};
-					for (i = 0; i < pAd->ApCfg.BssidNum; i++)
-					{
-						snprintf(tok_str, sizeof(tok_str), "WscDefaultSSID%d", i + 1);
-						if(RTMPGetKeyParameter(tok_str, tmpbuf, 33, pBuffer, FALSE))
-						{
-							NdisZeroMemory(&pAd->ApCfg.MBSSID[i].WscControl.WscDefaultSsid, sizeof(NDIS_802_11_SSID));
-							NdisMoveMemory(pAd->ApCfg.MBSSID[i].WscControl.WscDefaultSsid.Ssid, tmpbuf , strlen(tmpbuf));
-							pAd->ApCfg.MBSSID[i].WscControl.WscDefaultSsid.SsidLength = strlen(tmpbuf);
-							DBGPRINT(RT_DEBUG_TRACE, ("WscDefaultSSID[%d]=%s\n", i, pAd->ApCfg.MBSSID[i].WscControl.WscDefaultSsid.Ssid));
-						}
-					}
-					
-					/*WscConfMode*/
-					if(RTMPGetKeyParameter("WscConfMode", tmpbuf, 10, pBuffer, TRUE))
-					{
-						for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-						{
-							INT WscConfMode = simple_strtol(macptr, 0, 10);
-							
-							if (i >= pAd->ApCfg.BssidNum)
-								break;
-
-							if (WscConfMode > 0 && WscConfMode < 8)
-							{
-								pAd->ApCfg.MBSSID[i].WscControl.WscConfMode = WscConfMode;
-							}
-							else
-							{
-								pAd->ApCfg.MBSSID[i].WscControl.WscConfMode = WSC_DISABLE;
-							}
-
-							DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) WscConfMode=%d\n", i, pAd->ApCfg.MBSSID[i].WscControl.WscConfMode));
-						}
-					}
-
-					/*WscConfStatus*/
-					if(RTMPGetKeyParameter("WscConfStatus", tmpbuf, 10, pBuffer, TRUE))
-					{
-						for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-						{
-							if (i >= pAd->ApCfg.BssidNum)
-								break;
-
-							pAd->ApCfg.MBSSID[i].WscControl.WscConfStatus = (INT) simple_strtol(macptr, 0, 10);
-							DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) WscConfStatus=%d\n", i, pAd->ApCfg.MBSSID[i].WscControl.WscConfStatus));
-						}
-					}
-					/*WscConfMethods*/
-					if(RTMPGetKeyParameter("WscConfMethods", tmpbuf, 32, pBuffer, TRUE))
-					{
-						for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-						{
-							if (i >= pAd->ApCfg.BssidNum)
-								break;
-
-							pAd->ApCfg.MBSSID[i].WscControl.WscConfigMethods = (USHORT)simple_strtol(macptr, 0, 16);
-							DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) WscConfMethods=0x%x\n", i, pAd->ApCfg.MBSSID[i].WscControl.WscConfigMethods));
-						}
-					}
-
-					/*WscKeyASCII (0:Hex, 1:ASCII(random length), others: ASCII length, default 8)*/
-					if (RTMPGetKeyParameter("WscKeyASCII", tmpbuf, 10, pBuffer, TRUE))
-					{
-						for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-						{
-							INT Value;
-							
-							if (i >= pAd->ApCfg.BssidNum)
-								break;
-
-							Value = (INT) simple_strtol(tmpbuf, 0, 10);
-							if(Value==0 || Value==1)
-								pAd->ApCfg.MBSSID[i].WscControl.WscKeyASCII = Value;
-							else if(Value >= 8 && Value <=63)
-								pAd->ApCfg.MBSSID[i].WscControl.WscKeyASCII = Value;
-							else
-								pAd->ApCfg.MBSSID[i].WscControl.WscKeyASCII = 8;
-							DBGPRINT(RT_DEBUG_WARN, ("WscKeyASCII=%d\n", pAd->ApCfg.MBSSID[i].WscControl.WscKeyASCII));
-						}								
-					}
-
-					if (RTMPGetKeyParameter("WscSecurityMode", tmpbuf, 50, pBuffer, TRUE))			
-					{				
-						for (i= 0; i<pAd->ApCfg.BssidNum; i++)					
-							pAd->ApCfg.MBSSID[i].WscSecurityMode = WPAPSKTKIP;
-						
-						for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)				
-						{
-							INT tmpMode = 0;
-							
-							if (i >= pAd->ApCfg.BssidNum)
-								break;
-
-							tmpMode = (INT) simple_strtol(macptr, 0, 10);
-							if (tmpMode <= WPAPSKTKIP)
-								pAd->ApCfg.MBSSID[i].WscSecurityMode = tmpMode;
-							DBGPRINT(RT_DEBUG_TRACE, ("RTMPSetProfileParameters I/F(ra%d) WscSecurityMode=%d\n", 
-								i, pAd->ApCfg.MBSSID[i].WscSecurityMode));
-						}
-					}
-
-					/* WCNTest*/
-					if(RTMPGetKeyParameter("WCNTest", tmpbuf, 10, pBuffer, TRUE))
-					{
-						BOOLEAN	bEn = FALSE;
-						
-						if ((strncmp(tmpbuf, "0", 1) == 0))
-							bEn = FALSE;
-						else
-							bEn = TRUE;
-
-						for (i = 0; i < pAd->ApCfg.BssidNum; i++)
-						{
-							pAd->ApCfg.MBSSID[i].WscControl.bWCNTest = bEn;
-						}
-						DBGPRINT(RT_DEBUG_TRACE, ("WCNTest=%d\n", bEn));
-					}
-
-					/*WSC UUID Str*/
-					for (i = 0; i < pAd->ApCfg.BssidNum; i++)
-					{
-						PWSC_CTRL	pWpsCtrl = &pAd->ApCfg.MBSSID[i].WscControl;
-						snprintf(tok_str, sizeof(tok_str), "WSC_UUID_Str%d", i + 1);
-						if(RTMPGetKeyParameter(tok_str, tmpbuf, 40, pBuffer, FALSE))
-						{
-							NdisMoveMemory(&pWpsCtrl->Wsc_Uuid_Str[0], tmpbuf , strlen(tmpbuf));
-					    	DBGPRINT(RT_DEBUG_TRACE, ("UUID_Str[%d]=%s\n", i+1, pWpsCtrl->Wsc_Uuid_Str));
-						}
-					}
-
-					/*WSC UUID Hex*/
-					for (i = 0; i < pAd->ApCfg.BssidNum; i++)
-					{
-						PWSC_CTRL	pWpsCtrl = &pAd->ApCfg.MBSSID[i].WscControl;
-						snprintf(tok_str, sizeof(tok_str), "WSC_UUID_E%d", i + 1);
-						if(RTMPGetKeyParameter(tok_str, tmpbuf, 40, pBuffer, FALSE))
-						{
-							AtoH(tmpbuf, &pWpsCtrl->Wsc_Uuid_E[0], UUID_LEN_HEX);
-							DBGPRINT(RT_DEBUG_TRACE, ("Wsc_Uuid_E[%d]", i+1));
-							hex_dump("", &pWpsCtrl->Wsc_Uuid_E[0], UUID_LEN_HEX);
-						}
-					}
-
-		
-#endif /* WSC_AP_SUPPORT */
-
-
-				}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CARRIER_DETECTION_SUPPORT
 					/*CarrierDetect*/
@@ -4014,9 +2141,6 @@ NDIS_STATUS	RTMPSetProfileParameters(
 									pAd->StaCfg.WindowsPowerMode = Ndis802_11PowerModeLegacy_PSP;
 								pAd->StaCfg.WindowsBatteryPowerMode = Ndis802_11PowerModeLegacy_PSP;
 								pAd->StaCfg.DefaultListenCount = 3;
-#ifdef DOT11Z_TDLS_SUPPORT
-								pAd->StaCfg.DefaultListenCount = 1;
-#endif /* DOT11Z_TDLS_SUPPORT */
 							}
 							else
 							{ /*Default Ndis802_11PowerModeCAM*/
@@ -4084,91 +2208,6 @@ NDIS_STATUS	RTMPSetProfileParameters(
 							pAd->StaCfg.bAutoConnectIfNoSSID = TRUE;
 					}
 
-#ifdef DOT11Z_TDLS_SUPPORT
-					if(RTMPGetKeyParameter("TDLSCapable", tmpbuf, 32, pBuffer, TRUE))
-					{
-						if(simple_strtol(tmpbuf, 0, 10) != 0)  /*Enable*/
-						{
-							pAd->StaCfg.TdlsInfo.bTDLSCapable = TRUE;
-						}
-						else /*Disable*/
-						{
-							pAd->StaCfg.TdlsInfo.bTDLSCapable = FALSE;
-						}
-
-						DBGPRINT(RT_DEBUG_TRACE, ("bTDLSCapable=%d\n", pAd->StaCfg.TdlsInfo.bTDLSCapable));
-					}
-
-#ifdef TDLS_AUTOLINK_SUPPORT
-					if (RTMPGetKeyParameter("TDLS_AutoLink", tmpbuf, 32, pBuffer, TRUE))
-					{
-						if (simple_strtol(tmpbuf, 0, 10) != 0)  //Enable
-						{
-							pAd->StaCfg.TdlsInfo.TdlsAutoLink = TRUE;
-						}
-						else //Disable
-						{
-							pAd->StaCfg.TdlsInfo.TdlsAutoLink = FALSE;
-						}
-
-						DBGPRINT(RT_DEBUG_TRACE, ("TdlsAutoLink=%d\n", pAd->StaCfg.TdlsInfo.TdlsAutoLink));
-					}
-#endif /* TDLS_AUTOLINK_SUPPORT */
-
-					if (RTMPGetKeyParameter("TDLS_SwitchChSupp", tmpbuf, 32, pBuffer, TRUE))
-					{
-						if (simple_strtol(tmpbuf, 0, 10) != 0)  //Enable
-						{
-							pAd->StaCfg.TdlsInfo.TdlsChSwitchSupp = TRUE;
-						}
-						else //Disable
-						{
-							pAd->StaCfg.TdlsInfo.TdlsChSwitchSupp = FALSE;
-						}
-
-						DBGPRINT(RT_DEBUG_TRACE, ("TdlsSwitchChSupp=%d\n", pAd->StaCfg.TdlsInfo.TdlsChSwitchSupp));
-					}
-
-					if (RTMPGetKeyParameter("TDLS_PsmSupp", tmpbuf, 32, pBuffer, TRUE))
-					{
-						if (simple_strtol(tmpbuf, 0, 10) != 0)  //Enable
-						{
-							pAd->StaCfg.TdlsInfo.TdlsPsmSupp = TRUE;
-						}
-						else //Disable
-						{
-							pAd->StaCfg.TdlsInfo.TdlsPsmSupp = FALSE;
-						}
-
-						DBGPRINT(RT_DEBUG_TRACE, ("TdlsPsmSupp=%d\n", pAd->StaCfg.TdlsInfo.TdlsPsmSupp));
-					}
-
-					//APSDAC for AC_BE, AC_BK, AC_VI, AC_VO
-					if (RTMPGetKeyParameter("TDLS_APSDAC", tmpbuf, 32, pBuffer, TRUE))
-					{
-						BOOLEAN FlgIsAcUapsdEnabled[4];
-
-						for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-						{
-							FlgIsAcUapsdEnabled[i] = (BOOLEAN)simple_strtol(macptr, 0, 10);
-
-							DBGPRINT(RT_DEBUG_TRACE, ("TDLS APSDAC%d  %d\n", i, FlgIsAcUapsdEnabled[i]));
-						}
-
-						pAd->CommonCfg.TDLS_bAPSDAC_BE = FlgIsAcUapsdEnabled[0];
-						pAd->CommonCfg.TDLS_bAPSDAC_BK = FlgIsAcUapsdEnabled[1];
-						pAd->CommonCfg.TDLS_bAPSDAC_VI = FlgIsAcUapsdEnabled[2];
-						pAd->CommonCfg.TDLS_bAPSDAC_VO = FlgIsAcUapsdEnabled[3];
-					}
-
-					//MaxSPLength
-					if (RTMPGetKeyParameter("TDLS_MaxSPLength", tmpbuf, 10, pBuffer, TRUE))
-					{
-						pAd->CommonCfg.TDLS_MaxSPLength = simple_strtol(tmpbuf, 0, 10);
-
-						DBGPRINT(RT_DEBUG_TRACE, ("TDLS MaxSPLength=%d\n", pAd->CommonCfg.TDLS_MaxSPLength));
-					}
-#endif /* DOT11Z_TDLS_SUPPORT */
 					
 
 					/* FastConnect*/
@@ -4183,189 +2222,12 @@ NDIS_STATUS	RTMPSetProfileParameters(
 					}
 				}
 #endif /* CONFIG_STA_SUPPORT */
-#ifdef CONFIG_AP_SUPPORT
-				IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-				{
-#ifdef MCAST_RATE_SPECIFIC
-					/* McastPhyMode*/
-					if (RTMPGetKeyParameter("McastPhyMode", tmpbuf, 32, pBuffer, TRUE))
-					{	
-						UCHAR PhyMode = simple_strtol(tmpbuf, 0, 10);
-									pAd->CommonCfg.MCastPhyMode.field.BW = pAd->CommonCfg.RegTransmitSetting.field.BW;
-						switch (PhyMode)
-						{
-										case MCAST_DISABLE: /* disable*/
-											NdisMoveMemory(&pAd->CommonCfg.MCastPhyMode,
-												&pAd->MacTab.Content[MCAST_WCID].HTPhyMode, sizeof(HTTRANSMIT_SETTING));
-											break;
-
-										case MCAST_CCK:	/* CCK*/
-											pAd->CommonCfg.MCastPhyMode.field.MODE = MODE_CCK;
-											pAd->CommonCfg.MCastPhyMode.field.BW =  BW_20;
-								break;
-
-										case MCAST_OFDM:	/* OFDM*/
-											pAd->CommonCfg.MCastPhyMode.field.MODE = MODE_OFDM;
-								break;
-#ifdef DOT11_N_SUPPORT
-										case MCAST_HTMIX:	/* HTMIX*/
-											pAd->CommonCfg.MCastPhyMode.field.MODE = MODE_HTMIX;
-								break;
-#endif /* DOT11_N_SUPPORT */									
-
-							default:
-								DBGPRINT(RT_DEBUG_OFF, ("unknow Muticast PhyMode %d.\n", PhyMode));
-								DBGPRINT(RT_DEBUG_OFF, ("0:Disable 1:CCK, 2:OFDM, 3:HTMIX.\n"));
-								break;
-						}
-					}
-					else
-									NdisMoveMemory(&pAd->CommonCfg.MCastPhyMode,
-										&pAd->MacTab.Content[MCAST_WCID].HTPhyMode, sizeof(HTTRANSMIT_SETTING));
-
-					/* McastMcs*/
-					if (RTMPGetKeyParameter("McastMcs", tmpbuf, 32, pBuffer, TRUE))
-					{
-						UCHAR Mcs = simple_strtol(tmpbuf, 0, 10);
-						switch(pAd->CommonCfg.MCastPhyMode.field.MODE)
-						{
-							case MODE_CCK:
-								if ((Mcs <= 3) || (Mcs >= 8 && Mcs <= 11))
-									pAd->CommonCfg.MCastPhyMode.field.MCS = Mcs;
-								else
-									DBGPRINT(RT_DEBUG_OFF, ("MCS must in range of 0 ~ 3 and 8 ~ 11 for CCK Mode.\n"));
-								break;
-
-							case MODE_OFDM:
-								if (Mcs > 7)
-									DBGPRINT(RT_DEBUG_OFF, ("MCS must in range from 0 to 7 for CCK Mode.\n"));
-								else
-									pAd->CommonCfg.MCastPhyMode.field.MCS = Mcs;
-								break;
-
-							default:
-								pAd->CommonCfg.MCastPhyMode.field.MCS = Mcs;
-								break;
-						}
-					}
-					else
-						pAd->CommonCfg.MCastPhyMode.field.MCS = 0;
-#endif /* MCAST_RATE_SPECIFIC */
-				}
-#endif /* CONFIG_AP_SUPPORT */
-
-
-#ifdef WSC_INCLUDED
-
-				rtmp_read_wsc_user_parms_from_file(pAd, tmpbuf, pBuffer);
-
-				/* Wsc4digitPinCode = TRUE use 4-digit Pin code, otherwise 8-digit Pin code */
-				if (RTMPGetKeyParameter("Wsc4digitPinCode", tmpbuf, 32, pBuffer, TRUE))
-				{
-#ifdef CONFIG_AP_SUPPORT
-					IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-					{
-						for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-						{
-							if (i >= pAd->ApCfg.BssidNum)
-								break;
-
-							if (simple_strtol(macptr, 0, 10) != 0)	//Enable
-								pAd->ApCfg.MBSSID[i].WscControl.WscEnrollee4digitPinCode = TRUE;
-							else //Disable
-								pAd->ApCfg.MBSSID[i].WscControl.WscEnrollee4digitPinCode = FALSE;
-			
-							DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) Wsc4digitPinCode=%d\n", i, pAd->ApCfg.MBSSID[i].WscControl.WscEnrollee4digitPinCode));
-						}
-
-					}
-#endif // CONFIG_AP_SUPPORT //
-#ifdef CONFIG_STA_SUPPORT
-					IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-					{
-						if (simple_strtol(tmpbuf, 0, 10) != 0)	//Enable
-							pAd->StaCfg.WscControl.WscEnrollee4digitPinCode = TRUE;
-						else //Disable
-							pAd->StaCfg.WscControl.WscEnrollee4digitPinCode = FALSE;
-
-						DBGPRINT(RT_DEBUG_TRACE, ("Wsc4digitPinCode=%d\n", pAd->StaCfg.WscControl.WscEnrollee4digitPinCode));
-					}
-#endif // CONFIG_STA_SUPPORT //
-				}
-		
-				if (RTMPGetKeyParameter("WscVendorPinCode", tmpbuf, 256, pBuffer, TRUE))
-				{
-					PWSC_CTRL pWscContrl;
-					int bSetOk;
-#ifdef CONFIG_AP_SUPPORT
-					IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-					{
-						pWscContrl = &pAd->ApCfg.MBSSID[BSS0].WscControl;
-					}
-#endif /* CONFIG_AP_SUPPORT */
-#ifdef CONFIG_STA_SUPPORT
-					IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-					{
-						pWscContrl = &pAd->StaCfg.WscControl;
-					}
-#endif /* CONFIG_STA_SUPPORT */
-					bSetOk = RT_CfgSetWscPinCode(pAd, tmpbuf, pWscContrl);
-					if (bSetOk)
-						DBGPRINT(RT_DEBUG_TRACE, ("%s - WscVendorPinCode= (%d)\n", __FUNCTION__, bSetOk));
-						else
-							DBGPRINT(RT_DEBUG_ERROR, ("%s - WscVendorPinCode: invalid pin code(%s)\n", __FUNCTION__, tmpbuf));
-				}
-#ifdef WSC_V2_SUPPORT
-				if (RTMPGetKeyParameter("WscV2Support", tmpbuf, 32, pBuffer, TRUE))
-				{
-					UCHAR 			bEnable;
-#ifdef CONFIG_AP_SUPPORT
-					IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-					{
-						for (i = 0, macptr = rstrtok(tmpbuf,";"); macptr; macptr = rstrtok(NULL,";"), i++)
-						{
-							if (i >= pAd->ApCfg.BssidNum)
-								break;
-							bEnable = (UCHAR)simple_strtol(macptr, 0, 10);
-							pAd->ApCfg.MBSSID[i].WscControl.WscV2Info.bEnableWpsV2 = bEnable;
-							DBGPRINT(RT_DEBUG_TRACE, ("I/F(ra%d) WscV2Support=%d\n", i, bEnable));
-						}
-					}
-#endif /* CONFIG_AP_SUPPORT */
-#ifdef CONFIG_STA_SUPPORT
-					IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-					{						
-						bEnable = (UCHAR)simple_strtol(tmpbuf, 0, 10);
-						
-						pAd->StaCfg.WscControl.WscV2Info.bEnableWpsV2 = bEnable;
-						DBGPRINT(RT_DEBUG_TRACE, ("%s - WscV2Support= (%d)\n", __FUNCTION__, bEnable));
-					}
-#endif /* CONFIG_STA_SUPPORT */										
-				}
-#endif /* WSC_V2_SUPPORT */
-
-
-#endif /* WSC_INCLUDED */
-
-#ifdef CONFIG_AP_SUPPORT
-#endif /* CONFIG_AP_SUPPORT */
 
 
 
-#ifdef CONFIG_AP_SUPPORT
-				/* EntryLifeCheck is used to check */
-				if (RTMPGetKeyParameter("EntryLifeCheck", tmpbuf, 256, pBuffer, TRUE))
-				{
-					long LifeCheckCnt = simple_strtol(tmpbuf, 0, 10);
-					if ((LifeCheckCnt <= 65535) && (LifeCheckCnt != 0))
-						pAd->ApCfg.EntryLifeCheck = LifeCheckCnt;
-					else
-						pAd->ApCfg.EntryLifeCheck = MAC_ENTRY_LIFE_CHECK_CNT;
 
-					DBGPRINT(RT_DEBUG_ERROR, ("EntryLifeCheck=%ld\n", pAd->ApCfg.EntryLifeCheck));
-				}
 
-#endif /* CONFIG_AP_SUPPORT */
+
 
 
 #ifdef SINGLE_SKU
@@ -4387,113 +2249,6 @@ NDIS_STATUS	RTMPSetProfileParameters(
 
 
 
-#ifdef P2P_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-		{
-			if(RTMPGetKeyParameter("P2P_GOIntent", tmpbuf, 10, pBuffer, TRUE))
-			{
-				pAd->P2pCfg.GoIntentIdx = simple_strtol(tmpbuf, 0, 10);
-				DBGPRINT(RT_DEBUG_ERROR, ("P2P_GOIntent=%d\n", pAd->P2pCfg.GoIntentIdx));
-			}
-
-			if(RTMPGetKeyParameter("P2P_DevName", tmpbuf, 32, pBuffer, TRUE))
-			{
-				if ((strlen(tmpbuf) <= 32)
-					)
-				{
-					pAd->P2pCfg.DeviceNameLen = (UCHAR) strlen(tmpbuf);
-					NdisZeroMemory(pAd->P2pCfg.DeviceName, 32);
-					NdisMoveMemory(pAd->P2pCfg.DeviceName, tmpbuf, pAd->P2pCfg.DeviceNameLen);
-					DBGPRINT(RT_DEBUG_TRACE, ("%s():P2P_DevName=%s\n", __FUNCTION__, tmpbuf));
-				}
-			}
-
-			if(RTMPGetKeyParameter("P2P_ListChannel", tmpbuf, 10, pBuffer, TRUE))
-			{
-				pAd->P2pCfg.ListenChannel = simple_strtol(tmpbuf, 0, 10);
-				DBGPRINT(RT_DEBUG_ERROR, ("P2P_ListChannel=%d\n", pAd->P2pCfg.ListenChannel));
-			}
-
-			if(RTMPGetKeyParameter("P2P_OpChannel", tmpbuf, 10, pBuffer, TRUE))
-			{
-				pAd->P2pCfg.GroupChannel = simple_strtol(tmpbuf, 0, 10);
-				DBGPRINT(RT_DEBUG_ERROR, ("P2P_OpChannel=%d\n", pAd->P2pCfg.GroupChannel));
-			}
-			if(RTMPGetKeyParameter("P2P_WscCfgMethod", tmpbuf, 10, pBuffer, TRUE))
-			{
-				UCHAR CfgMethod = simple_strtol(tmpbuf, 0, 10);
-				if (pAd->P2pCfg.WscMode == WSC_PIN_MODE)
-				{
-					if (CfgMethod == P2P_REG_CM_DISPLAY)
-						pAd->P2pCfg.DefaultConfigMethod = P2P_REG_CM_DISPLAY;
-					else if (CfgMethod == P2P_REG_CM_KEYPAD)
-						pAd->P2pCfg.DefaultConfigMethod = P2P_REG_CM_KEYPAD;
-				}
-				else if (pAd->P2pCfg.WscMode == WSC_PBC_MODE)
-				{
-					pAd->P2pCfg.DefaultConfigMethod = P2P_REG_CM_PBC;
-				}
-				DBGPRINT(RT_DEBUG_ERROR, ("P2P_WscCfgMethod=%d\n", pAd->P2pCfg.DefaultConfigMethod));
-			}
-
-			if(RTMPGetKeyParameter("P2P_ExtListenEnable", tmpbuf, 10, pBuffer, TRUE))
-			{
-				UINT32 ExtList = simple_strtol(tmpbuf, 0, 10);
-				if (ExtList == 0)
-					pAd->P2pCfg.bExtListen = FALSE;
-				else if (ExtList == 1)
-					pAd->P2pCfg.bExtListen = TRUE;
-				DBGPRINT(RT_DEBUG_ERROR, ("P2P_ExtListen=%d\n", pAd->P2pCfg.bExtListen));
-			}
-
-			if(RTMPGetKeyParameter("P2P_ExtListenPrd", tmpbuf, 10, pBuffer, TRUE))
-			{
-				pAd->P2pCfg.ExtListenPeriod = simple_strtol(tmpbuf, 0, 10);
-				DBGPRINT(RT_DEBUG_ERROR, ("P2P_ExtListenPrd=%d\n", pAd->P2pCfg.ExtListenPeriod));
-			}
-
-			if(RTMPGetKeyParameter("P2P_ExtenListenInv", tmpbuf, 10, pBuffer, TRUE))
-			{
-				pAd->P2pCfg.ExtListenInterval = simple_strtol(tmpbuf, 0, 10);
-				DBGPRINT(RT_DEBUG_ERROR, ("P2P_ExtenListenInv=%d\n", pAd->P2pCfg.ExtListenInterval));
-			}
-
-			if(RTMPGetKeyParameter("P2P_IntraBss", tmpbuf, 10, pBuffer, TRUE))
-			{
-				UINT32 IntraBss = simple_strtol(tmpbuf, 0, 10);
-				if (IntraBss == 0)
-					pAd->P2pCfg.bIntraBss = FALSE;
-				else if (IntraBss == 1)
-					pAd->P2pCfg.bIntraBss = TRUE;
-				DBGPRINT(RT_DEBUG_ERROR, ("P2P_IntraBss=%d\n", pAd->P2pCfg.bIntraBss));
-			}
-
-			if(RTMPGetKeyParameter("P2P_NoACnt", tmpbuf, 10, pBuffer, TRUE))
-			{
-				pAd->P2pCfg.GONoASchedule.Count = simple_strtol(tmpbuf, 0, 10);
-				DBGPRINT(RT_DEBUG_ERROR, ("P2P_NoACnt=%d\n", pAd->P2pCfg.GONoASchedule.Count));
-			}
-
-			if(RTMPGetKeyParameter("P2P_NoADuration", tmpbuf, 10, pBuffer, TRUE))
-			{
-				pAd->P2pCfg.GONoASchedule.Duration = simple_strtol(tmpbuf, 0, 10);
-				DBGPRINT(RT_DEBUG_ERROR, ("P2P_NoADuration=%ld\n", pAd->P2pCfg.GONoASchedule.Duration));
-			}
-
-			if(RTMPGetKeyParameter("P2P_NoAInv", tmpbuf, 10, pBuffer, TRUE))
-			{
-				pAd->P2pCfg.GONoASchedule.Interval = simple_strtol(tmpbuf, 0, 10);
-				DBGPRINT(RT_DEBUG_ERROR, ("P2P_NoAInv=%d\n", pAd->P2pCfg.GONoASchedule.Interval));
-			}
-			if(RTMPGetKeyParameter("P2P_MaxEntry", tmpbuf, 10, pBuffer, TRUE))
-			{
-				pAd->P2pCfg.p2pMaxEntry= simple_strtol(tmpbuf, 0, 10);
-				DBGPRINT(RT_DEBUG_ERROR, ("P2P_MaxEntry=%d\n", pAd->P2pCfg.p2pMaxEntry));
-			}
-
-
-		}
-#endif /* P2P_SUPPORT */
 
 #if (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT)
 		/* set GPIO pin for wake-up signal */
@@ -4523,6 +2278,14 @@ NDIS_STATUS	RTMPSetProfileParameters(
 			Set_MO_FalseCCATh_Proc(pAd, tmpbuf);
 		}
 #endif /* MICROWAVE_OVEN_SUPPORT */
+
+#ifdef ED_MONITOR
+		if(RTMPGetKeyParameter("ED_CCA", tmpbuf, 10, pBuffer, TRUE))
+		{
+			INT ed_chk = simple_strtol(tmpbuf, 0, 10);
+			pAd->ed_chk = (ed_chk > 0 ? TRUE : FALSE);
+		}
+#endif /* ED_MONITOR */
 
 	}while(0);
 
@@ -4891,81 +2654,6 @@ return flg_match_ok;
 #endif /* MULTIPLE_CARD_SUPPORT */
 
 
-#ifdef WSC_INCLUDED
-void rtmp_read_wsc_user_parms(
-	PWSC_CTRL pWscControl,
-	STRING *tmpbuf, 
-	STRING *buffer)
-{
-		if(RTMPGetKeyParameter("WscManufacturer", tmpbuf, WSC_MANUFACTURE_LEN, buffer,TRUE))
-	{
-		NdisZeroMemory(pWscControl->RegData.SelfInfo.Manufacturer, WSC_MANUFACTURE_LEN);
-		NdisMoveMemory(pWscControl->RegData.SelfInfo.Manufacturer, tmpbuf, strlen(tmpbuf));
-			if(pWscControl->RegData.SelfInfo.Manufacturer[0] != 0x00)
-		RTMP_SET_FLAG(pWscControl, 0x01);
-	}
-
-	/*WSC_User_ModelName*/
-		if(RTMPGetKeyParameter("WscModelName", tmpbuf, WSC_MODELNAME_LEN, buffer,TRUE))
-	{
-		NdisZeroMemory(pWscControl->RegData.SelfInfo.ModelName, WSC_MODELNAME_LEN);
-		NdisMoveMemory(pWscControl->RegData.SelfInfo.ModelName, tmpbuf, strlen(tmpbuf));
-			if(pWscControl->RegData.SelfInfo.ModelName[0] != 0x00)
-		RTMP_SET_FLAG(pWscControl, 0x02);
-	}
-
-	/*WSC_User_DeviceName*/
-		if(RTMPGetKeyParameter("WscDeviceName", tmpbuf, WSC_DEVICENAME_LEN, buffer,TRUE))
-	{
-		NdisZeroMemory(pWscControl->RegData.SelfInfo.DeviceName, WSC_DEVICENAME_LEN);
-		NdisMoveMemory(pWscControl->RegData.SelfInfo.DeviceName, tmpbuf, strlen(tmpbuf));
-			if(pWscControl->RegData.SelfInfo.DeviceName[0] != 0x00)
-		RTMP_SET_FLAG(pWscControl, 0x04);
-	}
-
-	/*WSC_User_ModelNumber*/
-		if(RTMPGetKeyParameter("WscModelNumber", tmpbuf, WSC_MODELNUNBER_LEN, buffer,TRUE))
-	{
-		NdisZeroMemory(pWscControl->RegData.SelfInfo.ModelNumber, WSC_MODELNUNBER_LEN);
-		NdisMoveMemory(pWscControl->RegData.SelfInfo.ModelNumber, tmpbuf, strlen(tmpbuf));
-			if(pWscControl->RegData.SelfInfo.ModelNumber[0] != 0x00)
-		RTMP_SET_FLAG(pWscControl, 0x08);
-	}
-
-	/*WSC_User_SerialNumber*/
-		if(RTMPGetKeyParameter("WscSerialNumber", tmpbuf, WSC_SERIALNUNBER_LEN, buffer,TRUE))
-	{
-		NdisZeroMemory(pWscControl->RegData.SelfInfo.SerialNumber, WSC_SERIALNUNBER_LEN);
-		NdisMoveMemory(pWscControl->RegData.SelfInfo.SerialNumber, tmpbuf, strlen(tmpbuf));
-			if(pWscControl->RegData.SelfInfo.SerialNumber[0] != 0x00)
-		RTMP_SET_FLAG(pWscControl, 0x10);
-	}
-}
-
-void rtmp_read_wsc_user_parms_from_file(IN	PRTMP_ADAPTER pAd, char *tmpbuf, char *buffer)
-{
-	PWSC_CTRL           pWscControl;
-
-#ifdef WSC_AP_SUPPORT
-	int i=0;
-	for(i = 0; i < MAX_MBSSID_NUM(pAd); i++)
-	{
-		pWscControl = &pAd->ApCfg.MBSSID[i].WscControl;
-		rtmp_read_wsc_user_parms(pWscControl, tmpbuf, buffer);
-}
-#ifdef APCLI_SUPPORT
-	pWscControl = &pAd->ApCfg.ApCliTab[0].WscControl;
-	rtmp_read_wsc_user_parms(pWscControl, tmpbuf, buffer);
-#endif /* APCLI_SUPPORT */
-#endif /* WSC_AP_SUPPORT */
-
-#ifdef WSC_STA_SUPPORT
-	pWscControl = &pAd->StaCfg.WscControl;
-	rtmp_read_wsc_user_parms(pWscControl, tmpbuf, buffer);
-#endif /* WSC_STA_SUPPORT */
-
-}
-#endif/*WSC_INCLUDED*/
 
 
 VOID rtmp_read_multest_from_file(
@@ -4980,6 +2668,7 @@ VOID rtmp_read_multest_from_file(
 	UCHAR		macAddress[MAC_ADDR_LEN];
 	UCHAR	    keyMaterial[40];	
 	UCHAR		KeyLen, CipherAlg = CIPHER_NONE, KeyIdx;
+	PRT_802_11_WDS_ENTRY pWdsEntry;
 		
 	/*WdsPhyMode */
 	if (RTMPGetKeyParameter("WdsPhyMode", tmpbuf, MAX_PARAM_BUFFER_SIZE, buffer, TRUE))
@@ -5061,10 +2750,6 @@ VOID rtmp_read_multest_from_file(
 	            pAd->MulTestTab.WdsEntry[i].WepStatus = Ndis802_11Encryption2Enabled;
 	        else if ((strncmp(macptr, "AES", 3) == 0) || (strncmp(macptr, "aes", 3) == 0))
 	            pAd->MulTestTab.WdsEntry[i].WepStatus = Ndis802_11Encryption3Enabled;
-#ifdef WAPI_SUPPORT
-	        else if ((strncmp(macptr, "SMS4", 4) == 0) || (strncmp(macptr, "sms4", 4) == 0))
-	            pAd->MulTestTab.WdsEntry[i].WepStatus = Ndis802_11EncryptionSMS4Enabled;
-#endif /* WAPI_SUPPORT */
 	        else
 	            pAd->MulTestTab.WdsEntry[i].WepStatus = Ndis802_11WEPDisabled;
 
@@ -5173,9 +2858,6 @@ VOID rtmp_read_multest_from_file(
 				}
 				else if ((pAd->MulTestTab.WdsEntry[i].WepStatus == Ndis802_11Encryption2Enabled)
 					|| (pAd->MulTestTab.WdsEntry[i].WepStatus == Ndis802_11Encryption3Enabled)
-#ifdef WAPI_SUPPORT
-					|| (pAd->MulTestTab.WdsEntry[i].WepStatus == Ndis802_11EncryptionSMS4Enabled)
-#endif /* WAPI_SUPPORT */
 					)					
 				{
 					if ((strlen(tmpbuf) >= 8) && (strlen(tmpbuf) <= 64))
@@ -5187,13 +2869,6 @@ VOID rtmp_read_multest_from_file(
 							pAd->MulTestTab.WdsEntry[i].WdsKey.CipherAlg = CIPHER_AES;
 							CipherAlg = CIPHER_AES;
 						}
-#ifdef WAPI_SUPPORT
-						else if (pAd->MulTestTab.WdsEntry[i].WepStatus == Ndis802_11EncryptionSMS4Enabled)
-						{
-							pAd->MulTestTab.WdsEntry[i].WdsKey.CipherAlg = CIPHER_SMS4;
-							CipherAlg = CIPHER_SMS4;
-						}
-#endif /* WAPI_SUPPORT */
 						else
 						{
 							pAd->MulTestTab.WdsEntry[i].WdsKey.CipherAlg = CIPHER_TKIP;
@@ -5354,50 +3029,50 @@ NDIS_STATUS	RTMPSetSingleSKUParameters(
 				{
 					BOOLEAN isSame = TRUE;
 
-					for ( i= 0 ; i < SINGLE_SKU_TABLE_CCK_LENGTH ; i++ )
-					{
+				for ( i= 0 ; i < SINGLE_SKU_TABLE_CCK_LENGTH ; i++ )
+				{
 						if ( StartCh->PwrCCK[i] != pwr->PwrCCK[i] )
 						{
 							isSame = FALSE;
-							break;
+						break;
 						}
-					}
+				}
 
 					if ( isSame == TRUE )
 					{
-						for ( i= 0 ; i < SINGLE_SKU_TABLE_OFDM_LENGTH ; i++ )
-						{
+				for ( i= 0 ; i < SINGLE_SKU_TABLE_OFDM_LENGTH ; i++ )
+				{
 							if ( StartCh->PwrOFDM[i] != pwr->PwrOFDM[i] )
 							{
 								isSame = FALSE;
-								break;
+						break;
 							}
 						}
-					}
+				}
 
 					if ( isSame == TRUE )
 					{
-						for ( i= 0 ; i < SINGLE_SKU_TABLE_HT_LENGTH ; i++ )
-						{
+				for ( i= 0 ; i < SINGLE_SKU_TABLE_HT_LENGTH ; i++ )
+				{
 							if ( StartCh->PwrHT20[i] != pwr->PwrHT20[i] )
 							{
 								isSame = FALSE;
-								break;
+						break;
 							}
 						}
-					}
+				}
 
 					if ( isSame == TRUE )
 					{
-						for ( i= 0 ; i < SINGLE_SKU_TABLE_HT_LENGTH ; i++ )
-						{
+				for ( i= 0 ; i < SINGLE_SKU_TABLE_HT_LENGTH ; i++ )
+				{
 							if ( StartCh->PwrHT40[i] != pwr->PwrHT40[i] )
 							{
 								isSame = FALSE;
-								break;
+						break;
 							}
 						}
-					}
+				}
 
 					if ( isSame == TRUE )
 					{
@@ -5408,8 +3083,8 @@ NDIS_STATUS	RTMPSetSingleSKUParameters(
 						StartCh = pwr;
 						DlListAddTail(&pAd->SingleSkuPwrList, &StartCh->List);
 						pwr = NULL;
-					}
-
+				}
+			
 
 				}
 
@@ -5425,9 +3100,9 @@ NDIS_STATUS	RTMPSetSingleSKUParameters(
 				StartCh->Channel[StartCh->num-1] = channel;
 			}
 		}
-
-
-	}
+				
+				
+				}
 
 	{
 		CH_POWER *ch, *ch_temp;

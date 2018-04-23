@@ -1,24 +1,29 @@
-/****************************************************************************
+/*
+ *************************************************************************
  * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
  * Taiwan, R.O.C.
  *
- * (c) Copyright 2010, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************/
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-/****************************************************************************
-
-	Abstract:
-
-	All Dynamic Rate Switch Related Structure & Definition
-
-***************************************************************************/
 
 #ifndef __DRS_EXTR_H__
 #define __DRS_EXTR_H__
@@ -276,10 +281,6 @@ INT Set_RateTable_Proc(
 	IN  struct _RTMP_ADAPTER *pAd,
 	IN  PSTRING arg);
 
-#ifdef CONFIG_AP_SUPPORT
-VOID APMlmeDynamicTxRateSwitchingAdapt(struct _RTMP_ADAPTER *pAd, ULONG idx);
-VOID APQuickResponeForRateUpExecAdapt(struct _RTMP_ADAPTER *pAd, ULONG idx);
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 VOID StaQuickResponeForRateUpExecAdapt(
@@ -296,21 +297,6 @@ VOID MlmeDynamicTxRateSwitchingAdapt(
 #endif /* CONFIG_STA_SUPPORT */
 #endif /* NEW_RATE_ADAPT_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-VOID APMlmeDynamicTxRateSwitching(
-    IN struct _RTMP_ADAPTER *pAd);
-
-VOID APQuickResponeForRateUpExec(
-    IN PVOID SystemSpecific1, 
-    IN PVOID FunctionContext, 
-    IN PVOID SystemSpecific2, 
-    IN PVOID SystemSpecific3);
-
-VOID APMlmeSetTxRate(
-	IN struct _RTMP_ADAPTER *pAd,
-	IN struct _MAC_TABLE_ENTRY *pEntry,
-	IN RTMP_RA_LEGACY_TB *pTxRate);
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 VOID MlmeDynamicTxRateSwitching(

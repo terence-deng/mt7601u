@@ -1,32 +1,29 @@
-/****************************************************************************
+/*
+ *************************************************************************
+ * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
+ *
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-    Module Name:
-    UTIL/rt_linux.c
-
-    Abstract:
-	All functions provided from OS module are put here.
-
-	Note:
-	1. Can not use sizeof() for a structure with any parameter included
-	by any compile option, such as RTMP_ADAPTER.
-
-	Because the RTMP_ADAPTER size in the UTIL module is different with
-	DRIVER/NETIF.
-
-	2. Do not use any structure with any parameter included by PCI/USB/RBUS/
-	AP/STA.
-
-	Because the structure size in the UTIL module is different with
-	DRIVER/NETIF.
-
-	3. Do not use any structure defined in DRIVER module, EX: pAd.
-	So we can do module partition.
-
-	Revision History:
-	Who        When          What
-	---------  ----------    -------------------------------------------
-
-***************************************************************************/
 
 #define RTMP_MODULE_OS
 #define RTMP_MODULE_OS_UTIL
@@ -54,7 +51,7 @@
 #define RT_CONFIG_IF_OPMODE_ON_STA(__OpMode)
 #endif
 
-ULONG RTDebugLevel = RT_DEBUG_ERROR;
+ULONG RTDebugLevel = RT_DEBUG_TRACE;
 ULONG RTDebugFunc = 0;
 
 #ifdef OS_ABL_FUNC_SUPPORT
@@ -179,6 +176,8 @@ VOID RTMPusecDelay(ULONG usec)
 /* Unify all delay routine by using udelay */
 VOID RtmpOsUsDelay(ULONG value)
 {
+	ULONG i;
+
 	udelay(value);
 }
 
@@ -535,45 +534,6 @@ PNDIS_PACKET duplicate_pkt_with_TKIP_MIC(
 
 }
 
-#ifdef CONFIG_AP_SUPPORT
-PNDIS_PACKET duplicate_pkt_with_VLAN(
-	IN PNET_DEV pNetDev,
-	IN USHORT VLAN_VID,
-	IN USHORT VLAN_Priority,
-	IN PUCHAR pHeader802_3,
-	IN UINT HdrLen,
-	IN PUCHAR pData,
-	IN ULONG DataSize,
-	IN UCHAR FromWhichBSSID,
-	IN UCHAR *TPID)
-{
-	struct sk_buff *skb;
-	PNDIS_PACKET pPacket = NULL;
-	UINT16 VLAN_Size;
-
-	if ((skb = __dev_alloc_skb(HdrLen + DataSize + LENGTH_802_1Q + 2,
-				   MEM_ALLOC_FLAG)) != NULL) {
-		MEM_DBG_PKT_ALLOC_INC(skb);
-
-		skb_reserve(skb, 2);
-
-		/* copy header (maybe +VLAN tag) */
-		VLAN_Size = VLAN_8023_Header_Copy(VLAN_VID, VLAN_Priority,
-						  pHeader802_3, HdrLen,
-						  skb->tail, FromWhichBSSID,
-						  TPID);
-		skb_put(skb, HdrLen + VLAN_Size);
-
-		/* copy data body */
-		NdisMoveMemory(skb->tail, pData, DataSize);
-		skb_put(skb, DataSize);
-		skb->dev = pNetDev;	/*get_netdev_from_bssid(pAd, FromWhichBSSID); */
-		pPacket = OSPKT_TO_RTPKT(skb);
-	}
-
-	return pPacket;
-}
-#endif /* CONFIG_AP_SUPPORT */
 
 /*
 	========================================================================
@@ -735,23 +695,6 @@ void wlan_802_11_to_802_3_packet(
 	pOSPkt->tail = pOSPkt->data + pOSPkt->len;
 
 	/* copy 802.3 header */
-#ifdef CONFIG_AP_SUPPORT
-	RT_CONFIG_IF_OPMODE_ON_AP(OpMode)
-	{
-		/* maybe insert VLAN tag to the received packet */
-		UCHAR VLAN_Size = 0;
-		UCHAR *data_p;
-
-		if (VLAN_VID != 0)
-			VLAN_Size = LENGTH_802_1Q;
-
-		data_p = skb_push(pOSPkt, LENGTH_802_3 + VLAN_Size);
-
-		VLAN_8023_Header_Copy(VLAN_VID, VLAN_Priority,
-				      pHeader802_3, LENGTH_802_3,
-				      data_p, FromWhichBSSID, TPID);
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	RT_CONFIG_IF_OPMODE_ON_STA(OpMode)
@@ -847,14 +790,6 @@ VOID RtmpOsSendWirelessEvent(
 }
 #endif /* SYSTEM_LOG_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-VOID SendSignalToDaemon(
-	IN INT sig,
-	RTMP_OS_PID pid,
-	unsigned long pid_no)
-{
-}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 INT32 ralinkrate[] = {
@@ -1183,8 +1118,8 @@ static inline void __RtmpOSFSInfoChange(OS_FS_INFO * pOSFSInfo, BOOLEAN bSet)
 		pOSFSInfo->fsgid = current->fsgid;
 		current->fsuid = current->fsgid = 0;
 #else
-		pOSFSInfo->fsuid = *(int*)&current_fsuid();
-		pOSFSInfo->fsgid = *(int*)&current_fsgid();
+		pOSFSInfo->fsuid = current_fsuid();
+		pOSFSInfo->fsgid = current_fsgid();
 #endif
 		pOSFSInfo->fs = get_fs();
 		set_fs(KERNEL_DS);
@@ -1435,14 +1370,6 @@ static UINT32 RtmpOSWirelessEventTranslate(IN UINT32 eventType)
 	case RT_WLAN_EVENT_EXPIRED:
 		eventType = IWEVEXPIRED;
 		break;
-#ifdef P2P_SUPPORT
-	case RT_WLAN_EVENT_SHOWPIN:
-		eventType = 0x8C05; /* IWEVP2PKEYSHOWPIN; */
-		break;
-	case RT_WLAN_EVENT_PIN:
-		eventType = 0x8C06; /* IWEVP2PKEYPIN; */
-		break;
-#endif /* P2P_SUPPORT */
 
 	default:
 		printk("Unknown event: 0x%x\n", eventType);
@@ -1936,56 +1863,6 @@ PNET_DEV RtmpOSNetDevCreate(
 
 
 
-#ifdef CONFIG_AP_SUPPORT
-UCHAR VLAN_8023_Header_Copy(
-	IN USHORT VLAN_VID,
-	IN USHORT VLAN_Priority,
-	IN PUCHAR pHeader802_3,
-	IN UINT HdrLen,
-	OUT PUCHAR pData,
-	IN UCHAR FromWhichBSSID,
-	IN UCHAR *TPID)
-{
-	UINT16 TCI;
-	UCHAR VLAN_Size = 0;
-
-	if (VLAN_VID != 0) {
-		/* need to insert VLAN tag */
-		VLAN_Size = LENGTH_802_1Q;
-
-		/* make up TCI field */
-		TCI = (VLAN_VID & 0x0fff) | ((VLAN_Priority & 0x7) << 13);
-
-#ifndef RT_BIG_ENDIAN
-		TCI = SWAP16(TCI);
-#endif /* RT_BIG_ENDIAN */
-
-		/* copy dst + src MAC (12B) */
-		memcpy(pData, pHeader802_3, LENGTH_802_3_NO_TYPE);
-
-		/* copy VLAN tag (4B) */
-		/* do NOT use memcpy to speed up */
-		*(UINT16 *) (pData + LENGTH_802_3_NO_TYPE) = *(UINT16 *) TPID;
-		*(UINT16 *) (pData + LENGTH_802_3_NO_TYPE + 2) = TCI;
-
-		/* copy type/len (2B) */
-		*(UINT16 *) (pData + LENGTH_802_3_NO_TYPE + LENGTH_802_1Q) =
-		    *(UINT16 *) & pHeader802_3[LENGTH_802_3 -
-					       LENGTH_802_3_TYPE];
-
-		/* copy tail if exist */
-		if (HdrLen > LENGTH_802_3)
-			memcpy(pData + LENGTH_802_3 + LENGTH_802_1Q, pHeader802_3 + LENGTH_802_3, HdrLen - LENGTH_802_3);
-	}
-	else
-	{
-		/* no VLAN tag is needed to insert */
-		memcpy(pData, pHeader802_3, HdrLen);
-	}
-	
-	return VLAN_Size;
-}				
-#endif /* CONFIG_AP_SUPPORT */
 
 
 /*
@@ -2157,6 +2034,7 @@ VOID RtmpDrvAllRFPrint(
 	struct file *file_w;
 	PSTRING fileName = "RFDump.txt";
 	mm_segment_t orig_fs;
+	UINT32 macAddr = 0, macValue = 0;
 	
 	orig_fs = get_fs();
 	set_fs(KERNEL_DS);
@@ -2292,6 +2170,10 @@ int RtmpOSIRQRelease(
 	IN PPCI_DEV pci_dev,
 	IN BOOLEAN *pHaveMsi)
 {
+	struct net_device *net_dev = (struct net_device *)pNetDev;
+
+
+
 	return 0;
 }
 
@@ -3533,7 +3415,46 @@ VOID RtmpDevPrivFlagsSet(VOID *pDev, USHORT PrivFlags)
 }
 
 
+#ifdef CONFIG_STA_SUPPORT
+INT RtmpOSNotifyRawData(
+	IN PNET_DEV pNetDev, 
+	IN PUCHAR buff,
+	IN INT len, 
+	IN ULONG type,
+	IN USHORT protocol)
+{
+	struct sk_buff *skb = NULL;
+	
+	skb = dev_alloc_skb(len + 2);
+	
+	if (!skb) 
+	{
+		DBGPRINT(RT_DEBUG_ERROR,( "%s: failed to allocate sk_buff for notification\n", pNetDev->name));		
+		return -ENOMEM;		
+	} 
+	else 
+	{		
+		skb_reserve(skb, 2);		
+		memcpy(skb_put(skb, len), buff, len);		
+		skb->len = len;
+		skb->dev = pNetDev;
+#if (LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,21))
+		skb->mac.raw = skb->data;
+#else
+		skb_set_mac_header(skb, 0);
+#endif
+		skb->ip_summed = CHECKSUM_UNNECESSARY;
+		skb->pkt_type = PACKET_OTHERHOST;
+		skb->protocol = htons(protocol);
+		memset(skb->cb, 0, sizeof(skb->cb));
 
+		netif_rx(skb);
+	}
+	return 0;
+}
+
+
+#endif /* CONFIG_STA_SUPPORT */
 
 #ifdef OS_ABL_FUNC_SUPPORT
 /*

@@ -1,30 +1,30 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology	5th	Rd.
- * Science-based Industrial	Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2004, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved.	Ralink's source	code is	an unpublished work	and	the
- * use of a	copyright notice does not imply	otherwise. This	source code
- * contains	confidential trade secret material of Ralink Tech. Any attemp
- * or participation	in deciphering,	decoding, reverse engineering or in	any
- * way altering	the	source code	is stricitly prohibited, unless	the	prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Module Name:
-	auth_rsp.c
 
-	Abstract:
-
-	Revision History:
-	Who			When			What
-	--------	----------		----------------------------------------------
-	John		2004-10-1		copy from RT2560
-*/
 #include "rt_config.h"
 
 /*
@@ -90,9 +90,6 @@ VOID PeerAuthSimpleRspGenAndSend(
 
 	DBGPRINT(RT_DEBUG_TRACE, ("Send AUTH response (seq#2)...\n"));
 	MgtMacHeaderInit(pAd, &AuthHdr, SUBTYPE_AUTH, 0, pHdr80211->Addr2,
-#ifdef P2P_SUPPORT
-						pAd->CurrentAddress,
-#endif /* P2P_SUPPORT */
 						pAd->MlmeAux.Bssid);
 	MakeOutgoingFrame(pOutBuffer, &FrameLen, sizeof (HEADER_802_11),
 			  &AuthHdr, 2, &Alg, 2, &Seq, 2, &Reason, END_OF_ARGS);
@@ -140,12 +137,6 @@ VOID PeerDeauthAction(
 						      IW_GROUP_HS_TIMEOUT_EVENT_FLAG,
 						      NULL, 0, 0);
 
-#ifdef WAPI_SUPPORT
-			WAPI_InternalCmdAction(pAd,
-					       pAd->StaCfg.AuthMode,
-					       BSS0,
-					       Addr2, WAI_MLME_DISCONNECT);
-#endif /* WAPI_SUPPORT */
 
 #ifdef NATIVE_WPA_SUPPLICANT_SUPPORT
 			RtmpOSWrielessEventSend(pAd->net_dev,
@@ -178,10 +169,6 @@ VOID PeerDeauthAction(
 			    ((pAd->StaCfg.AuthMode == Ndis802_11AuthModeWPAPSK)
 			     || (pAd->StaCfg.AuthMode ==
 				 Ndis802_11AuthModeWPA2PSK))
-#ifdef WSC_STA_SUPPORT
-			    && (pAd->StaCfg.WscControl.WscState <
-				WSC_STATE_LINK_UP)
-#endif /* WSC_STA_SUPPORT */
 			    )
 				bDoIterate = TRUE;
 
@@ -193,22 +180,6 @@ VOID PeerDeauthAction(
 			}
 
 		}
-#ifdef ADHOC_WPA2PSK_SUPPORT
-		else if (ADHOC_ON(pAd)
-			 && (MAC_ADDR_EQUAL(Addr1, pAd->CurrentAddress)
-			     || MAC_ADDR_EQUAL(Addr1, BROADCAST_ADDR))) {
-			MAC_TABLE_ENTRY *pEntry;
-
-			pEntry = MacTableLookup(pAd, Addr2);
-			if (pEntry && IS_ENTRY_CLIENT(pEntry))
-				MacTableDeleteEntry(pAd, pEntry->Aid,
-						    pEntry->Addr);
-
-			DBGPRINT(RT_DEBUG_TRACE,
-				 ("AUTH_RSP - receive DE-AUTH from %02x:%02x:%02x:%02x:%02x:%02x \n",
-				  PRINT_MAC(Addr2)));
-		}
-#endif /* ADHOC_WPA2PSK_SUPPORT */
 	} else {
 		DBGPRINT(RT_DEBUG_TRACE,
 			 ("AUTH_RSP - PeerDeauthAction() sanity check fail\n"));

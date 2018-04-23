@@ -1,6 +1,30 @@
 /*
+ *************************************************************************
+ * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
+ *
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-*/
+
 #include "rt_config.h"
 
 
@@ -315,6 +339,12 @@ CH_DESC Country_Region21_ChDesc_5GHZ[] =
 	{149, 4, CHANNEL_DEFAULT_PROP},
 	{}		
 };
+// only for HE Pana Box, disable dfs channel on US, Gary modify
+CH_DESC Country_Region22_ChDesc_5GHZ[] =
+{
+	{36, 8, CHANNEL_DEFAULT_PROP},
+	{}
+};
 
 
 COUNTRY_REGION_CH_DESC Country_Region_ChDesc_5GHZ[] =
@@ -341,6 +371,8 @@ COUNTRY_REGION_CH_DESC Country_Region_ChDesc_5GHZ[] =
 	{REGION_19_A_BAND, Country_Region19_ChDesc_5GHZ},
 	{REGION_20_A_BAND, Country_Region20_ChDesc_5GHZ},
 	{REGION_21_A_BAND, Country_Region21_ChDesc_5GHZ},
+	/* only for HE Pana Box, disable dfs channel on US, Gayr modify */
+	{REGION_22_A_BAND, Country_Region22_ChDesc_5GHZ},
 	{}
 };
 
@@ -1626,23 +1658,6 @@ static UCHAR FillChList(
             }
         }
 /*New FCC spec restrict the used channel under DFS */
-#ifdef CONFIG_AP_SUPPORT	
-		if ((pAd->CommonCfg.bIEEE80211H == 1) &&
-			(pAd->CommonCfg.RDDurRegion == FCC) &&
-			(pAd->Dot11_H.bDFSIndoor == 1))
-		{
-			if (RESTRICTION_BAND_1(pAd))
-				continue;
-		}
-		else if ((pAd->CommonCfg.bIEEE80211H == 1) &&
-				 (pAd->CommonCfg.RDDurRegion == FCC) &&
-				 (pAd->Dot11_H.bDFSIndoor == 0))
-		{
-			if ((channel >= 100) && (channel <= 140))
-				continue;
-		}
-
-#endif /* CONFIG_AP_SUPPORT */
 		for (l=0; l<MAX_NUM_OF_CHANNELS; l++)
 		{
 			if (channel == pAd->TxPower[l].Channel)

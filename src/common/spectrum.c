@@ -1,29 +1,29 @@
-/****************************************************************************
+/*
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
- * (c) Copyright 2002, Ralink Technology, Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ****************************************************************************
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-    Module Name:
-	action.c
- 
-    Abstract:
-    Handle association related requests either from WSTA or from local MLME
- 
-    Revision History:
-    Who          When          What
-    ---------    ----------    ----------------------------------------------
-	Fonchi Wu    2008	  	   created for 802.11h
- */
 
 #include "rt_config.h"
 #include "action.h"
@@ -1163,9 +1163,6 @@ VOID EnqueueMeasurementRep(
 
 	/* build action frame header.*/
 	MgtMacHeaderInit(pAd, &ActHdr, SUBTYPE_ACTION, 0, pDA,
-#ifdef P2P_SUPPORT
-						pAd->CurrentAddress,
-#endif /* P2P_SUPPORT */
 						pAd->CurrentAddress);
 
 	NStatus = MlmeAllocateMemory(pAd, (PVOID)&pOutBuffer);  /*Get an unused nonpaged memory*/
@@ -1220,9 +1217,6 @@ VOID EnqueueTPCReq(
 
 	/* build action frame header.*/
 	MgtMacHeaderInit(pAd, &ActHdr, SUBTYPE_ACTION, 0, pDA,
-#ifdef P2P_SUPPORT
-						pAd->CurrentAddress,
-#endif /* P2P_SUPPORT */
 						pAd->CurrentAddress);
 
 	NStatus = MlmeAllocateMemory(pAd, (PVOID)&pOutBuffer);  /*Get an unused nonpaged memory*/
@@ -1275,9 +1269,6 @@ VOID EnqueueTPCRep(
 
 	/* build action frame header.*/
 	MgtMacHeaderInit(pAd, &ActHdr, SUBTYPE_ACTION, 0, pDA,
-#ifdef P2P_SUPPORT
-						pAd->CurrentAddress,
-#endif /* P2P_SUPPORT */
 						pAd->CurrentAddress);
 
 	NStatus = MlmeAllocateMemory(pAd, (PVOID)&pOutBuffer);  /*Get an unused nonpaged memory*/
@@ -1303,6 +1294,100 @@ VOID EnqueueTPCRep(
 	return;
 }
 
+#ifdef WDS_SUPPORT
+/*
+	==========================================================================
+	Description:
+		Insert Channel Switch Announcement IE into frame.
+		
+	Parametrs:
+		1. frame buffer pointer.
+		2. frame length.
+		3. channel switch announcement mode.
+		4. new selected channel.
+		5. channel switch announcement count.
+	
+	Return	: None.
+	==========================================================================
+ */
+static VOID InsertChSwAnnIE(
+	IN PRTMP_ADAPTER pAd,
+	OUT PUCHAR pFrameBuf,
+	OUT PULONG pFrameLen,
+	IN UINT8 ChSwMode,
+	IN UINT8 NewChannel,
+	IN UINT8 ChSwCnt)
+{
+	ULONG TempLen;
+	ULONG Len = sizeof(CH_SW_ANN_INFO);
+	UINT8 ElementID = IE_CHANNEL_SWITCH_ANNOUNCEMENT;
+	CH_SW_ANN_INFO ChSwAnnIE;
+
+	ChSwAnnIE.ChSwMode = ChSwMode;
+	ChSwAnnIE.Channel = NewChannel;
+	ChSwAnnIE.ChSwCnt = ChSwCnt;
+
+	MakeOutgoingFrame(pFrameBuf,				&TempLen,
+						1,						&ElementID,
+						1,						&Len,
+						Len,					&ChSwAnnIE,
+						END_OF_ARGS);
+
+	*pFrameLen = *pFrameLen + TempLen;
+
+
+	return;
+}
+
+/*
+	==========================================================================
+	Description:
+		Prepare Channel Switch Announcement action frame and enqueue it into
+		management queue waiting for transmition.
+		
+	Parametrs:
+		1. the destination mac address of the frame.
+		2. Channel switch announcement mode.
+		2. a New selected channel.
+	
+	Return	: None.
+	==========================================================================
+ */
+VOID EnqueueChSwAnn(
+	IN PRTMP_ADAPTER pAd,
+	IN PUCHAR pDA, 
+	IN UINT8 ChSwMode,
+	IN UINT8 NewCh)
+{
+	PUCHAR pOutBuffer = NULL;
+	NDIS_STATUS NStatus;
+	ULONG FrameLen;
+
+	HEADER_802_11 ActHdr;
+
+	/* build action frame header.*/
+	MgtMacHeaderInit(pAd, &ActHdr, SUBTYPE_ACTION, 0, pDA,
+						pAd->CurrentAddress);
+
+	NStatus = MlmeAllocateMemory(pAd, (PVOID)&pOutBuffer);  /*Get an unused nonpaged memory*/
+	if(NStatus != NDIS_STATUS_SUCCESS)
+	{
+		DBGPRINT(RT_DEBUG_TRACE, ("%s() allocate memory failed \n", __FUNCTION__));
+		return;
+	}
+	NdisMoveMemory(pOutBuffer, (PCHAR)&ActHdr, sizeof(HEADER_802_11));
+	FrameLen = sizeof(HEADER_802_11);
+
+	InsertActField(pAd, (pOutBuffer + FrameLen), &FrameLen, CATEGORY_SPECTRUM, SPEC_CHANNEL_SWITCH);
+
+	InsertChSwAnnIE(pAd, (pOutBuffer + FrameLen), &FrameLen, ChSwMode, NewCh, 0);
+
+	MiniportMMRequest(pAd, QID_AC_BE, pOutBuffer, FrameLen);
+	MlmeFreeMemory(pAd, pOutBuffer);
+
+	return;
+}
+#endif /* WDS_SUPPORT */
 
 static BOOLEAN DfsRequirementCheck(
 	IN PRTMP_ADAPTER pAd,
@@ -1345,6 +1430,27 @@ VOID NotifyChSwAnnToPeerAPs(
 	IN UINT8 ChSwMode,
 	IN UINT8 Channel)
 {
+#ifdef WDS_SUPPORT
+	if (!((pRA[0] & 0xff) == 0xff)) /* is pRA a broadcase address.*/
+	{
+		INT i;
+		/* info neighbor APs that Radar signal found throgh WDS link.*/
+		for (i = 0; i < MAX_WDS_ENTRY; i++)
+		{
+			if (ValidWdsEntry(pAd, i))
+			{
+				PUCHAR pDA = pAd->WdsTab.WdsEntry[i].PeerWdsAddr;
+
+				/* DA equal to SA. have no necessary orignal AP which found Radar signal.*/
+				if (MAC_ADDR_EQUAL(pTA, pDA))
+					continue;
+
+				/* send Channel Switch Action frame to info Neighbro APs.*/
+				EnqueueChSwAnn(pAd, pDA, ChSwMode, Channel);
+			}
+		}
+	}
+#endif /* WDS_SUPPORT */
 }
 
 static VOID StartDFSProcedure(
@@ -1752,15 +1858,6 @@ static VOID PeerChSwAnnAction(
 		return;
 	}
 
-#ifdef CONFIG_AP_SUPPORT
-	/* ChSwAnn need check.*/
-	if ((pAd->OpMode == OPMODE_AP) &&
-		(DfsRequirementCheck(pAd, ChSwAnnInfo.Channel) == TRUE))
-	{
-		NotifyChSwAnnToPeerAPs(pAd, pFr->Hdr.Addr1, pFr->Hdr.Addr2, ChSwAnnInfo.ChSwMode, ChSwAnnInfo.Channel);
-		StartDFSProcedure(pAd, ChSwAnnInfo.Channel, ChSwAnnInfo.ChSwMode);
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	if (pAd->OpMode == OPMODE_STA)
@@ -2141,9 +2238,6 @@ INT Set_MeasureReq_Proc(
 
 	/* build action frame header.*/
 	MgtMacHeaderInit(pAd, &ActHdr, SUBTYPE_ACTION, 0, pAd->MacTab.Content[Aid].Addr,
-#ifdef P2P_SUPPORT
-						pAd->CurrentAddress,
-#endif /* P2P_SUPPORT */
 						pAd->CurrentAddress);
 
 	NdisMoveMemory(pOutBuffer, (PCHAR)&ActHdr, sizeof(HEADER_802_11));
@@ -2200,142 +2294,4 @@ INT Set_TpcReq_Proc(
 	return TRUE;
 }
 
-#ifdef CONFIG_AP_SUPPORT
-INT Set_PwrConstraint(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg)
-{
-
-typedef struct __PWR_CONSTRAIN_CFG
-{
-	CHAR Attenuation;
-	ULONG TxPowerPercentage;	
-} PWR_CONSTRAIN_CFG;
-
-	PWR_CONSTRAIN_CFG PwrConstrainTab[] =
-	{
-		{0, 100},
-		{1, 70},
-		{4, 50},
-		{6, 20},
-		{10, 10},
-		{13, 5}
-	};
-#define PWR_CONSTRAION_TAB_SIZE \
-	(sizeof(PwrConstrainTab)/sizeof(PWR_CONSTRAIN_CFG))
-
-	INT Idx;
-	LONG Value;
-	CHAR MaxTxPwr;
-	CHAR CurTxPwr;
-	CHAR DaltaPwr;
-
-	Value = (UINT) simple_strtol(arg, 0, 10);
-	MaxTxPwr = GetRegulatoryMaxTxPwr(pAd, pAd->CommonCfg.Channel) - (CHAR)Value;
-	CurTxPwr = RTMP_GetTxPwr(pAd, pAd->MacTab.Content[0].HTPhyMode);
-	DaltaPwr = CurTxPwr - MaxTxPwr;
-
-	if (pAd->CommonCfg.TxPowerPercentage > 90)
-		;
-	else if (pAd->CommonCfg.TxPowerPercentage > 60)	/* reduce Pwr for 1 dB. */
-		DaltaPwr += 1;
-	else if (pAd->CommonCfg.TxPowerPercentage > 30)	/* reduce Pwr for 3 dB. */
-		DaltaPwr += 3;
-	else if (pAd->CommonCfg.TxPowerPercentage > 15)	/* reduce Pwr for 6 dB. */
-		DaltaPwr += 6;
-	else if (pAd->CommonCfg.TxPowerPercentage > 9)	/* reduce Pwr for 9 dB. */
-		DaltaPwr += 9;
-	else											/* reduce Pwr for 12 dB. */
-		DaltaPwr += 12;
-
-	DBGPRINT(RT_DEBUG_OFF, ("MaxTxPwr=%d, CurTxPwr=%d, DaltaPwr=%d\n",
-				MaxTxPwr, CurTxPwr, DaltaPwr));
-
-	for (Idx = 0; Idx < PWR_CONSTRAION_TAB_SIZE; Idx++)
-	{
-		if (DaltaPwr < PwrConstrainTab[Idx].Attenuation)
-		{
-			pAd->CommonCfg.PwrConstraint = Value;
-			pAd->CommonCfg.TxPowerPercentage =
-					PwrConstrainTab[Idx].TxPowerPercentage;
-
-			break;
-		}
-	}
-
-	if (Idx == PWR_CONSTRAION_TAB_SIZE)
-	{
-		DBGPRINT(RT_DEBUG_ERROR, \
-			("Power constraint value be in range from 0 to 13dB\n"));
-	}
-
-
-	return TRUE;
-}
-
-
-static PDOT11_REGULATORY_INFORMATION GetRugClassRegion(
-	IN PSTRING pCountryCode,
-	IN UINT8 RugClass)
-{
-	PDOT11_REGULATORY_INFORMATION pRugClass;
-
-	pRugClass = NULL;
-	do
-	{
-		if (strncmp(pCountryCode, "US", 2) == 0)
-		{
-			if (RugClass >= USA_REGULATORY_INFO_SIZE)
-				break;
-			pRugClass = &USARegulatoryInfo[RugClass];
-		}
-
-		if (strncmp(pCountryCode, "JP", 2) == 0)
-		{
-			if (RugClass >= JP_REGULATORY_INFO_SIZE)
-				break;
-			pRugClass = &JapanRegulatoryInfo[RugClass];
-
-		}
-	} while (FALSE);
-
-	return pRugClass;
-}
-
-VOID RguClass_BuildBcnChList(
-	IN PRTMP_ADAPTER pAd,
-	OUT PUCHAR pBuf,
-	OUT	PULONG pBufLen)
-{
-	INT loop;
-	ULONG TmpLen;
-	PDOT11_REGULATORY_INFORMATION pRguClassRegion;
-	PDOT11_CHANNEL_SET pChList;
-
-	for (loop = 0 ;loop < MAX_NUM_OF_REGULATORY_CLASS; loop++)
-	{
-		if (pAd->CommonCfg.RegulatoryClass[loop] == 0)
-			break;
-
-		pRguClassRegion = GetRugClassRegion(
-							(PSTRING)pAd->CommonCfg.CountryCode,
-							pAd->CommonCfg.RegulatoryClass[loop]);
-
-		pChList = &pRguClassRegion->ChannelSet;
-
-		if (pRguClassRegion == NULL)
-			return;
-
-		MakeOutgoingFrame(pBuf + *pBufLen,		&TmpLen,
-							1,                 	&pChList->ChannelList[0],
-							1,                 	&pChList->NumberOfChannels,
-							1,                 	&pChList->MaxTxPwr,
-							END_OF_ARGS);
-
-		*pBufLen += TmpLen;
-	}
-
-	return;
-}
-#endif /* CONFIG_AP_SUPPORT */
 

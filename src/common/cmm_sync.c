@@ -1,38 +1,35 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
- * (c) Copyright 2002, Ralink Technology, Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Module Name:
-	cmm_sync.c
 
-	Abstract:
-
-	Revision History:
-	Who			When			What
-	--------	----------		----------------------------------------------
-	John Chang	2004-09-01      modified for rt2561/2661
-*/
 #include "rt_config.h"
 
 /*BaSizeArray follows the 802.11n definition as MaxRxFactor.  2^(13+factor) bytes. When factor =0, it's about Ba buffer size =8.*/
 UCHAR BaSizeArray[4] = {8,16,32,64};
 
-#ifdef P2P_SUPPORT
-extern UCHAR	WILDP2PSSID[];
-extern UCHAR	WILDP2PSSIDLEN;
-#endif /* P2P_SUPPORT */
 
 extern COUNTRY_REGION_CH_DESC Country_Region_ChDesc_2GHZ[];
 extern UINT16 const Country_Region_GroupNum_2GHZ;
@@ -157,9 +154,6 @@ VOID BuildChannelList(
 		if (num > 0)
 		{
 			UCHAR RadarCh[15]={52, 56, 60, 64, 100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140};
-#ifdef CONFIG_AP_SUPPORT
-			UCHAR q=0;
-#endif /* CONFIG_AP_SUPPORT */
 			os_alloc_mem(NULL, (UCHAR **)&pChannelList, num * sizeof(UCHAR));
 
 			if (!pChannelList)
@@ -183,42 +177,6 @@ VOID BuildChannelList(
 				pChannelListFlag[i] = GetChannelFlag(pChDesc, i);
 			}
 
-#ifdef CONFIG_AP_SUPPORT
-			for (i = 0; i < num; i++)
-			{
-				if((pAd->CommonCfg.bIEEE80211H == 0)|| ((pAd->CommonCfg.bIEEE80211H == 1) && (pAd->CommonCfg.RDDurRegion != FCC)))			 	
-				{
-					pChannelList[q] = GetChannel_5GHZ(pChDesc, i);
-					pChannelListFlag[q] = GetChannelFlag(pChDesc, i);
-					q++;
-				}
-				/*Based on the requiremnt of FCC, some channles could not be used anymore when test DFS function.*/
-				else if ((pAd->CommonCfg.bIEEE80211H == 1) &&
-						(pAd->CommonCfg.RDDurRegion == FCC) &&
-						(pAd->Dot11_H.bDFSIndoor == 1))
-				{
-					if((GetChannel_5GHZ(pChDesc, i) < 116) || (GetChannel_5GHZ(pChDesc, i) > 128))
-					{
-						pChannelList[q] = GetChannel_5GHZ(pChDesc, i);
-						pChannelListFlag[q] = GetChannelFlag(pChDesc, i);
-						q++;
-					}
-				}
-				else if ((pAd->CommonCfg.bIEEE80211H == 1) &&
-						(pAd->CommonCfg.RDDurRegion == FCC) &&
-						(pAd->Dot11_H.bDFSIndoor == 0))
-				{
-					if((GetChannel_5GHZ(pChDesc, i) < 100) || (GetChannel_5GHZ(pChDesc, i) > 140) )
-					{
-						pChannelList[q] = GetChannel_5GHZ(pChDesc, i);
-						pChannelListFlag[q] = GetChannelFlag(pChDesc, i);
-						q++;
-					}
-				}
-
-			}
-			num = q;
-#endif /* CONFIG_AP_SUPPORT */
 
 			for (i=0; i<num; i++)
 			{
@@ -313,36 +271,6 @@ UCHAR NextChannel(
 {
 	int i;
 	UCHAR next_channel = 0;
-#ifdef P2P_SUPPORT
-	UCHAR	CurrentChannel = channel;
-
-	if (pAd->MlmeAux.ScanType == SCAN_P2P_SEARCH)
-	{
-		if (IS_P2P_LISTEN(pAd))
-		{
-			DBGPRINT(RT_DEBUG_ERROR, ("Error !! P2P Discovery state machine has change to Listen state during scanning !\n"));
-			return next_channel;
-		}	
-
-		for (i = 0; i < (pAd->P2pCfg.P2pProprietary.ListenChanelCount - 1); i++)
-		{
-			if (CurrentChannel == pAd->P2pCfg.P2pProprietary.ListenChanel[i])
-				next_channel = pAd->P2pCfg.P2pProprietary.ListenChanel[i+1];				
-		}
-		P2P_INC_CHA_INDEX(pAd->P2pCfg.P2pProprietary.ListenChanelIndex, pAd->P2pCfg.P2pProprietary.ListenChanelCount);
-		if (next_channel == CurrentChannel)
-		{
-			DBGPRINT(RT_DEBUG_INFO, ("SYNC -  next_channel equals to CurrentChannel= %d\n", next_channel));
-			DBGPRINT(RT_DEBUG_INFO, ("SYNC -  ListenChannel List : %d  %d  %d\n", pAd->P2pCfg.P2pProprietary.ListenChanel[0], pAd->P2pCfg.P2pProprietary.ListenChanel[1], pAd->P2pCfg.P2pProprietary.ListenChanel[2]));
-
-			next_channel = 0;
-		}
-
-		DBGPRINT(RT_DEBUG_INFO, ("SYNC - P2P Scan return channel = %d.    Listen Channel = %d.\n", next_channel, pAd->CommonCfg.Channel));
-
-		return next_channel;
-	}
-#endif /* P2P_SUPPORT */
 			
 	for (i = 0; i < (pAd->ChannelListNum - 1); i++)
 	{
@@ -502,27 +430,4 @@ CHAR ConvertToSnr(RTMP_ADAPTER *pAd, UCHAR Snr)
 
 
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef DOT11_N_SUPPORT
-extern int DetectOverlappingPeriodicRound;
-
-VOID Handle_BSS_Width_Trigger_Events(
-	IN PRTMP_ADAPTER pAd) 
-{
-	ULONG Now32;
-	
-	if ((pAd->CommonCfg.HtCapability.HtCapInfo.ChannelWidth == BW_40) &&
-		(pAd->CommonCfg.Channel <=14))
-	{	
-		DBGPRINT(RT_DEBUG_TRACE, ("Rcv BSS Width Trigger Event: 40Mhz --> 20Mhz \n"));
-        NdisGetSystemUpTime(&Now32);
-		pAd->CommonCfg.LastRcvBSSWidthTriggerEventsTime = Now32;
-		pAd->CommonCfg.bRcvBSSWidthTriggerEvents = TRUE;
-		pAd->CommonCfg.AddHTInfo.AddHtInfo.RecomWidth = 0;	
-		pAd->CommonCfg.AddHTInfo.AddHtInfo.ExtChanOffset = 0;
-        DetectOverlappingPeriodicRound = 31;
-	}
-}
-#endif /* DOT11_N_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 

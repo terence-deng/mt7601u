@@ -1,33 +1,30 @@
 /*
- ***************************************************************************
+ *************************************************************************
  * Ralink Tech Inc.
- * 4F, No. 2 Technology 5th Rd.
- * Science-based Industrial Park
- * Hsin-chu, Taiwan, R.O.C.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
  *
- * (c) Copyright 2002-2004, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-	Module Name:
-	rt_config.h
 
-	Abstract:
-	Central header file to maintain all include files for all NDIS
-	miniport driver routines.
-
-	Revision History:
-	Who         When          What
-	--------    ----------    ----------------------------------------------
-	Paul Lin    08-01-2002    created
-
-*/
 #ifndef	__RT_CONFIG_H__
 #define	__RT_CONFIG_H__
 
@@ -64,9 +61,6 @@
 #include "wpa.h"
 #include "chlist.h"
 #include "spectrum.h"
-#ifdef CONFIG_AP_SUPPORT
-#include "ap_autoChSel.h"
-#endif /* CONFIG_AP_SUPPORT */
 #include "rt_os_util.h"
 
 #include "eeprom.h"
@@ -84,37 +78,10 @@
 #include "uapsd.h"
 #endif /* UAPSD_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-#ifdef MBSS_SUPPORT
-#include "ap_mbss.h"
-#endif /* MBSS_SUPPORT */
 
-
-#ifdef APCLI_SUPPORT
-#include "ap_apcli.h"
-#endif /* APCLI_SUPPORT */
-
-#ifdef WSC_AP_SUPPORT
-#define AP_WSC_INCLUDED
-#endif /* WSC_AP_SUPPORT */
-
-#include "ap_ids.h"
-#include "ap_cfg.h"
-
-#ifdef CLIENT_WDS
-#include "client_wds.h"
-#endif /* CLIENT_WDS */
-#endif /* CONFIG_AP_SUPPORT */
-
-#ifdef MAT_SUPPORT
-#include "mat.h"
-#endif /* MAT_SUPPORT */
 
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef WSC_STA_SUPPORT
-#define STA_WSC_INCLUDED
-#endif /* WSC_STA_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
 
 #ifdef BLOCK_NET_IF
@@ -141,15 +108,8 @@
 
 
 
-#ifdef WAPI_SUPPORT
-#include "wapi.h"
-#endif /* WAPI_SUPPORT */
 
 
-#ifdef DOT11Z_TDLS_SUPPORT
-#include "tdls.h"
-#include "tdls_uapsd.h"
-#endif /* DOT11Z_TDLS_SUPPORT */
 
 #if defined(AP_WSC_INCLUDED) || defined(STA_WSC_INCLUDED)
 #define WSC_INCLUDED
@@ -178,11 +138,6 @@
 
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef WSC_INCLUDED
-#include "crypt_biginteger.h"
-#include "crypt_dh.h"
-#include "wsc_tlv.h"
-#endif /* WSC_INCLUDED */
 
 
 #ifdef IKANOS_VX_1X0
@@ -193,15 +148,7 @@
 
 
 
-#ifdef WAPI_SUPPORT
-#include "wapi.h"
-#endif /* WAPI_SUPPORT */
 
-#ifdef P2P_SUPPORT
-/*#include "p2p_inf.h" */
-#include "p2p.h"
-#include "p2pcli.h"
-#endif /* P2P_SUPPORT */
 
 #ifdef WFD_SUPPORT
 #include "wfd.h"

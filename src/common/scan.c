@@ -1,13 +1,32 @@
 /*
+ *************************************************************************
+ * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
+ * Taiwan, R.O.C.
+ *
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-*/
 
 #include "rt_config.h"
 
-#ifdef P2P_SUPPORT
-extern UCHAR	WILDP2PSSID[];
-extern UCHAR	WILDP2PSSIDLEN;
-#endif /* P2P_SUPPORT */
 
 #ifdef SCAN_SUPPORT
 static INT scan_ch_restore(RTMP_ADAPTER *pAd, UCHAR OpMode)
@@ -117,39 +136,6 @@ static INT scan_ch_restore(RTMP_ADAPTER *pAd, UCHAR OpMode)
 	}
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-	if (OpMode == OPMODE_AP)
-	{
-#ifdef P2P_APCLI_SUPPORT
-		/* P2P CLIENT in WSC Scan or Re-Connect scanning. */
-		if (P2P_CLI_ON(pAd) && (ApScanRunning(pAd) == TRUE))
-		{
-			/*MlmeEnqueue(pAd, APCLI_CTRL_STATE_MACHINE, APCLI_CTRL_JOIN_REQ_TIMEOUT, 0, NULL, 0);*/
-			DBGPRINT(RT_DEBUG_INFO, ("%s::  Scan Done! reset APCLI CTRL State Machine!\n", __FUNCTION__));
-			pAd->ApCfg.ApCliTab[0].CtrlCurrState = APCLI_CTRL_DISCONNECTED;
-		}
-#endif /* P2P_APCLI_SUPPORT */
-
-		pAd->Mlme.ApSyncMachine.CurrState = AP_SYNC_IDLE;
-		RTMPResumeMsduTransmission(pAd);
-
-		/* iwpriv set auto channel selection*/
-		/* scanned all channels*/
-		if (pAd->ApCfg.bAutoChannelAtBootup==TRUE)
-		{
-			pAd->CommonCfg.Channel = SelectBestChannel(pAd, pAd->ApCfg.AutoChannelAlg);
-			pAd->ApCfg.bAutoChannelAtBootup = FALSE;
-#ifdef DOT11_N_SUPPORT
-			N_ChannelCheck(pAd);
-#endif /* DOT11_N_SUPPORT */
-			APStop(pAd);
-			APStartUp(pAd);
-		}
-
-		if (!((pAd->CommonCfg.Channel > 14) && (pAd->CommonCfg.bIEEE80211H == TRUE)))
-			AsicEnableBssSync(pAd);
-	}
-#endif /* CONFIG_AP_SUPPORT */
 
 
 	return TRUE;
@@ -180,10 +166,6 @@ static INT scan_active(RTMP_ADAPTER *pAd, UCHAR OpMode, UCHAR ScanType)
 		}
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-		if (OpMode == OPMODE_AP)
-			pAd->Mlme.ApSyncMachine.CurrState = AP_SYNC_IDLE;
-#endif /* CONFIG_AP_SUPPORT */
 		return FALSE;
 	}
 
@@ -199,70 +181,15 @@ static INT scan_active(RTMP_ADAPTER *pAd, UCHAR OpMode, UCHAR ScanType)
 	/* There is no need to send broadcast probe request if active scan is in effect.*/
 	SsidLen = 0;
 	if ((ScanType == SCAN_ACTIVE) || (ScanType == FAST_SCAN_ACTIVE)
-#ifdef WSC_STA_SUPPORT
-		|| ((ScanType == SCAN_WSC_ACTIVE) && (OpMode == OPMODE_STA))
-#endif /* WSC_STA_SUPPORT */
 		)
 		SsidLen = pAd->MlmeAux.SsidLen;
 
-#ifdef P2P_SUPPORT
-	if ((pAd->MlmeAux.ScanType == SCAN_P2P) || (pAd->MlmeAux.ScanType == SCAN_P2P_SEARCH)
-#ifdef P2P_APCLI_SUPPORT
-		 || ((pAd->MlmeAux.ScanType == SCAN_WSC_ACTIVE) && (OpMode == OPMODE_AP) && (P2P_CLI_ON(pAd)))
-#endif /* P2P_APCLI_SUPPORT */
-	)
 	{
-		PRT_P2P_CONFIG pP2PCtrl = &pAd->P2pCfg;
-		UCHAR		SupRate[MAX_LEN_OF_SUPPORTED_RATES];
-		UCHAR		SupRateLen = 0;
-
-		SsidLen = WILDP2PSSIDLEN; /* Use Wildword SSID */
-		SupRate[0]	= 0x8C;    /* 6 mbps, in units of 0.5 Mbps, basic rate */
-		SupRate[1]	= 0x12;    /* 9 mbps, in units of 0.5 Mbps */
-		SupRate[2]	= 0x98;    /* 12 mbps, in units of 0.5 Mbps, basic rate */
-		SupRate[3]	= 0x24;    /* 18 mbps, in units of 0.5 Mbps */
-		SupRate[4]	= 0xb0;    /* 24 mbps, in units of 0.5 Mbps, basic rate */
-		SupRate[5]	= 0x48;    /* 36 mbps, in units of 0.5 Mbps */
-		SupRate[6]	= 0x60;    /* 48 mbps, in units of 0.5 Mbps */
-		SupRate[7]	= 0x6c;    /* 54 mbps, in units of 0.5 Mbps */
-		SupRateLen	= 8;
-		/* P2P scan must use P2P mac address. */
-		MgtMacHeaderInit(pAd, &Hdr80211, SUBTYPE_PROBE_REQ, 0, BROADCAST_ADDR,
-							pP2PCtrl->CurrentAddress,
-							BROADCAST_ADDR);
-
-		MakeOutgoingFrame(frm_buf,				&FrameLen,
-							sizeof(HEADER_802_11),	&Hdr80211,
-							1,						&SsidIe,
-							1,						&SsidLen,
-							SsidLen,					&WILDP2PSSID[0],
-							1,						&SupRateIe,
-							1,						&SupRateLen,
-							SupRateLen, 			SupRate, 
-							END_OF_ARGS);
-	}
-	else
-#endif /* P2P_SUPPORT */
-	{
-#ifdef CONFIG_AP_SUPPORT
-		/*IF_DEV_CONFIG_OPMODE_ON_AP(pAd) */
-		if (OpMode == OPMODE_AP)
-		{
-			MgtMacHeaderInit(pAd, &Hdr80211, SUBTYPE_PROBE_REQ, 0, BROADCAST_ADDR, 
-#ifdef P2P_SUPPORT
-								pAd->ApCfg.MBSSID[0].Bssid,
-#endif /* P2P_SUPPORT */
-								pAd->ApCfg.MBSSID[0].Bssid);
-		}
-#endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
 		/*IF_DEV_CONFIG_OPMODE_ON_STA(pAd) */
 		if (OpMode == OPMODE_STA)
 		{
 			MgtMacHeaderInit(pAd, &Hdr80211, SUBTYPE_PROBE_REQ, 0, BROADCAST_ADDR, 
-#ifdef P2P_SUPPORT
-								pAd->CurrentAddress,
-#endif /* P2P_SUPPORT */
 								BROADCAST_ADDR);
 		}
 #endif /* CONFIG_STA_SUPPORT */
@@ -387,57 +314,6 @@ static INT scan_active(RTMP_ADAPTER *pAd, UCHAR OpMode, UCHAR ScanType)
 	}
 #endif /* DOT11_VHT_AC */
 
-#ifdef WSC_STA_SUPPORT
-	if (OpMode == OPMODE_STA)
-	{
-		BOOLEAN bHasWscIe = FALSE;
-		/* 
-			Append WSC information in probe request if WSC state is running
-		*/
-		if ((pAd->StaCfg.WscControl.WscEnProbeReqIE) && 
-			(pAd->StaCfg.WscControl.WscConfMode != WSC_DISABLE) &&
-			(pAd->StaCfg.WscControl.bWscTrigger == TRUE))
-			bHasWscIe = TRUE;
-#ifdef WSC_V2_SUPPORT
-		else if ((pAd->StaCfg.WscControl.WscEnProbeReqIE) && 
-			(pAd->StaCfg.WscControl.WscV2Info.bEnableWpsV2))
-			bHasWscIe = TRUE;
-#endif /* WSC_V2_SUPPORT */
-
-#ifdef P2P_SUPPORT
-	/* 
-		P2pMakeProbeReqIE will build WSC IE for P2P, 
-		it is not good to append normal WSC IE into P2P probe request frame here.
-	*/
-	if ((pAd->MlmeAux.ScanType == SCAN_P2P) || (pAd->MlmeAux.ScanType == SCAN_P2P_SEARCH) ||
-		((pAd->MlmeAux.ScanType == SCAN_WSC_ACTIVE) && (OpMode == OPMODE_AP) && (P2P_CLI_ON(pAd))))
-		bHasWscIe = FALSE;
-#endif /* P2P_SUPPORT */
-
-		if (bHasWscIe)
-		{
-			UCHAR *pWscBuf = NULL, WscIeLen = 0;
-			ULONG WscTmpLen = 0;
-
-			os_alloc_mem(NULL, (UCHAR **)&pWscBuf, 512);
-			if (pWscBuf != NULL)
-			{
-				NdisZeroMemory(pWscBuf, 512);
-				WscBuildProbeReqIE(pAd, STA_MODE, pWscBuf, &WscIeLen);
-
-				MakeOutgoingFrame(frm_buf + FrameLen,              &WscTmpLen,
-								WscIeLen,                             pWscBuf,
-								END_OF_ARGS);
-
-				FrameLen += WscTmpLen;
-				os_free_mem(NULL, pWscBuf);
-			}
-			else
-				DBGPRINT(RT_DEBUG_WARN, ("%s:: WscBuf Allocate failed!\n", __FUNCTION__));
-		}
-	}
-
-#endif /* WSC_STA_SUPPORT */
 
 #ifdef WPA_SUPPLICANT_SUPPORT
 	if ((OpMode == OPMODE_STA) &&
@@ -454,54 +330,6 @@ static INT scan_active(RTMP_ADAPTER *pAd, UCHAR OpMode, UCHAR ScanType)
 	}
 #endif /* WPA_SUPPLICANT_SUPPORT */
 
-#ifdef P2P_SUPPORT
-	if ((pAd->MlmeAux.ScanType == SCAN_P2P) || (pAd->MlmeAux.ScanType == SCAN_P2P_SEARCH)
-#ifdef P2P_APCLI_SUPPORT
-		|| ((pAd->MlmeAux.ScanType == SCAN_WSC_ACTIVE) && (OpMode == OPMODE_AP) && (P2P_CLI_ON(pAd)))
-#endif /* P2P_APCLI_SUPPORT */
-	)
-	{
-		ULONG P2PIeLen;
-		UCHAR tmp_len;
-		PUCHAR ptr;
-		ptr = frm_buf + FrameLen;
-		P2pMakeProbeReqIE(pAd, ptr, &tmp_len);
-		FrameLen += tmp_len;
-		
-		/* Put P2P IE to the last. */
-		ptr = frm_buf + FrameLen;
-		P2pMakeP2pIE(pAd, SUBTYPE_PROBE_REQ, ptr, &P2PIeLen);
-
-		FrameLen += P2PIeLen;
-#ifdef WFD_SUPPORT
-		{
-			ULONG	WfdIeBitmap;
-			
-			ptr = frm_buf + FrameLen;
-			WfdIeBitmap = (0x1 << SUBID_WFD_DEVICE_INFO) | (0x1 << SUBID_WFD_ASSOCIATED_BSSID) |
-				(0x1 << SUBID_WFD_COUPLED_SINK_INFO);
-			WfdMakeWfdIE(pAd, WfdIeBitmap, ptr, &P2PIeLen);
-			FrameLen += P2PIeLen;
-		}
-#endif /* WFD_SUPPORT */
-	}
-#ifdef WFD_SUPPORT
-#ifdef RT_CFG80211_SUPPORT
-	else if (pAd->StaCfg.WfdCfg.bSuppInsertWfdIe)
-	{
-		ULONG	WfdIeLen, WfdIeBitmap;
-		PUCHAR	ptr;
-		
-		ptr = frm_buf + FrameLen;
-		WfdIeBitmap = (0x1 << SUBID_WFD_DEVICE_INFO) | (0x1 << SUBID_WFD_ASSOCIATED_BSSID) |
-			(0x1 << SUBID_WFD_COUPLED_SINK_INFO);
-		WfdMakeWfdIE(pAd, WfdIeBitmap, ptr, &WfdIeLen);
-		FrameLen += WfdIeLen;
-	}
-#endif /* RT_CFG80211_SUPPORT */
-#endif /* WFD_SUPPORT */
-
-#endif /* P2P_SUPPORT */
 
 	MiniportMMRequest(pAd, 0, frm_buf, FrameLen);
 
@@ -649,11 +477,6 @@ VOID ScanNextChannel(
 			pAd->StaCfg.ScanChannelCnt++;
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef CONFIG_AP_SUPPORT
-			if ((OpMode == OPMODE_AP) && (pAd->ApCfg.bAutoChannelAtBootup))
-				stay_time = AUTO_CHANNEL_SEL_TIMEOUT;
-			else
-#endif /* CONFIG_AP_SUPPORT */
 			if (WMODE_CAP_2G(pAd->CommonCfg.PhyMode) &&
 				WMODE_CAP_5G(pAd->CommonCfg.PhyMode))
 			{
@@ -685,10 +508,6 @@ VOID ScanNextChannel(
 		if (OpMode == OPMODE_STA)
 			pAd->Mlme.SyncMachine.CurrState = SCAN_LISTEN;
 #endif /* CONFIG_STA_SUPPORT */
-#ifdef CONFIG_AP_SUPPORT
-		if (OpMode == OPMODE_AP)
-			pAd->Mlme.ApSyncMachine.CurrState = AP_SCAN_LISTEN;
-#endif /* CONFIG_AP_SUPPORT */
 	}
 }
 
@@ -699,28 +518,12 @@ BOOLEAN ScanRunning(
 	BOOLEAN	rv = FALSE;
 
 #ifdef CONFIG_STA_SUPPORT
-#ifdef P2P_SUPPORT
-		rv = ((pAd->Mlme.ApSyncMachine.CurrState == AP_SCAN_LISTEN) ? TRUE : FALSE);
-
-		if (rv == FALSE)
-		{
-			if ((pAd->Mlme.SyncMachine.CurrState == SCAN_LISTEN) || (pAd->Mlme.SyncMachine.CurrState == SCAN_PENDING))
-				rv = TRUE;
-		}
-#else
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		{
 			if ((pAd->Mlme.SyncMachine.CurrState == SCAN_LISTEN) || (pAd->Mlme.SyncMachine.CurrState == SCAN_PENDING))
 				rv = TRUE;
 		}
-#endif /* P2P_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */
-#ifdef CONFIG_AP_SUPPORT
-#ifdef AP_SCAN_SUPPORT
-		IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
-			rv = ((pAd->Mlme.ApSyncMachine.CurrState == AP_SCAN_LISTEN) ? TRUE : FALSE);
-#endif /* AP_SCAN_SUPPORT */
-#endif /* CONFIG_AP_SUPPORT */
 
 	return rv;
 }

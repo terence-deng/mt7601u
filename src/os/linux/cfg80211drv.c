@@ -1,26 +1,29 @@
-/****************************************************************************
+/*
+ *************************************************************************
  * Ralink Tech Inc.
+ * 5F., No.36, Taiyuan St., Jhubei City,
+ * Hsinchu County 302,
  * Taiwan, R.O.C.
  *
- * (c) Copyright 2002, Ralink Technology, Inc.
+ * (c) Copyright 2002-2010, Ralink Technology, Inc.
  *
- * All rights reserved. Ralink's source code is an unpublished work and the
- * use of a copyright notice does not imply otherwise. This source code
- * contains confidential trade secret material of Ralink Tech. Any attemp
- * or participation in deciphering, decoding, reverse engineering or in any
- * way altering the source code is stricitly prohibited, unless the prior
- * written consent of Ralink Technology, Inc. is obtained.
- ***************************************************************************/
+ * This program is free software; you can redistribute it and/or modify  *
+ * it under the terms of the GNU General Public License as published by  *
+ * the Free Software Foundation; either version 2 of the License, or     *
+ * (at your option) any later version.                                   *
+ *                                                                       *
+ * This program is distributed in the hope that it will be useful,       *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ * GNU General Public License for more details.                          *
+ *                                                                       *
+ * You should have received a copy of the GNU General Public License     *
+ * along with this program; if not, write to the                         *
+ * Free Software Foundation, Inc.,                                       *
+ * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                       *
+ *************************************************************************/
 
-/****************************************************************************
-
-	Abstract:
-
-	All related CFG80211 function body.
-
-	History:
-
-***************************************************************************/
 
 #ifdef RT_CFG80211_SUPPORT
 
@@ -1136,56 +1139,6 @@ BOOLEAN CFG80211DRV_StaGet(
 
 	pIbssInfo = (CMD_RTPRIV_IOCTL_80211_STA *)pData;
 
-#ifdef CONFIG_AP_SUPPORT
-{
-	MAC_TABLE_ENTRY *pEntry;
-	ULONG DataRate = 0;
-	UINT32 RSSI;
-
-
-	pEntry = MacTableLookup(pAd, pIbssInfo->MAC);
-	if (pEntry == NULL)
-		return FALSE;
-	/* End of if */
-
-	/* fill tx rate */
-	getRate(pEntry->HTPhyMode, &DataRate);
-
-	if ((pEntry->HTPhyMode.field.MODE == MODE_HTMIX) ||
-		(pEntry->HTPhyMode.field.MODE == MODE_HTGREENFIELD))
-	{
-		if (pEntry->HTPhyMode.field.BW)
-			pIbssInfo->TxRateFlags |= RT_CMD_80211_TXRATE_BW_40;
-		/* End of if */
-		if (pEntry->HTPhyMode.field.ShortGI)
-			pIbssInfo->TxRateFlags |= RT_CMD_80211_TXRATE_SHORT_GI;
-		/* End of if */
-
-		pIbssInfo->TxRateMCS = pEntry->HTPhyMode.field.MCS;
-	}
-	else
-	{
-		pIbssInfo->TxRateFlags = RT_CMD_80211_TXRATE_LEGACY;
-		pIbssInfo->TxRateMCS = DataRate*1000; /* unit: 100kbps */
-	} /* End of if */
-
-	/* fill signal */
-	RSSI = (pEntry->RssiSample.AvgRssi0 +
-			pEntry->RssiSample.AvgRssi1 +
-			pEntry->RssiSample.AvgRssi2) / 3;
-	pIbssInfo->Signal = RSSI;
-
-	/* fill tx count */
-	pIbssInfo->TxPacketCnt = pEntry->OneSecTxNoRetryOkCount + 
-						pEntry->OneSecTxRetryOkCount + 
-						pEntry->OneSecTxFailCount;
-
-	/* fill inactive time */
-	pIbssInfo->InactiveTime = pEntry->NoDataIdleCount * 1000; /* unit: ms */
-	pIbssInfo->InactiveTime *= MLME_TASK_EXEC_MULTIPLE;
-	pIbssInfo->InactiveTime /= 20;
-}
-#endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 {
