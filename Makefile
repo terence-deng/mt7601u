@@ -1,8 +1,5 @@
 all:
-	make -C src/ osutil
-	make -C src/ build_tools
-	make -C src/ osdrv
-	make -C src/ osnet
+	make -C src/ all
 
 clean:
 	make -C src/ clean

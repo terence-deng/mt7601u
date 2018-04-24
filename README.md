@@ -27,13 +27,6 @@ Fetch source code
 cd ~ && git clone https://github.com/terence-deng/mt7601u.git
 ```
 
-Fetch mt7601u.bin
-```Bash
-cd ~/mt7601u && mkdir -p src/mcu/bin && \
-wget -c 'http://git.kernel.org/cgit/linux/kernel/git/firmware/linux-firmware.git/plain/mt7601u.bin' \
--O 'src/mcu/bin/MT7601.bin'
-```
-
 Build Driver
 =======
 Start build
