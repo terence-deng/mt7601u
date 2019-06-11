@@ -3,7 +3,7 @@ mt7601u
 
 Ralink Wireless Adapter Driver
 
-This driver is not for kernel 4.x
+This driver can be built in Ubuntu/Trusty (Kernel: 4.4.0-101-generic)
 
 Build Status
 =======
