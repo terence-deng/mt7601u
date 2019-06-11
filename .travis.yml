@@ -16,3 +16,9 @@ install: true
 script:
   - make clean
   - make all
+  - sudo insmod src/os/linux/mtutil7601Usta.ko
+  - sudo insmod src/os/linux/mt7601Usta.ko
+  - sudo insmod src/os/linux/mtnet7601Usta.ko
+  - sudo rmmod mtnet7601Usta
+  - sudo rmmod mt7601Usta
+  - sudo rmmod mtutil7601Usta
